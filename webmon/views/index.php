@@ -273,9 +273,7 @@ if (($current_view ?? 'card') === 'log') {
                             $result_badge_class = $log_row['result'] > 0 
                                 ? 'bg-green-50 dark:bg-green-900/20 text-green-500 border border-green-200 dark:border-green-800' 
                                 : 'bg-red-50 dark:bg-rose-900/20 text-red-500 border border-red-200 dark:border-rose-800';
-                            $result_text = $log_row['result'] > 0 
-                                ? ($current_lang == 'KO' ? '정상' : 'Success') 
-                                : ($current_lang == 'KO' ? '장애' : 'Failure');
+                            $result_text = $log_row['result'] > 0 ? $t['v_success'] : $t['v_fail'];
                             $result_icon = $log_row['result'] > 0 ? 'fa-check-circle' : 'fa-exclamation-circle';
                         ?>
                             <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all overflow-hidden text-[13px]">
