@@ -74,7 +74,7 @@ def parse_whois_expiry(output: str) -> str | None:
     raw = re.sub(r"T.*$", "", raw)
     try:
         ts = datetime.strptime(raw[:10], "%Y-%m-%d")
-        return ts.strftime("%Y-%m-%d 00:00:00")
+        return ts.strftime("%Y-%m-%d")
     except ValueError:
         return None
 
@@ -83,13 +83,11 @@ def parse_whois_expiry(output: str) -> str | None:
 
 async def _check_ssl(host: str) -> str | None:
     """호스트의 SSL 인증서 만료일을 반환합니다."""
+    # 1. Python standard SSL library (CERT_REQUIRED)
     try:
         ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-
         reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(host, 443, ssl=ctx),
+            asyncio.open_connection(host, 443, ssl=ctx, server_hostname=host),
             timeout=10,
         )
         cert = writer.get_extra_info("ssl_object").getpeercert()
@@ -98,9 +96,26 @@ async def _check_ssl(host: str) -> str | None:
 
         if cert and "notAfter" in cert:
             expiry = datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
-            return expiry.strftime("%Y-%m-%d %H:%M:%S")
+            return expiry.strftime("%Y-%m-%d")
     except Exception as e:
-        log.debug(f"SSL 체크 실패 {host}: {e}")
+        log.debug(f"SSL CERT_REQUIRED 시도 실패 {host}: {e}")
+
+    # 2. Fallback: openssl subprocess (인증서 만료 또는 Self-signed 등 대응)
+    try:
+        cmd = f"openssl s_client -connect {host}:443 -servername {host} -showcerts < /dev/null 2>/dev/null | openssl x509 -noout -enddate"
+        proc = await asyncio.create_subprocess_shell(
+            cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10)
+        output = stdout.decode("utf-8", errors="replace").strip()
+        if output.startswith("notAfter="):
+            raw_date = output.split("=", 1)[1].strip()
+            expiry = datetime.strptime(raw_date, "%b %d %H:%M:%S %Y %Z")
+            return expiry.strftime("%Y-%m-%d")
+    except Exception as e:
+        log.debug(f"SSL openssl fallback 실패 {host}: {e}")
     return None
 
 
