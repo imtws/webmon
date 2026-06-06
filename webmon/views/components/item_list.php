@@ -59,4 +59,7 @@
     <div class="relative w-full h-[180px] bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-3 shadow-inner">
         <canvas id="chart-canvas-<?=$row['no']?>" class="w-full h-full"></canvas>
     </div>
+    <div class="text-[9px] text-[var(--text-sub)] opacity-70 text-right -mt-2">
+        <i class="fas fa-info-circle"></i> <?= $current_lang == 'KO' ? '조회 기간이 길어지면 다운샘플링이 적용되어 그래프 수치가 실제와 일부 다를 수 있습니다.' : 'Downsampling is applied for longer query ranges; trend values may slightly deviate from raw logs.' ?>
+    </div>
 </div>

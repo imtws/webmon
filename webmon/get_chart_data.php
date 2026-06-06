@@ -82,6 +82,43 @@ while ($row = $res->fetch_assoc()) {
 
 $stmt->close();
 
+// 📈 로그 다운샘플링 (최대 300포인트로 압축하여 차트 버벅임 및 메모리 낭비 예방)
+$total_count = count($data);
+$max_points = 300;
+
+if ($total_count > $max_points) {
+    $downsampled = [];
+    $bucket_size = $total_count / $max_points;
+
+    for ($i = 0; $i < $max_points; $i++) {
+        $start_idx = (int)floor($i * $bucket_size);
+        $end_idx = (int)floor(($i + 1) * $bucket_size) - 1;
+        if ($end_idx >= $total_count) {
+            $end_idx = $total_count - 1;
+        }
+
+        $sum_rt = 0;
+        $min_res = 1; // 1 = 성공, 0 = 실패 (구간 중 한 번이라도 실패하면 실패 처리하여 가시성 확보)
+        $bucket_count = 0;
+
+        for ($j = $start_idx; $j <= $end_idx; $j++) {
+            $sum_rt += $data[$j]['response_time'];
+            if ($data[$j]['result'] === 0) {
+                $min_res = 0;
+            }
+            $bucket_count++;
+        }
+
+        $mid_idx = (int)floor(($start_idx + $end_idx) / 2);
+        $downsampled[] = [
+            'time' => $data[$mid_idx]['time'],
+            'response_time' => $bucket_count > 0 ? (float)($sum_rt / $bucket_count) : 0.0,
+            'result' => $min_res
+        ];
+    }
+    $data = $downsampled;
+}
+
 echo json_encode($data);
 exit;
 ?>
