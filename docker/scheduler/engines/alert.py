@@ -7,7 +7,8 @@ PHP alert_engine.php 의 Python asyncio 변환본.
   1. monitor_conf 에서 check != 'disable' 대상 전체 로드
   2. asyncio.gather 로 전체 동시 실행 (lynx 또는 curl subprocess)
   3. 실패 + retry_count > 1 인 건 1초 후 재시도
-  4. check = 'alarm' 이고 결과 0 인 건 텔레그램 발송
+  4. DB monitor_log 테이블에 시계열 로그 인서트
+  5. check = 'alarm' 이고 결과 0 인 건 텔레그램 및 이메일 발송 (무음 스케줄링 처리 적용)
 """
 
 import asyncio
@@ -18,8 +19,8 @@ from datetime import datetime
 
 import aiomysql
 
-from .db import get_pool
-from .notify import send_telegram
+from .db import get_pool, load_system_settings
+from .notify import send_telegram, send_email
 
 log = logging.getLogger("webmon.alert")
 
@@ -28,6 +29,29 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) WebMon/2.1"
 
 # 동시 실행 상한 (sysctl fs.pipe 등 고려)
 CONCURRENCY = int(os.environ.get("ALERT_CONCURRENCY", 60))
+
+
+# ── 무음 스케줄 판별 ──────────────────────────────────────────────────
+
+def is_muted(settings: dict) -> bool:
+    """DB 무음 스케줄 설정을 확인하여 현재 무음 상태인지 반환합니다."""
+    if settings.get("mute_enabled", "0") != "1":
+        return False
+    try:
+        start_str = settings.get("mute_start_time", "22:00").strip()
+        end_str = settings.get("mute_end_time", "07:00").strip()
+
+        now = datetime.now().time()
+        start = datetime.strptime(start_str, "%H:%M").time()
+        end = datetime.strptime(end_str, "%H:%M").time()
+
+        if start <= end:
+            return start <= now <= end
+        else:  # 예: 22:00 ~ 07:00 (자정 걸침)
+            return now >= start or now <= end
+    except Exception as e:
+        log.error(f"무음 시간 계산 실패: {e}")
+        return False
 
 
 # ── subprocess 실행 ────────────────────────────────────────────────────
@@ -82,25 +106,30 @@ async def _fetch(row: dict, sem: asyncio.Semaphore) -> dict:
         return {"no": no, "val": val, "elapsed": elapsed, "row": row}
 
 
-# ── DB 결과 저장 ──────────────────────────────────────────────────────
+# ── DB 결과 저장 및 로그 적재 ──────────────────────────────────────────
 
 async def _save_results(pool, results: list[dict]):
-    sql = "UPDATE monitor_conf SET value=%s, response_time=%s, mod_date=NOW() WHERE no=%s"
+    """monitor_conf 업데이트 및 monitor_log 테이블에 시계열 저장."""
+    sql_conf = "UPDATE monitor_conf SET value=%s, response_time=%s, mod_date=NOW() WHERE no=%s"
+    sql_log = "INSERT INTO monitor_log (monitor_conf_no, req_url, response_time, result) VALUES (%s, %s, %s, %s)"
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.executemany(
-                sql,
+                sql_conf,
                 [(r["val"], round(r["elapsed"], 3), r["no"]) for r in results],
+            )
+            await cur.executemany(
+                sql_log,
+                [(r["no"], r["row"]["url"], round(r["elapsed"], 3), r["val"]) for r in results],
             )
 
 
-# ── 로그 기록 ─────────────────────────────────────────────────────────
+# ── 텍스트 파일 로그 기록 ──────────────────────────────────────────────
 
 def _write_log(results: list[dict]):
     log_path = "/app/logs/alert_engine.log"
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     try:
-        # 50MB 롤오버
         if os.path.exists(log_path) and os.path.getsize(log_path) >= 50 * 1024 * 1024:
             os.rename(log_path, log_path + ".old")
         with open(log_path, "a") as f:
@@ -111,7 +140,7 @@ def _write_log(results: list[dict]):
                     f"{r['row']['url']} ({r['elapsed']:.3f}s)\n"
                 )
     except Exception as e:
-        log.warning(f"로그 기록 실패: {e}")
+        log.warning(f"로그 파일 기록 실패: {e}")
 
 
 # ── 메인 ──────────────────────────────────────────────────────────────
@@ -119,6 +148,8 @@ def _write_log(results: list[dict]):
 async def run_alert():
     log.info("[alert] ▶ 시작")
     t0 = time.monotonic()
+
+    settings = await load_system_settings()
 
     async with get_pool() as pool:
         # 대상 로드
@@ -154,7 +185,7 @@ async def run_alert():
             retry_map = {r["no"]: r for r in retry_results}
             results = [retry_map.get(r["no"], r) for r in results]
 
-        # 알람 발송
+        # 알람 전송 필터링
         alert_lines = []
         action_lines = []
         for r in results:
@@ -168,7 +199,13 @@ async def run_alert():
                 )
 
         if alert_lines:
+            # 무음 판별
+            if is_muted(settings):
+                log.info("[alert] 🚨 장애가 감지되었으나, 무음 시간대 설정이 적용되어 알림을 건너뜁니다.")
+                return
+
             now = datetime.now().strftime("%Y-%m-%d | %I:%M:%S%p")
+            web_url = settings.get("webmon_url", WEBMON_URL)
             msg = "\n".join([
                 "🚨 [WebSiteMonitor 알람발생]",
                 "",
@@ -180,12 +217,17 @@ async def run_alert():
                 "\n".join(action_lines),
                 "--------------------------------------------------------------",
                 "",
-                f"🔗 웹사이트 모니터링 : {WEBMON_URL}",
+                f"🔗 웹사이트 모니터링 : {web_url}",
             ])
-            await send_telegram(msg)
-            log.info(f"[alert] ✅ {len(alert_lines)}건 알람 발송")
+
+            # 텔레그램 발송
+            await send_telegram(msg, settings)
+            # 이메일 발송
+            await send_email("🚨 [WebSiteMonitor] 장애 발생 알림", msg, settings)
+            log.info(f"[alert] ✅ {len(alert_lines)}건 알람 발송 완료 (Telegram/Email)")
         else:
             log.info("[alert] ✅ 이상 없음")
 
     elapsed = time.monotonic() - t0
     log.info(f"[alert] 완료 ({elapsed:.1f}s, {len(targets)}개 대상)")
+

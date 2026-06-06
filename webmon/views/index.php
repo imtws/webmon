@@ -10,6 +10,7 @@ ini_set('display_errors', '1');
     <title><?= $t['logo'] ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <link rel="stylesheet" href="../assets/css/style.css?v=<?=time()?>">
     <script>
@@ -18,6 +19,13 @@ ini_set('display_errors', '1');
     </script>
 </head>
 <body class="m-0 p-0 text-[var(--text-main)] transition-colors duration-200">
+
+    <?php if (getenv('DB_PASS') === 'your_secure_password_here' || empty(getenv('DB_PASS'))): ?>
+    <div class="w-full bg-gradient-to-r from-red-600 to-orange-500 text-white px-8 py-3 text-center text-sm font-extrabold flex justify-center items-center gap-2 shadow-md">
+        <i class="fas fa-shield-alt animate-bounce"></i>
+        <span><?= $current_lang == 'KO' ? '보안 경고: 현재 기본/비어있는 DB 비밀번호가 사용 중입니다! .env 파일의 DB_PASS를 수정하고 컨테이너를 재시작해 주세요.' : 'Security Warning: Default or empty DB password is in use! Please update DB_PASS in .env and restart containers.' ?></span>
+    </div>
+    <?php endif; ?>
 
     <div id="headerSticky" class="sticky top-0 z-[100] w-full bg-[var(--bg-color)] shadow-sm border-b border-[var(--border-color)]">
         <div class="px-8 pt-8 pb-3">
@@ -51,6 +59,9 @@ ini_set('display_errors', '1');
                                 <div onclick="toggleTheme('light')" class="switch-btn <?= $current_theme == 'light' ? 'active' : '' ?>"><i class="fas fa-sun"></i></div>
                                 <div onclick="toggleTheme('dark')" class="switch-btn <?= $current_theme == 'dark' ? 'active' : '' ?>"><i class="fas fa-moon"></i></div>
                             </div>
+                            <button type="button" onclick="openSettingsModal()" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-[#18aee7] hover:text-[#18aee7] transition-all ml-1 shadow-sm" title="Settings">
+                                <i class="fas fa-cog text-sm"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -193,8 +204,258 @@ ini_set('display_errors', '1');
         </div>
     </div>
 
+    </div>
+
+    <!-- ⚙️ 환경 설정 모달 ────────────────────────────────────────────── -->
+    <div id="settingsModal" class="fixed inset-0 z-[1000] hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-[var(--card-bg)] border border-[var(--border-color)] w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-sliders text-[#18aee7]"></i> <?= $current_lang == 'KO' ? '모니터링 프로그램 환경 설정' : 'System Configuration' ?></h3>
+                <i class="fas fa-times cursor-pointer hover:text-red-500" onclick="closeSettingsModal()"></i>
+            </div>
+            
+            <form action="save_settings.php" method="POST" class="flex-1 overflow-y-auto p-6 flex flex-col gap-6 text-sm">
+                <!-- 1. 텔레그램 설정 -->
+                <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-bold flex items-center gap-2 text-blue-500"><i class="fab fa-telegram text-lg"></i> <?= $current_lang == 'KO' ? '텔레그램 알림 설정' : 'Telegram Alert Settings' ?></h4>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="tg_enabled" value="1" class="sr-only peer" <?= ($settings['tg_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Bot Token</label>
+                            <input type="password" name="tg_token" value="<?= htmlspecialchars($settings['tg_token'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="토큰 입력">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Chat ID</label>
+                            <input type="text" name="tg_chat_id" value="<?= htmlspecialchars($settings['tg_chat_id'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="챗 ID 입력">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. SMTP 이메일 설정 -->
+                <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-bold flex items-center gap-2 text-[#18aee7]"><i class="fas fa-envelope text-lg"></i> <?= $current_lang == 'KO' ? '이메일 SMTP (릴레이) 알림 설정' : 'SMTP Email Relay Settings' ?></h4>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="email_enabled" value="1" class="sr-only peer" <?= ($settings['email_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Host</label>
+                            <input type="text" name="smtp_host" value="<?= htmlspecialchars($settings['smtp_host'] ?? 'mail') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="Host (예: mail 또는 smtp.gmail.com)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Port</label>
+                            <input type="text" name="smtp_port" value="<?= htmlspecialchars($settings['smtp_port'] ?? '25') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="25 / 587">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Username</label>
+                            <input type="text" name="smtp_user" value="<?= htmlspecialchars($settings['smtp_user'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="SMTP ID (선택)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Password</label>
+                            <input type="password" name="smtp_pass" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="비밀번호 변경 시 입력">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Secure Protocol</label>
+                            <select name="smtp_secure" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                <option value="none" <?= ($settings['smtp_secure'] ?? 'none') == 'none' ? 'selected' : '' ?>>None (일반/릴레이)</option>
+                                <option value="ssl" <?= ($settings['smtp_secure'] ?? 'none') == 'ssl' ? 'selected' : '' ?>>SSL</option>
+                                <option value="tls" <?= ($settings['smtp_secure'] ?? 'none') == 'tls' ? 'selected' : '' ?>>TLS</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">수신 이메일 주소 (Alert Destination Email)</label>
+                        <input type="text" name="alert_email" value="<?= htmlspecialchars($settings['alert_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="receiver@example.com">
+                    </div>
+                </div>
+
+                <!-- 3. 무음 스케줄 및 Retention 설정 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold flex items-center gap-2 text-orange-500"><i class="fas fa-bell-slash"></i> <?= $current_lang == 'KO' ? '야간 무음 스케줄' : 'Alarm Mute Schedule' ?></h4>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="mute_enabled" value="1" class="sr-only peer" <?= ($settings['mute_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '무음 시작 시각' : 'Start Time' ?></label>
+                                <input type="time" name="mute_start_time" value="<?= htmlspecialchars($settings['mute_start_time'] ?? '22:00') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '무음 종료 시각' : 'End Time' ?></label>
+                                <input type="time" name="mute_end_time" value="<?= htmlspecialchars($settings['mute_end_time'] ?? '07:00') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-bold flex items-center gap-2 text-green-500 mb-3"><i class="fas fa-hdd"></i> <?= $current_lang == 'KO' ? '로그 보관 기간 설정' : 'Data Retention settings' ?></h4>
+                            <p class="text-[11px] text-[var(--text-sub)] mb-2"><?= $current_lang == 'KO' ? '시계열 응답 기록 데이터를 보관할 일수입니다. 기간이 경과하면 자동 정리됩니다.' : 'Number of days to keep response logs in DB. Old logs are cleared.' ?></p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '보존 기간 (일)' : 'Retention (Days)' ?></label>
+                            <input type="number" name="retention_days" min="1" max="365" value="<?= htmlspecialchars($settings['retention_days'] ?? '30') ?>" class="w-24 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-4 border-t border-[var(--border-color)] pt-4">
+                    <button type="button" onclick="closeSettingsModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl font-bold transition-all text-xs"><?= $current_lang == 'KO' ? '취소' : 'Cancel' ?></button>
+                    <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '설정 저장' : 'Save Settings' ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <?php include 'views/components/modal_form.php'; ?>
 
     <script src="../assets/js/script.js?v=<?=time()?>"></script>
+
+    <!-- 📊 아코디언 및 시계열 차트 로직 추가 -->
+    <script>
+        const charts = {};
+
+        function toggleAccordion(event, no) {
+            if (event) event.stopPropagation();
+            const accordion = document.getElementById('accordion-' + no);
+            const arrow = document.getElementById('arrow-' + no);
+            if (!accordion) return;
+
+            if (accordion.classList.contains('hidden')) {
+                accordion.classList.remove('hidden');
+                accordion.classList.add('flex');
+                arrow.style.transform = 'rotate(180deg)';
+                loadChart(no, '1d');
+            } else {
+                accordion.classList.remove('flex');
+                accordion.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        async function loadChart(no, range) {
+            const canvas = document.getElementById('chart-canvas-' + no);
+            const avgSpan = document.getElementById('avg-time-' + no);
+            const rateSpan = document.getElementById('success-rate-' + no);
+            if (!canvas) return;
+
+            try {
+                const response = await fetch(`get_chart_data.php?no=${no}&range=${range}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+
+                // 데이터 파싱
+                const labels = data.map(item => {
+                    const dt = new Date(item.time);
+                    if (range === '1d') {
+                        return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } else {
+                        return (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + 'h';
+                    }
+                });
+                const responseTimes = data.map(item => item.response_time);
+                const results = data.map(item => item.result);
+
+                // 통계 연산
+                if (responseTimes.length > 0) {
+                    const sum = responseTimes.reduce((a, b) => a + b, 0);
+                    const avg = sum / responseTimes.length;
+                    avgSpan.innerText = avg.toFixed(3);
+
+                    const successes = results.filter(r => r > 0).length;
+                    const rate = (successes / results.length) * 100;
+                    rateSpan.innerText = rate.toFixed(1);
+                } else {
+                    avgSpan.innerText = '-';
+                    rateSpan.innerText = '-';
+                }
+
+                // 이전 차트 해제
+                if (charts[no]) {
+                    charts[no].destroy();
+                }
+
+                // 차트 그리기
+                const ctx = canvas.getContext('2d');
+                const isDark = document.documentElement.classList.contains('dark');
+                const textColor = isDark ? '#94a3b8' : '#64748b';
+                const gridColor = isDark ? '#334155' : '#e2e8f0';
+
+                charts[no] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Response Time (s)',
+                            data: responseTimes,
+                            borderColor: '#18aee7',
+                            backgroundColor: 'rgba(24, 174, 231, 0.08)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: labels.length > 50 ? 0 : 1,
+                            pointHoverRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    maxTicksLimit: 8,
+                                    color: textColor,
+                                    font: { size: 9 }
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: {
+                                    color: textColor,
+                                    font: { size: 9 }
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } catch (err) {
+                console.error('Failed to load chart data:', err);
+            }
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('hidden');
+            document.getElementById('settingsModal').classList.add('flex');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('flex');
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+    </script>
 </body>
 </html>

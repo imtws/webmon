@@ -99,6 +99,21 @@ services:
     profiles:
       - dev
 
+  # ── Postfix SMTP Relay ──────────────────────────────────────────────
+  mail:
+    image: boky/postfix
+    container_name: webmon_mail
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:25:25"
+    environment:
+      RELAYHOST: ${SMTP_RELAYHOST}
+      RELAYHOST_USERNAME: ${SMTP_USER}
+      RELAYHOST_PASSWORD: ${SMTP_PASS}
+      ALLOWED_SENDER_DOMAINS: ${ALLOWED_SENDER_DOMAINS:-localhost}
+    networks:
+      - webmon_net
+
 volumes:
   db_data:
     driver: local

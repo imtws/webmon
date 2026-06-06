@@ -1,24 +1,37 @@
 """
 알림 발송 모듈
 --------------
-텔레그램 sendMessage API 호출.
+텔레그램 API 호출 및 SMTP(이메일 릴레이) 발송을 처리합니다.
+설정값은 DB(system_settings)에서 동적으로 로드합니다.
 """
 
-import os
 import logging
+import smtplib
+import asyncio
+from email.mime.text import MIMEText
+from email.header import Header
 import aiohttp
+
+from .db import load_system_settings
 
 log = logging.getLogger("webmon.notify")
 
 
-async def send_telegram(message: str) -> bool:
-    """텔레그램으로 메시지를 발송합니다. 실패 시 False 반환."""
-    # 환경변수를 호출 시점에 읽어야 Docker 주입값이 정상 반영됨
-    tg_token  = os.environ.get("TG_TOKEN", "")
-    tg_chat_id = os.environ.get("TG_CHAT_ID", "")
+async def send_telegram(message: str, settings: dict = None) -> bool:
+    """텔레그램으로 메시지를 발송합니다. DB 설정을 기반으로 발송 여부를 판단합니다."""
+    if settings is None:
+        settings = await load_system_settings()
+
+    tg_enabled = settings.get("tg_enabled", "0") == "1"
+    tg_token = settings.get("tg_token", "")
+    tg_chat_id = settings.get("tg_chat_id", "")
+
+    if not tg_enabled:
+        log.debug("텔레그램 알림 비활성화 상태")
+        return False
 
     if not tg_token or not tg_chat_id:
-        log.warning("TG_TOKEN 또는 TG_CHAT_ID 미설정 — 텔레그램 발송 건너뜀")
+        log.warning("텔레그램 활성화되었으나 TG_TOKEN 또는 TG_CHAT_ID 설정 누락")
         return False
 
     url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
@@ -35,3 +48,57 @@ async def send_telegram(message: str) -> bool:
     except Exception as e:
         log.error(f"텔레그램 발송 예외: {e}")
         return False
+
+
+def _send_email_sync(subject: str, body: str, settings: dict) -> bool:
+    """동기식 SMTP 발송 처리 (스레드에서 구동됨)"""
+    email_enabled = settings.get("email_enabled", "0") == "1"
+    alert_email = settings.get("alert_email", "")
+    smtp_host = settings.get("smtp_host", "mail")
+    smtp_port = int(settings.get("smtp_port", "25") or "25")
+    smtp_user = settings.get("smtp_user", "")
+    smtp_pass = settings.get("smtp_pass", "")
+    smtp_secure = settings.get("smtp_secure", "none").lower()
+
+    if not email_enabled:
+        log.debug("이메일 알림 비활성화 상태")
+        return False
+
+    if not alert_email:
+        log.warning("이메일 알림이 활성화되었으나 수신 이메일(ALERT_EMAIL)이 입력되지 않음")
+        return False
+
+    sender = "webmon@localhost"
+    if smtp_user and "@" in smtp_user:
+        sender = smtp_user
+
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"] = Header(subject, "utf-8")
+    msg["From"] = sender
+    msg["To"] = alert_email
+
+    try:
+        if smtp_secure == "ssl":
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
+            if smtp_secure == "tls":
+                server.starttls()
+
+        if smtp_user and smtp_pass:
+            server.login(smtp_user, smtp_pass)
+
+        server.sendmail(sender, [alert_email], msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        log.error(f"이메일 발송 실패: {e}")
+        return False
+
+
+async def send_email(subject: str, body: str, settings: dict = None) -> bool:
+    """이메일(SMTP)로 알림을 발송합니다. 비동기 스레드 풀에서 동기 발송 처리합니다."""
+    if settings is None:
+        settings = await load_system_settings()
+    return await asyncio.to_thread(_send_email_sync, subject, body, settings)
+

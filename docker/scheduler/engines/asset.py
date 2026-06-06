@@ -22,7 +22,7 @@ from datetime import datetime
 import aiomysql
 import aiohttp
 
-from .db import get_pool
+from .db import get_pool, load_system_settings
 
 log = logging.getLogger("webmon.asset")
 
@@ -196,5 +196,22 @@ async def run_asset():
                 log.info(f"[asset] [{row['company']}] 업데이트 ({host}) → {updates}")
                 updated += 1
 
+    # ── Retention Clean-up (오래된 로그 정기 삭제) ──────────────────────
+    try:
+        settings = await load_system_settings()
+        retention_days = int(settings.get("retention_days", "30") or "30")
+        
+        async with get_pool() as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    deleted = await cur.execute(
+                        "DELETE FROM monitor_log WHERE log_time < DATE_SUB(NOW(), INTERVAL %s DAY)",
+                        (retention_days,)
+                    )
+        log.info(f"[asset] 🧹 Retention Clean-up 완료 ({retention_days}일 경과 데이터 {deleted}건 삭제)")
+    except Exception as e:
+        log.error(f"[asset] 🧹 Retention Clean-up 실패: {e}")
+
     elapsed = time.monotonic() - t0
     log.info(f"[asset] ✅ 완료 ({elapsed:.1f}s, {updated}/{len(rows)}개 업데이트)")
+

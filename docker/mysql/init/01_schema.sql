@@ -37,16 +37,44 @@ CREATE TABLE IF NOT EXISTS `monitor_conf` (
 -- 엔진 실행 로그 테이블 (선택사항, 로그 뷰어 기능용)
 CREATE TABLE IF NOT EXISTS `monitor_log` (
     `id`            INT(11)         NOT NULL AUTO_INCREMENT,
+    `monitor_conf_no` INT(11)       DEFAULT NULL COMMENT '대상설정 외래키',
     `log_time`      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `req_url`       VARCHAR(500)    NOT NULL DEFAULT '',
     `response_time` FLOAT           NOT NULL DEFAULT 0.0,
     `cmd`           TEXT            DEFAULT NULL COMMENT '실행 커맨드',
     `result`        TINYINT(1)      NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
-    INDEX `idx_log_time` (`log_time`)
+    INDEX `idx_log_time` (`log_time`),
+    INDEX `idx_conf_no` (`monitor_conf_no`),
+    INDEX `idx_log_time_no` (`log_time`, `monitor_conf_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 샘플 데이터 (선택사항 - 삭제해도 무방)
 INSERT INTO `monitor_conf` (`company`, `group_name`, `url`, `contents`, `check`, `ssl_mon`, `dom_mon`, `comment`, `mod_date`, `engine_type`) VALUES
 ('Google', '샘플 그룹', 'https://www.google.com', 'Google', 'alarm', 1, 0, '', NOW(), 'curl'),
 ('Naver', '샘플 그룹', 'https://www.naver.com', '네이버', 'alarm', 1, 1, '', NOW(), 'curl');
+
+-- 전역 시스템 설정 테이블 생성
+CREATE TABLE IF NOT EXISTS `system_settings` (
+    `key_name`  VARCHAR(100) NOT NULL,
+    `key_value` TEXT DEFAULT NULL,
+    PRIMARY KEY (`key_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 초기 기본값 삽입
+INSERT INTO `system_settings` (`key_name`, `key_value`) VALUES
+('tg_enabled', '0'),
+('tg_token', ''),
+('tg_chat_id', ''),
+('email_enabled', '0'),
+('smtp_host', 'mail'),
+('smtp_port', '25'),
+('smtp_user', ''),
+('smtp_pass', ''),
+('smtp_secure', 'none'),
+('alert_email', ''),
+('mute_enabled', '0'),
+('mute_start_time', '22:00'),
+('mute_end_time', '07:00'),
+('retention_days', '30');
+

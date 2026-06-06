@@ -22,4 +22,13 @@ if ($db->connect_error) {
 }
 
 $db->set_charset('utf8mb4');
+
+// 시스템 설정 로드
+$settings = [];
+$res = $db->query("SELECT key_name, key_value FROM system_settings");
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $settings[$row['key_name']] = $row['key_value'];
+    }
+}
 ?>
