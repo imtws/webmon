@@ -1,6 +1,67 @@
 <?php
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
+
+// 로그 뷰일 때 DB 데이터 쿼리
+if (($current_view ?? 'card') === 'log') {
+    $log_max_lines = isset($settings['log_max_lines']) ? (int)$settings['log_max_lines'] : 500;
+    
+    // c.로 컬럼이 명확하도록 WHERE문 재생성
+    $log_where = ["1=1"];
+    if ($type == 'success') {
+        $log_where[] = "c.`check` = 'alarm' AND l.result > 0";
+    } elseif ($type == 'failure') {
+        $log_where[] = "l.result = 0 AND c.`check` != 'disable'";
+    }
+
+    if (!empty($search_company)) {
+        $safe_comp = $db->real_escape_string($search_company);
+        $regex = Utils::buildChosungRegex($search_company);
+        if ($regex !== false) {
+            $safe_regex = $db->real_escape_string($regex);
+            $log_where[] = "(c.company LIKE '%$safe_comp%' OR c.url LIKE '%$safe_comp%' OR c.company REGEXP '$safe_regex')";
+        } else {
+            $log_where[] = "(c.company LIKE '%$safe_comp%' OR c.url LIKE '%$safe_comp%')";
+        }
+    }
+
+    if ($search_group !== 'all') {
+        $safe_grp = $db->real_escape_string($search_group);
+        $log_where[] = "c.group_name = '$safe_grp'";
+    }
+
+    if ($filter_status !== 'all') {
+        $safe_status = $db->real_escape_string($filter_status);
+        if ($safe_status === 'cross_on') {
+            $log_where[] = "c.cross_check = 1";
+        } elseif ($safe_status === 'cross_off') {
+            $log_where[] = "c.cross_check = 0";
+        } elseif ($safe_status === 'timeout_custom') {
+            $log_where[] = "c.timeout_sec > 2";
+        } elseif ($safe_status === 'timeout_default') {
+            $log_where[] = "c.timeout_sec <= 2";
+        } else {
+            $log_where[] = "c.`check` = '$safe_status'";
+        }
+    }
+
+    if ($filter_engine === 'lynx') {
+        $log_where[] = "(c.engine_type = 'lynx' OR c.engine_type IS NULL OR c.engine_type = '')";
+    } elseif ($filter_engine === 'curl') {
+        $log_where[] = "c.engine_type = 'curl'";
+    }
+
+    $log_where_sql = implode(' AND ', $log_where);
+    $log_query = "
+        SELECT l.*, c.group_name, c.company, c.url, c.engine_type
+        FROM monitor_log l
+        INNER JOIN monitor_conf c ON l.monitor_conf_no = c.no
+        WHERE $log_where_sql
+        ORDER BY l.id DESC
+        LIMIT $log_max_lines
+    ";
+    $log_result = $db->query($log_query);
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= strtolower($current_lang ?? 'ko') ?>" class="<?= ($current_theme ?? 'light') === 'dark' ? 'dark' : '' ?>">
@@ -66,8 +127,9 @@ ini_set('display_errors', '1');
                         
                         <div class="flex items-center gap-2 ml-2">
                             <div class="switch-container">
-                                <div onclick="toggleViewMode('card')" class="switch-btn <?= $current_view == 'card' ? 'active' : '' ?>"><i class="fas fa-th-large"></i></div>
-                                <div onclick="toggleViewMode('list')" class="switch-btn <?= $current_view == 'list' ? 'active' : '' ?>"><i class="fas fa-list"></i></div>
+                                <div onclick="toggleViewMode('card')" class="switch-btn <?= $current_view == 'card' ? 'active' : '' ?>" title="<?= $current_lang == 'KO' ? '카드 뷰' : 'Card View' ?>"><i class="fas fa-th-large"></i></div>
+                                <div onclick="toggleViewMode('list')" class="switch-btn <?= $current_view == 'list' ? 'active' : '' ?>" title="<?= $current_lang == 'KO' ? '리스트 뷰' : 'List View' ?>"><i class="fas fa-list"></i></div>
+                                <div onclick="toggleViewMode('log')" class="switch-btn <?= $current_view == 'log' ? 'active' : '' ?>" title="<?= $current_lang == 'KO' ? '실시간 로그뷰' : 'Log View' ?>"><i class="fas fa-terminal"></i></div>
                             </div>
                             <div class="switch-container">
                                 <div onclick="toggleLang('KO')" class="switch-btn <?= $current_lang == 'KO' ? 'active' : '' ?>">KO</div>
@@ -106,11 +168,13 @@ ini_set('display_errors', '1');
                 </div>
 
                 <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-2 pl-4 flex items-center gap-2 shadow-sm">
+                    <?php if ($current_view !== 'log'): ?>
                     <div class="flex items-center gap-2 px-2">
                         <input type="checkbox" id="selectAll" class="w-4 h-4 rounded accent-[#18aee7] cursor-pointer">
                         <label for="selectAll" class="text-[11px] font-black text-[var(--text-sub)] cursor-pointer ml-1 whitespace-nowrap"><?= $t['select_all'] ?></label>
                     </div>
                     <div class="search-divider"></div>
+                    <?php endif; ?>
                     <select id="searchGroup" onchange="triggerSearch()" class="bg-transparent text-sm font-bold outline-none cursor-pointer flex-[0.7] text-[var(--text-main)]">
                         <option value="all"><?= $t['group_all'] ?></option>
                         <?php foreach($existing_groups as $g): ?>
@@ -139,9 +203,9 @@ ini_set('display_errors', '1');
                         <option value="curl" <?= (isset($_GET['filter_engine']) && $_GET['filter_engine'] == 'curl') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'CURL 엔진' : 'CURL Engine' ?></option>
                     </select>
 
-                    <div class="search-divider"></div>
+                    <div class="search-divider <?= $current_view == 'log' ? 'hidden' : '' ?>"></div>
                     
-                    <select id="sortOrder" onchange="triggerSearch()" class="bg-transparent text-sm font-bold outline-none cursor-pointer text-[var(--text-main)] pr-2">
+                    <select id="sortOrder" onchange="triggerSearch()" class="bg-transparent text-sm font-bold outline-none cursor-pointer text-[var(--text-main)] pr-2 <?= $current_view == 'log' ? 'hidden' : '' ?>">
                         <option value="latest" <?= $sort=='latest'?'selected':'' ?>><?= $t['sort_latest'] ?></option>
                         <option disabled>──────────</option>
                         <option value="comp_asc" <?= $sort=='comp_asc'?'selected':'' ?>><?= $t['sort_comp_asc'] ?></option>
@@ -163,7 +227,7 @@ ini_set('display_errors', '1');
             </div>
         </div>
 
-        <div id="listHeaderWrapper" class="w-full px-8 bg-[var(--bg-color)] pb-2 <?= $current_view == 'card' ? 'hidden' : '' ?>">
+        <div id="listHeaderWrapper" class="w-full px-8 bg-[var(--bg-color)] pb-2 <?= $current_view !== 'list' ? 'hidden' : '' ?>">
             <div class="max-w-7xl mx-auto">
                 <div class="py-3 pr-5 pl-7 font-black text-[12px] text-[var(--text-sub)] bg-[var(--card-bg)] border border-[var(--border-color)] border-b-2 border-b-[#18aee7] rounded-xl flex items-center">
                     <div class="w-10"></div>
@@ -186,66 +250,140 @@ ini_set('display_errors', '1');
 
     <div class="w-full px-8 pb-20 pt-2">
         <div class="max-w-7xl mx-auto">
-            <form id="bulkForm" method="POST" action="website_status.php">
-                <input type="hidden" name="action" id="bulkAction" value="">
-                <input type="hidden" name="status" id="bulkStatusValue" value="">
-                <input type="hidden" name="ids" id="bulkIds" value="">
-                <input type="hidden" name="current_query" id="bulkCurrentQuery" value="">
-                
-                <div id="mainForm" class="<?= $current_view == 'card' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'view-list' ?>">
-                    <?php 
-                    if($result && $result->num_rows > 0) {
-                        while($row = $result->fetch_assoc()): 
-                            $is_disabled = ($row['check'] == 'disable');
-                            
-                            // 스케줄 상태 판별 (일시 무음 시간 판별)
-                            $is_scheduled = (($row['sched_enabled'] ?? 0) == 1);
-                            $is_currently_off_schedule = false;
-                            if ($is_scheduled && !$is_disabled && !empty($row['mute_until'])) {
-                                $now = new DateTime();
-                                $mute_until = new DateTime($row['mute_until']);
-                                if ($now < $mute_until) {
-                                    $is_currently_off_schedule = true;
-                                }
-                            }
-
-                            if ($is_disabled) {
-                                $border_color = 'bg-gray-400';
-                                $status_class = 'text-gray-400';
-                                $check_text = $t['status_disable'];
-                            } elseif ($is_currently_off_schedule) {
-                                $border_color = 'bg-violet-400';
-                                $status_class = 'text-violet-500';
-                                $check_text = $current_lang == 'KO' ? '스케줄 무음' : 'Sched Mute';
-                            } else {
-                                $border_color = $row['value'] > 0 ? 'bg-[#18aee7]' : 'bg-red-500';
-                                $status_class = ($row['check'] == 'alarm') ? "text-green-500" : "text-orange-500";
-                                $check_text = ($row['check'] == 'alarm') ? $t['status_alarm'] : $t['status_noalarm'];
-                            }
-
-                            $result_text = $row['value'] > 0 ? $t['v_success'] : $t['v_fail'];
-                            $result_color = $row['value'] > 0 ? 'text-green-500' : 'text-red-500';
-                            if ($is_currently_off_schedule) {
-                                $result_text = $current_lang == 'KO' ? '대기중' : 'Standby';
-                                $result_color = 'text-violet-400';
-                            }
-                            $group_name_display = htmlspecialchars($row['group_name'] ?: '기본 그룹');
-                    ?>
-                    
-                    <div class="monitor-item relative bg-[var(--card-bg)] overflow-hidden transition-all border border-[var(--border-color)] rounded-xl <?= $is_disabled ? 'opacity-60' : '' ?> hover:shadow-md">
-                        <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?>"></div>
-
-                        <?php include 'views/components/item_card.php'; ?>
-                        <?php include 'views/components/item_list.php'; ?>
-                    </div>
-                    <?php 
-                        endwhile; 
-                    } else {
-                        echo "<div class='col-span-full text-center py-10 text-[var(--text-sub)]'>데이터가 없습니다.</div>";
-                    }
-                    ?>
+            <?php if ($current_view == 'log'): ?>
+                <!-- 실시간 로그뷰 -->
+                <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl overflow-hidden shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-[var(--border-color)] bg-slate-50 dark:bg-slate-800/50 text-[11px] font-bold text-[var(--text-sub)] tracking-wider">
+                                <th class="py-3 px-4 w-40"><?= $current_lang == 'KO' ? '시각' : 'Time' ?></th>
+                                <th class="py-3 px-4 w-32"><?= $current_lang == 'KO' ? '그룹' : 'Group' ?></th>
+                                <th class="py-3 px-4 w-40"><?= $current_lang == 'KO' ? '업체명' : 'Company' ?></th>
+                                <th class="py-3 px-4"><?= $current_lang == 'KO' ? 'URL / 실행 명령어' : 'URL / Command' ?></th>
+                                <th class="py-3 px-4 w-28 text-center"><?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?></th>
+                                <th class="py-3 px-4 w-28 text-center"><?= $current_lang == 'KO' ? '결과' : 'Result' ?></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[var(--border-color)] text-xs">
+                            <?php if (isset($log_result) && $log_result->num_rows > 0): ?>
+                                <?php while($log_row = $log_result->fetch_assoc()): ?>
+                                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                        <td class="py-3 px-4 text-[var(--text-sub)] font-mono">
+                                            <?= htmlspecialchars($log_row['log_time']) ?>
+                                        </td>
+                                        <td class="py-3 px-4 font-semibold text-slate-500 dark:text-slate-400">
+                                            <?= htmlspecialchars($log_row['group_name'] ?: '기본 그룹') ?>
+                                        </td>
+                                        <td class="py-3 px-4 font-black text-[var(--text-main)]">
+                                            <?= htmlspecialchars($log_row['company']) ?>
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <div class="flex flex-col gap-1 max-w-[500px] lg:max-w-[700px]">
+                                                <a href="<?= htmlspecialchars($log_row['req_url']) ?>" target="_blank" class="text-[#18aee7] hover:underline font-bold truncate max-w-full">
+                                                    <?= htmlspecialchars($log_row['req_url']) ?>
+                                                </a>
+                                                <?php if (!empty($log_row['cmd'])): ?>
+                                                    <div class="relative group mt-0.5">
+                                                        <div class="bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 font-mono rounded px-2 py-1 select-all truncate border border-slate-200 dark:border-slate-700 cursor-help" title="<?= htmlspecialchars($log_row['cmd']) ?>">
+                                                            <i class="fas fa-terminal text-[8px] mr-1 text-slate-400"></i><?= htmlspecialchars($log_row['cmd']) ?>
+                                                        </div>
+                                                        <div class="absolute bottom-full left-0 z-50 mb-2 w-max max-w-lg hidden group-hover:block bg-slate-900 text-white text-[10px] rounded p-2 shadow-lg font-mono break-all border border-slate-700">
+                                                            <?= htmlspecialchars($log_row['cmd']) ?>
+                                                        </div>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span class="text-[10px] text-gray-400 italic"><?= $current_lang == 'KO' ? '실행 명령 기록 없음' : 'No execution command logged' ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-center font-bold font-mono">
+                                            <?= number_format($log_row['response_time'], 3) ?>s
+                                        </td>
+                                        <td class="py-3 px-4 text-center">
+                                            <?php if ($log_row['result'] > 0): ?>
+                                                <span class="inline-flex items-center justify-center px-2 py-1 text-[10px] font-black rounded-lg bg-green-50 dark:bg-green-900/20 text-green-500 border border-green-200 dark:border-green-800">
+                                                    <i class="fas fa-check-circle mr-1 text-[9px]"></i><?= $current_lang == 'KO' ? '정상' : 'Success' ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="inline-flex items-center justify-center px-2 py-1 text-[10px] font-black rounded-lg bg-red-50 dark:bg-rose-900/20 text-red-500 border border-red-200 dark:border-rose-800">
+                                                    <i class="fas fa-exclamation-circle mr-1 text-[9px]"></i><?= $current_lang == 'KO' ? '장애' : 'Failure' ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="6" class="py-10 text-center text-[var(--text-sub)]">
+                                        <?= $current_lang == 'KO' ? '조회된 로그가 없습니다.' : 'No logs found.' ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
-            </form>
+            <?php else: ?>
+                <form id="bulkForm" method="POST" action="website_status.php">
+                    <input type="hidden" name="action" id="bulkAction" value="">
+                    <input type="hidden" name="status" id="bulkStatusValue" value="">
+                    <input type="hidden" name="ids" id="bulkIds" value="">
+                    <input type="hidden" name="current_query" id="bulkCurrentQuery" value="">
+                    
+                    <div id="mainForm" class="<?= $current_view == 'card' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'view-list' ?>">
+                        <?php 
+                        if($result && $result->num_rows > 0) {
+                            while($row = $result->fetch_assoc()): 
+                                $is_disabled = ($row['check'] == 'disable');
+                                
+                                // 스케줄 상태 판별 (일시 무음 시간 판별)
+                                $is_scheduled = (($row['sched_enabled'] ?? 0) == 1);
+                                $is_currently_off_schedule = false;
+                                if ($is_scheduled && !$is_disabled && !empty($row['mute_until'])) {
+                                    $now = new DateTime();
+                                    $mute_until = new DateTime($row['mute_until']);
+                                    if ($now < $mute_until) {
+                                        $is_currently_off_schedule = true;
+                                    }
+                                }
+
+                                if ($is_disabled) {
+                                    $border_color = 'bg-gray-400';
+                                    $status_class = 'text-gray-400';
+                                    $check_text = $t['status_disable'];
+                                } elseif ($is_currently_off_schedule) {
+                                    $border_color = 'bg-violet-400';
+                                    $status_class = 'text-violet-500';
+                                    $check_text = $current_lang == 'KO' ? '스케줄 무음' : 'Sched Mute';
+                                } else {
+                                    $border_color = $row['value'] > 0 ? 'bg-[#18aee7]' : 'bg-red-500';
+                                    $status_class = ($row['check'] == 'alarm') ? "text-green-500" : "text-orange-500";
+                                    $check_text = ($row['check'] == 'alarm') ? $t['status_alarm'] : $t['status_noalarm'];
+                                }
+
+                                $result_text = $row['value'] > 0 ? $t['v_success'] : $t['v_fail'];
+                                $result_color = $row['value'] > 0 ? 'text-green-500' : 'text-red-500';
+                                if ($is_currently_off_schedule) {
+                                    $result_text = $current_lang == 'KO' ? '대기중' : 'Standby';
+                                    $result_color = 'text-violet-400';
+                                }
+                                $group_name_display = htmlspecialchars($row['group_name'] ?: '기본 그룹');
+                        ?>
+                        
+                        <div class="monitor-item relative bg-[var(--card-bg)] overflow-hidden transition-all border border-[var(--border-color)] rounded-xl <?= $is_disabled ? 'opacity-60' : '' ?> hover:shadow-md">
+                            <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?>"></div>
+
+                            <?php include 'views/components/item_card.php'; ?>
+                            <?php include 'views/components/item_list.php'; ?>
+                        </div>
+                        <?php 
+                            endwhile; 
+                        } else {
+                            echo "<div class='col-span-full text-center py-10 text-[var(--text-sub)]'>데이터가 없습니다.</div>";
+                        }
+                        ?>
+                    </div>
+                </form>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -410,15 +548,23 @@ ini_set('display_errors', '1');
                             <i id="set-arrow-sysenv" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
                         </button>
                         <div id="set-body-sysenv" class="p-4 border-t border-[var(--border-color)] hidden">
-                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '로그 보관 일수 및 알림 메일에 포함될 대시보드 접속 URL을 설정합니다.' : 'Set retention days and the dashboard URL used in alert notifications.' ?></p>
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '로그 보관 일수, 실시간 로그 최대 조회 라인수, 파일 로그 분할 크기 및 대시보드 주소를 설정합니다.' : 'Set retention days, max lines to display in Log View, log file rotation size, and the dashboard URL.' ?></p>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '보존 기간 (일)' : 'Retention (Days)' ?></label>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '로그 보존 기간 (일)' : 'Log Retention (Days)' ?></label>
                                     <input type="number" name="retention_days" min="1" max="365" value="<?= htmlspecialchars($settings['retention_days'] ?? '30') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '웹 대시보드 URL (알림 링크용)' : 'Dashboard URL' ?></label>
                                     <input type="text" name="webmon_url" value="<?= htmlspecialchars($settings['webmon_url'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="http://your-server-ip:8080">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '로그 뷰 최대 라인 수' : 'Log View Max Lines' ?></label>
+                                    <input type="number" name="log_max_lines" min="10" max="5000" value="<?= htmlspecialchars($settings['log_max_lines'] ?? '500') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '엔진 로그 로테이션 용량 (MB)' : 'Engine Log Rotate MB' ?></label>
+                                    <input type="number" name="log_rotate_mb" min="1" max="1000" value="<?= htmlspecialchars($settings['log_rotate_mb'] ?? '50') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
                                 </div>
                             </div>
                         </div>

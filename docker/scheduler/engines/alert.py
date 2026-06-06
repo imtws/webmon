@@ -86,6 +86,7 @@ async def _fetch(row: dict, sem: asyncio.Semaphore) -> dict:
                 url,
             ]
 
+        cmd_str = " ".join(cmd)
         t_start = time.monotonic()
         val = 0
         try:
@@ -103,7 +104,7 @@ async def _fetch(row: dict, sem: asyncio.Semaphore) -> dict:
             log.warning(f"[alert] ERROR {url}: {e}")
 
         elapsed = time.monotonic() - t_start
-        return {"no": no, "val": val, "elapsed": elapsed, "row": row}
+        return {"no": no, "val": val, "elapsed": elapsed, "row": row, "cmd_str": cmd_str}
 
 
 # ── DB 결과 저장 및 로그 적재 ──────────────────────────────────────────
@@ -111,7 +112,7 @@ async def _fetch(row: dict, sem: asyncio.Semaphore) -> dict:
 async def _save_results(pool, results: list[dict]):
     """monitor_conf 업데이트 및 monitor_log 테이블에 시계열 저장."""
     sql_conf = "UPDATE monitor_conf SET value=%s, response_time=%s, mod_date=NOW() WHERE no=%s"
-    sql_log = "INSERT INTO monitor_log (monitor_conf_no, req_url, response_time, result) VALUES (%s, %s, %s, %s)"
+    sql_log = "INSERT INTO monitor_log (monitor_conf_no, req_url, response_time, result, cmd) VALUES (%s, %s, %s, %s, %s)"
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.executemany(
@@ -120,17 +121,23 @@ async def _save_results(pool, results: list[dict]):
             )
             await cur.executemany(
                 sql_log,
-                [(r["no"], r["row"]["url"], round(r["elapsed"], 3), r["val"]) for r in results],
+                [(r["no"], r["row"]["url"], round(r["elapsed"], 3), r["val"], r.get("cmd_str")) for r in results],
             )
 
 
 # ── 텍스트 파일 로그 기록 ──────────────────────────────────────────────
 
-def _write_log(results: list[dict]):
+def _write_log(results: list[dict], settings: dict = None):
     log_path = "/app/logs/alert_engine.log"
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     try:
-        if os.path.exists(log_path) and os.path.getsize(log_path) >= 50 * 1024 * 1024:
+        rotate_mb = 50
+        if settings:
+            try:
+                rotate_mb = int(settings.get("log_rotate_mb", 50))
+            except Exception:
+                rotate_mb = 50
+        if os.path.exists(log_path) and os.path.getsize(log_path) >= rotate_mb * 1024 * 1024:
             os.rename(log_path, log_path + ".old")
         with open(log_path, "a") as f:
             for r in results:
@@ -190,7 +197,7 @@ async def run_alert():
         # 1차 실행
         results = await asyncio.gather(*[_fetch(row, sem) for row in targets])
         await _save_results(pool, results)
-        _write_log(results)
+        _write_log(results, settings)
 
         # 재시도 (실패 + retry_count > 1)
         retry_targets = [
@@ -201,7 +208,7 @@ async def run_alert():
             await asyncio.sleep(1)
             retry_results = await asyncio.gather(*[_fetch(row, sem) for row in retry_targets])
             await _save_results(pool, retry_results)
-            _write_log(retry_results)
+            _write_log(retry_results, settings)
             # final_results 에 재시도 결과 반영
             retry_map = {r["no"]: r for r in retry_results}
             results = [retry_map.get(r["no"], r) for r in results]

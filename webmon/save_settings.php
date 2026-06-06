@@ -68,6 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $def_mute_hours = (int)($_POST['def_mute_hours'] ?? 2);
     if ($def_mute_hours < 0) $def_mute_hours = 0;
 
+    $log_max_lines = (int)($_POST['log_max_lines'] ?? 500);
+    if ($log_max_lines < 1) $log_max_lines = 500;
+
+    $log_rotate_mb = (int)($_POST['log_rotate_mb'] ?? 50);
+    if ($log_rotate_mb < 1) $log_rotate_mb = 50;
+
     $alert_format = trim($_POST['alert_format'] ?? 'plain');
     $email_template_html = $_POST['email_template_html'] ?? '';
     $tg_template_html = $_POST['tg_template_html'] ?? '';
@@ -106,6 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'def_retry_count' => (string)$def_retry_count,
         'def_timeout_sec' => (string)$def_timeout_sec,
         'def_mute_hours' => (string)$def_mute_hours,
+        'log_max_lines' => (string)$log_max_lines,
+        'log_rotate_mb' => (string)$log_rotate_mb,
         'alert_format' => $alert_format,
         'email_template_html' => $email_template_html,
         'tg_template_html' => $tg_template_html
