@@ -246,81 +246,89 @@ if (($current_view ?? 'card') === 'log') {
                 </div>
             </div>
         </div>
+
+        <!-- 로그 뷰 헤더 -->
+        <div id="logHeaderWrapper" class="w-full px-8 bg-[var(--bg-color)] pb-2 <?= $current_view !== 'log' ? 'hidden' : '' ?>">
+            <div class="max-w-7xl mx-auto">
+                <div class="py-3 pr-5 pl-7 font-black text-[12px] text-[var(--text-sub)] bg-[var(--card-bg)] border border-[var(--border-color)] border-b-2 border-b-[#18aee7] rounded-xl flex items-center">
+                    <div class="w-48"><?= $current_lang == 'KO' ? '시각' : 'Time' ?></div>
+                    <div class="w-40"><?= $current_lang == 'KO' ? '그룹' : 'Group' ?></div>
+                    <div class="w-48"><?= $current_lang == 'KO' ? '업체명' : 'Company' ?></div>
+                    <div class="flex-1"><?= $current_lang == 'KO' ? 'URL / 실행 명령어' : 'URL / Command' ?></div>
+                    <div class="w-28 text-center"><?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?></div>
+                    <div class="w-28 text-center"><?= $current_lang == 'KO' ? '결과' : 'Result' ?></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="w-full px-8 pb-20 pt-2">
         <div class="max-w-7xl mx-auto">
             <?php if ($current_view == 'log'): ?>
                 <!-- 실시간 로그뷰 -->
-                <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl overflow-hidden shadow-sm">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-[var(--border-color)] bg-slate-50 dark:bg-slate-800/50 text-[11px] font-bold text-[var(--text-sub)] tracking-wider">
-                                <th class="py-3 px-4 w-40"><?= $current_lang == 'KO' ? '시각' : 'Time' ?></th>
-                                <th class="py-3 px-4 w-32"><?= $current_lang == 'KO' ? '그룹' : 'Group' ?></th>
-                                <th class="py-3 px-4 w-40"><?= $current_lang == 'KO' ? '업체명' : 'Company' ?></th>
-                                <th class="py-3 px-4"><?= $current_lang == 'KO' ? 'URL / 실행 명령어' : 'URL / Command' ?></th>
-                                <th class="py-3 px-4 w-28 text-center"><?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?></th>
-                                <th class="py-3 px-4 w-28 text-center"><?= $current_lang == 'KO' ? '결과' : 'Result' ?></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-[var(--border-color)] text-xs">
-                            <?php if (isset($log_result) && $log_result->num_rows > 0): ?>
-                                <?php while($log_row = $log_result->fetch_assoc()): ?>
-                                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                        <td class="py-3 px-4 text-[var(--text-sub)] font-mono">
-                                            <?= htmlspecialchars($log_row['log_time']) ?>
-                                        </td>
-                                        <td class="py-3 px-4 font-semibold text-slate-500 dark:text-slate-400">
-                                            <?= htmlspecialchars($log_row['group_name'] ?: '기본 그룹') ?>
-                                        </td>
-                                        <td class="py-3 px-4 font-black text-[var(--text-main)]">
-                                            <?= htmlspecialchars($log_row['company']) ?>
-                                        </td>
-                                        <td class="py-3 px-4">
-                                            <div class="flex flex-col gap-1 max-w-[500px] lg:max-w-[700px]">
-                                                <a href="<?= htmlspecialchars($log_row['req_url']) ?>" target="_blank" class="text-[#18aee7] hover:underline font-bold truncate max-w-full">
-                                                    <?= htmlspecialchars($log_row['req_url']) ?>
-                                                </a>
-                                                <?php if (!empty($log_row['cmd'])): ?>
-                                                    <div class="relative group mt-0.5">
-                                                        <div class="bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 font-mono rounded px-2 py-1 select-all truncate border border-slate-200 dark:border-slate-700 cursor-help" title="<?= htmlspecialchars($log_row['cmd']) ?>">
-                                                            <i class="fas fa-terminal text-[8px] mr-1 text-slate-400"></i><?= htmlspecialchars($log_row['cmd']) ?>
-                                                        </div>
-                                                        <div class="absolute bottom-full left-0 z-50 mb-2 w-max max-w-lg hidden group-hover:block bg-slate-900 text-white text-[10px] rounded p-2 shadow-lg font-mono break-all border border-slate-700">
-                                                            <?= htmlspecialchars($log_row['cmd']) ?>
-                                                        </div>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <span class="text-[10px] text-gray-400 italic"><?= $current_lang == 'KO' ? '실행 명령 기록 없음' : 'No execution command logged' ?></span>
-                                                <?php endif; ?>
+                <div class="view-list flex flex-col gap-3">
+                    <?php if (isset($log_result) && $log_result->num_rows > 0): ?>
+                        <?php while($log_row = $log_result->fetch_assoc()): 
+                            $border_color = $log_row['result'] > 0 ? 'bg-[#18aee7]' : 'bg-red-500';
+                            $result_badge_class = $log_row['result'] > 0 
+                                ? 'bg-green-50 dark:bg-green-900/20 text-green-500 border border-green-200 dark:border-green-800' 
+                                : 'bg-red-50 dark:bg-rose-900/20 text-red-500 border border-red-200 dark:border-rose-800';
+                            $result_text = $log_row['result'] > 0 
+                                ? ($current_lang == 'KO' ? '정상' : 'Success') 
+                                : ($current_lang == 'KO' ? '장애' : 'Failure');
+                            $result_icon = $log_row['result'] > 0 ? 'fa-check-circle' : 'fa-exclamation-circle';
+                        ?>
+                            <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all overflow-hidden text-[13px]">
+                                <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?>"></div>
+                                <!-- 시각 -->
+                                <div class="w-48 text-[var(--text-sub)] font-mono">
+                                    <?= htmlspecialchars($log_row['log_time']) ?>
+                                </div>
+                                <!-- 그룹 -->
+                                <div class="w-40 font-semibold text-slate-500 dark:text-slate-400 truncate pr-4">
+                                    <?= htmlspecialchars($log_row['group_name'] ?: '기본 그룹') ?>
+                                </div>
+                                <!-- 업체명 -->
+                                <div class="w-48 font-black text-[var(--text-main)] truncate pr-4">
+                                    <?= htmlspecialchars($log_row['company']) ?>
+                                </div>
+                                <!-- URL / 실행 명령어 -->
+                                <div class="flex-1 pr-4 min-w-0">
+                                    <div class="flex flex-col gap-1">
+                                        <a href="<?= htmlspecialchars($log_row['req_url']) ?>" target="_blank" class="text-[#18aee7] hover:underline font-bold truncate max-w-full block">
+                                            <?= htmlspecialchars($log_row['req_url']) ?>
+                                        </a>
+                                        <?php if (!empty($log_row['cmd'])): ?>
+                                            <div class="relative group mt-0.5">
+                                                <div class="bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 font-mono rounded px-2 py-1 select-all truncate border border-slate-200 dark:border-slate-700 cursor-help" title="<?= htmlspecialchars($log_row['cmd']) ?>">
+                                                    <i class="fas fa-terminal text-[8px] mr-1 text-slate-400"></i><?= htmlspecialchars($log_row['cmd']) ?>
+                                                </div>
+                                                <div class="absolute bottom-full left-0 z-50 mb-2 w-max max-w-lg hidden group-hover:block bg-slate-900 text-white text-[10px] rounded p-2 shadow-lg font-mono break-all border border-slate-700">
+                                                    <?= htmlspecialchars($log_row['cmd']) ?>
+                                                </div>
                                             </div>
-                                        </td>
-                                        <td class="py-3 px-4 text-center font-bold font-mono">
-                                            <?= number_format($log_row['response_time'], 3) ?>s
-                                        </td>
-                                        <td class="py-3 px-4 text-center">
-                                            <?php if ($log_row['result'] > 0): ?>
-                                                <span class="inline-flex items-center justify-center px-2 py-1 text-[10px] font-black rounded-lg bg-green-50 dark:bg-green-900/20 text-green-500 border border-green-200 dark:border-green-800">
-                                                    <i class="fas fa-check-circle mr-1 text-[9px]"></i><?= $current_lang == 'KO' ? '정상' : 'Success' ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="inline-flex items-center justify-center px-2 py-1 text-[10px] font-black rounded-lg bg-red-50 dark:bg-rose-900/20 text-red-500 border border-red-200 dark:border-rose-800">
-                                                    <i class="fas fa-exclamation-circle mr-1 text-[9px]"></i><?= $current_lang == 'KO' ? '장애' : 'Failure' ?>
-                                                </span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="6" class="py-10 text-center text-[var(--text-sub)]">
-                                        <?= $current_lang == 'KO' ? '조회된 로그가 없습니다.' : 'No logs found.' ?>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                                        <?php else: ?>
+                                            <span class="text-[10px] text-gray-400 italic"><?= $current_lang == 'KO' ? '실행 명령 기록 없음' : 'No execution command logged' ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <!-- 응답속도 -->
+                                <div class="w-28 text-center font-bold font-mono text-slate-700 dark:text-slate-300">
+                                    <?= number_format($log_row['response_time'], 3) ?>s
+                                </div>
+                                <!-- 결과 -->
+                                <div class="w-28 text-center">
+                                    <span class="inline-flex items-center justify-center px-2 py-1 text-[10px] font-black rounded-lg <?= $result_badge_class ?>">
+                                        <i class="fas <?= $result_icon ?> mr-1 text-[9px]"></i><?= $result_text ?>
+                                    </span>
+                                </div>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-10 text-center text-[var(--text-sub)]">
+                            <?= $current_lang == 'KO' ? '조회된 로그가 없습니다.' : 'No logs found.' ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <form id="bulkForm" method="POST" action="website_status.php">
