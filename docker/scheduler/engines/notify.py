@@ -50,10 +50,11 @@ async def send_telegram(message: str, settings: dict = None) -> bool:
         return False
 
 
-def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str = "") -> bool:
+def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str = "", receiver_email: str = "") -> bool:
     """동기식 SMTP 발송 처리 (스레드에서 구동됨)"""
     email_enabled = settings.get("email_enabled", "0") == "1"
-    alert_email = settings.get("alert_email", "")
+    # 개별 수신자가 설정되어 있으면 그것을 쓰고, 없으면 전역 수신자 사용
+    alert_email = receiver_email.strip() if receiver_email and receiver_email.strip() else settings.get("alert_email", "")
 
     if not email_enabled:
         log.debug("이메일 알림 비활성화 상태")
@@ -113,9 +114,9 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
         return False
 
 
-async def send_email(subject: str, body: str, settings: dict = None, sender_email: str = "") -> bool:
+async def send_email(subject: str, body: str, settings: dict = None, sender_email: str = "", receiver_email: str = "") -> bool:
     """이메일(SMTP)로 알림을 발송합니다. 비동기 스레드 풀에서 동기 발송 처리합니다."""
     if settings is None:
         settings = await load_system_settings()
-    return await asyncio.to_thread(_send_email_sync, subject, body, settings, sender_email)
+    return await asyncio.to_thread(_send_email_sync, subject, body, settings, sender_email, receiver_email)
 

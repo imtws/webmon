@@ -36,6 +36,10 @@
                     <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $current_lang == 'KO' ? '발송자 이메일' : 'Sender Email' ?></label>
                     <input type="email" name="sender_email" id="modalSenderEmail" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="sender@example.com (선택)">
                 </div>
+                <div>
+                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $current_lang == 'KO' ? '수신자 이메일' : 'Receiver Email' ?></label>
+                    <input type="email" name="receiver_email" id="modalReceiverEmail" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="receiver@example.com (선택)">
+                </div>
                 
                 <div class="grid grid-cols-3 gap-3">
                     <div>

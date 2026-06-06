@@ -20,10 +20,10 @@ ini_set('display_errors', '1');
 </head>
 <body class="m-0 p-0 text-[var(--text-main)] transition-colors duration-200">
 
-    <?php if (getenv('DB_PASS') === 'your_secure_password_here' || empty(getenv('DB_PASS'))): ?>
+    <?php if ($db_pass === 'your_secure_password_here' || empty($db_pass)): ?>
     <div class="w-full bg-gradient-to-r from-red-600 to-orange-500 text-white px-8 py-3 text-center text-sm font-extrabold flex justify-center items-center gap-2 shadow-md">
         <i class="fas fa-shield-alt animate-bounce"></i>
-        <span><?= $current_lang == 'KO' ? '보안 경고: 현재 기본/비어있는 DB 비밀번호가 사용 중입니다! .env 파일의 DB_PASS를 수정하고 컨테이너를 재시작해 주세요.' : 'Security Warning: Default or empty DB password is in use! Please update DB_PASS in .env and restart containers.' ?></span>
+        <span><?= $current_lang == 'KO' ? '보안 경고: 현재 기본/비어있는 DB 비밀번호가 사용 중입니다! 우측 상단 설정 아이콘(⚙️)을 눌러 안전한 DB 비밀번호로 변경(설정)해 주세요.' : 'Security Warning: Default or empty DB password is in use! Please click the settings icon (⚙️) on the top right to change/set a secure DB password.' ?></span>
     </div>
     <?php endif; ?>
 
@@ -288,17 +288,17 @@ ini_set('display_errors', '1');
                         </label>
                     </div>
 
-                    <!-- SMTP Mode (직접 발송 vs Postfix 릴레이) -->
+                    <!-- SMTP Mode (외부 SMTP 릴레이 발송 vs 로컬 Postfix 직접 발송) -->
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-[var(--text-sub)] mb-1.5"><?= $current_lang == 'KO' ? 'SMTP 발송 방식' : 'SMTP Mode' ?></label>
                         <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[42px]">
                             <label class="flex-1 cursor-pointer h-full">
                                 <input type="radio" name="smtp_mode" value="direct" class="hidden peer" onchange="toggleSmtpFields(this.value)" <?= ($settings['smtp_mode'] ?? 'direct') == 'direct' ? 'checked' : '' ?>>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer"><?= $current_lang == 'KO' ? '직접 SMTP 발송' : 'Direct SMTP' ?></div>
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer"><?= $current_lang == 'KO' ? '외부 SMTP 릴레이 발송' : 'SMTP Relay' ?></div>
                             </label>
                             <label class="flex-1 cursor-pointer h-full">
                                 <input type="radio" name="smtp_mode" value="postfix" class="hidden peer" onchange="toggleSmtpFields(this.value)" <?= ($settings['smtp_mode'] ?? 'direct') == 'postfix' ? 'checked' : '' ?>>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer"><?= $current_lang == 'KO' ? '내부 Postfix 릴레이' : 'Postfix Relay' ?></div>
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer"><?= $current_lang == 'KO' ? '로컬 Postfix 직접 발송' : 'Direct Postfix' ?></div>
                             </label>
                         </div>
                     </div>

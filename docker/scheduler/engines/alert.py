@@ -258,7 +258,7 @@ async def run_alert():
             ])
             await send_telegram(tg_msg, settings)
 
-            # 2. 이메일 발송 (발송자를 개별 설정할 수 있도록 각 장애 항목별로 개별 발송)
+            # 2. 이메일 발송 (발송자/수신자를 개별 설정할 수 있도록 각 장애 항목별로 개별 발송)
             for item in failed_items:
                 row = item["row"]
                 email_body = "\n".join([
@@ -275,11 +275,13 @@ async def run_alert():
                     f"🔗 웹사이트 모니터링 : {web_url}",
                 ])
                 custom_sender = row.get("sender_email", "") or ""
+                custom_receiver = row.get("receiver_email", "") or ""
                 await send_email(
                     subject=f"🚨 [WebSiteMonitor] 장애 발생 알림 ({row['company']})",
                     body=email_body,
                     settings=settings,
-                    sender_email=custom_sender
+                    sender_email=custom_sender,
+                    receiver_email=custom_receiver
                 )
 
             log.info(f"[alert] ✅ {len(failed_items)}건 알람 발송 완료 (Telegram/Email 개별발송)")

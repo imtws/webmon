@@ -38,6 +38,12 @@ if ($col_check && $col_check->num_rows == 0) {
     $db->query("ALTER TABLE `monitor_conf` ADD COLUMN `sender_email` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '발송자 이메일' AFTER `comment`");
 }
 
+// 자동 마이그레이션: monitor_conf 테이블에 receiver_email 컬럼 추가
+$col_check2 = $db->query("SHOW COLUMNS FROM `monitor_conf` LIKE 'receiver_email'");
+if ($col_check2 && $col_check2->num_rows == 0) {
+    $db->query("ALTER TABLE `monitor_conf` ADD COLUMN `receiver_email` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '수신자 이메일' AFTER `sender_email`");
+}
+
 // 자동 마이그레이션: system_settings 테이블에 smtp_mode 키 추가
 $key_check = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'smtp_mode'");
 if ($key_check && $key_check->num_rows == 0) {

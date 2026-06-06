@@ -100,6 +100,7 @@ function openModal(type, data = null) {
         if (document.getElementById('modalContents')) document.getElementById('modalContents').value = data.contents;
         if (document.getElementById('modalComment')) document.getElementById('modalComment').value = data.comment || '';
         if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = data.sender_email || '';
+        if (document.getElementById('modalReceiverEmail')) document.getElementById('modalReceiverEmail').value = data.receiver_email || '';
         
         // 알람 상태 셋팅
         if (document.getElementById('modalCheck')) document.getElementById('modalCheck').value = data.check;
@@ -134,6 +135,7 @@ function openModal(type, data = null) {
         if (document.getElementById('modalAction')) document.getElementById('modalAction').value = 'add';
         if (document.getElementById('modalComment')) document.getElementById('modalComment').value = '';
         if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = '';
+        if (document.getElementById('modalReceiverEmail')) document.getElementById('modalReceiverEmail').value = '';
         if (document.getElementById('modalRetry')) document.getElementById('modalRetry').value = '1';
         if (document.getElementById('modalTimeout')) document.getElementById('modalTimeout').value = '2';
         
