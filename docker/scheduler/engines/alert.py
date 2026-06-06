@@ -16,6 +16,8 @@ import os
 import time
 from datetime import datetime
 
+import aiomysql
+
 from .db import get_pool
 from .notify import send_telegram
 
@@ -187,7 +189,3 @@ async def run_alert():
 
     elapsed = time.monotonic() - t0
     log.info(f"[alert] 완료 ({elapsed:.1f}s, {len(targets)}개 대상)")
-
-
-# aiomysql DictCursor import (engines 내에서만)
-import aiomysql

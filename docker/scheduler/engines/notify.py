@@ -10,18 +10,19 @@ import aiohttp
 
 log = logging.getLogger("webmon.notify")
 
-TG_TOKEN  = os.environ.get("TG_TOKEN", "")
-TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "")
-
 
 async def send_telegram(message: str) -> bool:
     """텔레그램으로 메시지를 발송합니다. 실패 시 False 반환."""
-    if not TG_TOKEN or not TG_CHAT_ID:
+    # 환경변수를 호출 시점에 읽어야 Docker 주입값이 정상 반영됨
+    tg_token  = os.environ.get("TG_TOKEN", "")
+    tg_chat_id = os.environ.get("TG_CHAT_ID", "")
+
+    if not tg_token or not tg_chat_id:
         log.warning("TG_TOKEN 또는 TG_CHAT_ID 미설정 — 텔레그램 발송 건너뜀")
         return False
 
-    url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
-    payload = {"chat_id": TG_CHAT_ID, "text": message}
+    url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+    payload = {"chat_id": tg_chat_id, "text": message}
 
     try:
         async with aiohttp.ClientSession() as session:
