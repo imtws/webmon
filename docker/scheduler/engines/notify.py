@@ -50,15 +50,10 @@ async def send_telegram(message: str, settings: dict = None) -> bool:
         return False
 
 
-def _send_email_sync(subject: str, body: str, settings: dict) -> bool:
+def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str = "") -> bool:
     """동기식 SMTP 발송 처리 (스레드에서 구동됨)"""
     email_enabled = settings.get("email_enabled", "0") == "1"
     alert_email = settings.get("alert_email", "")
-    smtp_host = settings.get("smtp_host", "mail")
-    smtp_port = int(settings.get("smtp_port", "25") or "25")
-    smtp_user = settings.get("smtp_user", "")
-    smtp_pass = settings.get("smtp_pass", "")
-    smtp_secure = settings.get("smtp_secure", "none").lower()
 
     if not email_enabled:
         log.debug("이메일 알림 비활성화 상태")
@@ -68,8 +63,30 @@ def _send_email_sync(subject: str, body: str, settings: dict) -> bool:
         log.warning("이메일 알림이 활성화되었으나 수신 이메일(ALERT_EMAIL)이 입력되지 않음")
         return False
 
+    # SMTP 모드 분기 (direct 또는 postfix)
+    smtp_mode = settings.get("smtp_mode", "direct")
+    
+    if smtp_mode == "postfix":
+        smtp_host = "mail"
+        smtp_port = 25
+        smtp_user = ""
+        smtp_pass = ""
+        smtp_secure = "none"
+    else:
+        smtp_host = settings.get("smtp_host", "mail")
+        smtp_port = int(settings.get("smtp_port", "25") or "25")
+        smtp_user = settings.get("smtp_user", "")
+        smtp_pass = settings.get("smtp_pass", "")
+        smtp_secure = settings.get("smtp_secure", "none").lower()
+
+    # 발송자 지정 우선순위:
+    # 1. 개별 모니터링 항목에 설정된 발송자 (sender_email)
+    # 2. SMTP Username에 이메일이 들어있으면 그것을 사용
+    # 3. 그 외 기본값 webmon@localhost
     sender = "webmon@localhost"
-    if smtp_user and "@" in smtp_user:
+    if sender_email and sender_email.strip():
+        sender = sender_email.strip()
+    elif smtp_user and "@" in smtp_user:
         sender = smtp_user
 
     msg = MIMEText(body, "plain", "utf-8")
@@ -85,7 +102,7 @@ def _send_email_sync(subject: str, body: str, settings: dict) -> bool:
             if smtp_secure == "tls":
                 server.starttls()
 
-        if smtp_user and smtp_pass:
+        if smtp_mode != "postfix" and smtp_user and smtp_pass:
             server.login(smtp_user, smtp_pass)
 
         server.sendmail(sender, [alert_email], msg.as_string())
@@ -96,9 +113,9 @@ def _send_email_sync(subject: str, body: str, settings: dict) -> bool:
         return False
 
 
-async def send_email(subject: str, body: str, settings: dict = None) -> bool:
+async def send_email(subject: str, body: str, settings: dict = None, sender_email: str = "") -> bool:
     """이메일(SMTP)로 알림을 발송합니다. 비동기 스레드 풀에서 동기 발송 처리합니다."""
     if settings is None:
         settings = await load_system_settings()
-    return await asyncio.to_thread(_send_email_sync, subject, body, settings)
+    return await asyncio.to_thread(_send_email_sync, subject, body, settings, sender_email)
 

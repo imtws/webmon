@@ -2,21 +2,55 @@
 require_once 'config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1. DB 비밀번호 변경 처리
+    $db_pass_old = $_POST['db_pass_old'] ?? '';
+    $db_pass_new = $_POST['db_pass_new'] ?? '';
+
+    if (!empty($db_pass_old) && !empty($db_pass_new)) {
+        $db_host = getenv('DB_HOST') ?: 'localhost';
+        $db_user = getenv('DB_USER') ?: 'sitemonitor';
+        $db_name = getenv('DB_NAME') ?: 'sitemonitor';
+        $db_port = (int)(getenv('DB_PORT') ?: 3306);
+
+        // 이전 비밀번호가 올바른지 검증 시도
+        $test_conn = @new mysqli($db_host, $db_user, $db_pass_old, $db_name, $db_port);
+        if ($test_conn->connect_error) {
+            header("Location: website_status.php?settings_error=db_pass_incorrect");
+            exit;
+        }
+
+        // 비밀번호 변경 쿼리 실행
+        $escaped_pass_new = str_replace("'", "''", $db_pass_new);
+        $sql_alter = "ALTER USER CURRENT_USER() IDENTIFIED BY '$escaped_pass_new'";
+        if ($test_conn->query($sql_alter)) {
+            // 변경 성공 시 config/db_pass_custom.php 파일에 기록
+            $config_content = "<?php\n// DB_PASSWORD_OVERRIDE: " . str_replace(["\r", "\n"], "", $db_pass_new) . "\nreturn " . var_export($db_pass_new, true) . ";\n";
+            file_put_contents(__DIR__ . '/config/db_pass_custom.php', $config_content);
+            
+            // 현재 활성 DB 커넥션도 새 비밀번호로 갱신
+            $db->close();
+            $db = new mysqli($db_host, $db_user, $db_pass_new, $db_name, $db_port);
+            $db->set_charset('utf8mb4');
+        } else {
+            header("Location: website_status.php?settings_error=db_alter_failed");
+            $test_conn->close();
+            exit;
+        }
+        $test_conn->close();
+    }
+
     $tg_enabled = isset($_POST['tg_enabled']) ? '1' : '0';
     $tg_token = trim($_POST['tg_token'] ?? '');
     $tg_chat_id = trim($_POST['tg_chat_id'] ?? '');
 
     $email_enabled = isset($_POST['email_enabled']) ? '1' : '0';
+    $smtp_mode = trim($_POST['smtp_mode'] ?? 'direct');
     $smtp_host = trim($_POST['smtp_host'] ?? 'mail');
     $smtp_port = trim($_POST['smtp_port'] ?? '25');
     $smtp_user = trim($_POST['smtp_user'] ?? '');
     $smtp_pass = trim($_POST['smtp_pass'] ?? '');
     $smtp_secure = trim($_POST['smtp_secure'] ?? 'none');
     $alert_email = trim($_POST['alert_email'] ?? '');
-
-    $mute_enabled = isset($_POST['mute_enabled']) ? '1' : '0';
-    $mute_start_time = trim($_POST['mute_start_time'] ?? '22:00');
-    $mute_end_time = trim($_POST['mute_end_time'] ?? '07:00');
 
     $retention_days = (int)($_POST['retention_days'] ?? 30);
     if ($retention_days < 1) $retention_days = 30;
@@ -28,14 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'tg_token' => $tg_token,
         'tg_chat_id' => $tg_chat_id,
         'email_enabled' => $email_enabled,
+        'smtp_mode' => $smtp_mode,
         'smtp_host' => $smtp_host,
         'smtp_port' => $smtp_port,
         'smtp_user' => $smtp_user,
         'smtp_secure' => $smtp_secure,
         'alert_email' => $alert_email,
-        'mute_enabled' => $mute_enabled,
-        'mute_start_time' => $mute_start_time,
-        'mute_end_time' => $mute_end_time,
         'retention_days' => (string)$retention_days
     ];
 

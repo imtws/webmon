@@ -217,19 +217,12 @@ async def run_alert():
             results = [retry_map.get(r["no"], r) for r in results]
 
         # 알람 전송 필터링
-        alert_lines = []
-        action_lines = []
-        for r in results:
-            row = r["row"]
-            if row.get("check") == "alarm" and r["val"] == 0:
-                alert_lines.append(
-                    f"| {row['company']} 업체의 {row['url']} 사이트내에 [{row['contents']}] 컨텐츠 감지 불가!!"
-                )
-                action_lines.append(
-                    f"| {row.get('comment') or '별도 권장 처리 내용 없음'}"
-                )
+        failed_items = [
+            r for r in results
+            if r["row"].get("check") == "alarm" and r["val"] == 0
+        ]
 
-        if alert_lines:
+        if failed_items:
             # 무음 판별
             if is_muted(settings):
                 log.info("[alert] 🚨 장애가 감지되었으나, 무음 시간대 설정이 적용되어 알림을 건너뜁니다.")
@@ -237,25 +230,59 @@ async def run_alert():
 
             now = datetime.now().strftime("%Y-%m-%d | %I:%M:%S%p")
             web_url = settings.get("webmon_url", WEBMON_URL)
-            msg = "\n".join([
+
+            # 1. 텔레그램 발송 (모든 장애 항목을 취합하여 1개의 메시지로 통합 발송)
+            telegram_lines = []
+            telegram_actions = []
+            for item in failed_items:
+                row = item["row"]
+                telegram_lines.append(
+                    f"| {row['company']} 업체의 {row['url']} 사이트내에 [{row['contents']}] 컨텐츠 감지 불가!!"
+                )
+                telegram_actions.append(
+                    f"| {row.get('comment') or '별도 권장 처리 내용 없음'}"
+                )
+
+            tg_msg = "\n".join([
                 "🚨 [WebSiteMonitor 알람발생]",
                 "",
                 f"시간 : {now}",
                 "",
                 "-------------------------- 감지 내용 --------------------------",
-                "\n".join(alert_lines),
+                "\n".join(telegram_lines),
                 "-------------------------- 권 장 처 리 -------------------------",
-                "\n".join(action_lines),
+                "\n".join(telegram_actions),
                 "--------------------------------------------------------------",
                 "",
                 f"🔗 웹사이트 모니터링 : {web_url}",
             ])
+            await send_telegram(tg_msg, settings)
 
-            # 텔레그램 발송
-            await send_telegram(msg, settings)
-            # 이메일 발송
-            await send_email("🚨 [WebSiteMonitor] 장애 발생 알림", msg, settings)
-            log.info(f"[alert] ✅ {len(alert_lines)}건 알람 발송 완료 (Telegram/Email)")
+            # 2. 이메일 발송 (발송자를 개별 설정할 수 있도록 각 장애 항목별로 개별 발송)
+            for item in failed_items:
+                row = item["row"]
+                email_body = "\n".join([
+                    "🚨 [WebSiteMonitor 알람발생]",
+                    "",
+                    f"시간 : {now}",
+                    "",
+                    "-------------------------- 감지 내용 --------------------------",
+                    f"| {row['company']} 업체의 {row['url']} 사이트내에 [{row['contents']}] 컨텐츠 감지 불가!!",
+                    "-------------------------- 권 장 처 리 -------------------------",
+                    f"| {row.get('comment') or '별도 권장 처리 내용 없음'}",
+                    "--------------------------------------------------------------",
+                    "",
+                    f"🔗 웹사이트 모니터링 : {web_url}",
+                ])
+                custom_sender = row.get("sender_email", "") or ""
+                await send_email(
+                    subject=f"🚨 [WebSiteMonitor] 장애 발생 알림 ({row['company']})",
+                    body=email_body,
+                    settings=settings,
+                    sender_email=custom_sender
+                )
+
+            log.info(f"[alert] ✅ {len(failed_items)}건 알람 발송 완료 (Telegram/Email 개별발송)")
         else:
             log.info("[alert] ✅ 이상 없음")
 

@@ -287,32 +287,50 @@ ini_set('display_errors', '1');
                             <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
                         </label>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Host</label>
-                            <input type="text" name="smtp_host" value="<?= htmlspecialchars($settings['smtp_host'] ?? 'mail') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="Host (예: mail 또는 smtp.gmail.com)">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Port</label>
-                            <input type="text" name="smtp_port" value="<?= htmlspecialchars($settings['smtp_port'] ?? '25') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="25 / 587">
+
+                    <!-- SMTP Mode (직접 발송 vs Postfix 릴레이) -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-[var(--text-sub)] mb-1.5"><?= $current_lang == 'KO' ? 'SMTP 발송 방식' : 'SMTP Mode' ?></label>
+                        <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[42px]">
+                            <label class="flex-1 cursor-pointer h-full">
+                                <input type="radio" name="smtp_mode" value="direct" class="hidden peer" onchange="toggleSmtpFields(this.value)" <?= ($settings['smtp_mode'] ?? 'direct') == 'direct' ? 'checked' : '' ?>>
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer"><?= $current_lang == 'KO' ? '직접 SMTP 발송' : 'Direct SMTP' ?></div>
+                            </label>
+                            <label class="flex-1 cursor-pointer h-full">
+                                <input type="radio" name="smtp_mode" value="postfix" class="hidden peer" onchange="toggleSmtpFields(this.value)" <?= ($settings['smtp_mode'] ?? 'direct') == 'postfix' ? 'checked' : '' ?>>
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer"><?= $current_lang == 'KO' ? '내부 Postfix 릴레이' : 'Postfix Relay' ?></div>
+                            </label>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Username</label>
-                            <input type="text" name="smtp_user" value="<?= htmlspecialchars($settings['smtp_user'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="SMTP ID (선택)">
+
+                    <div id="smtpFields" class="transition-all duration-300">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Host</label>
+                                <input type="text" name="smtp_host" value="<?= htmlspecialchars($settings['smtp_host'] ?? 'mail') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="Host (예: mail 또는 smtp.gmail.com)">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Port</label>
+                                <input type="text" name="smtp_port" value="<?= htmlspecialchars($settings['smtp_port'] ?? '25') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="25 / 587">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Password</label>
-                            <input type="password" name="smtp_pass" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="비밀번호 변경 시 입력">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Secure Protocol</label>
-                            <select name="smtp_secure" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                                <option value="none" <?= ($settings['smtp_secure'] ?? 'none') == 'none' ? 'selected' : '' ?>>None (일반/릴레이)</option>
-                                <option value="ssl" <?= ($settings['smtp_secure'] ?? 'none') == 'ssl' ? 'selected' : '' ?>>SSL</option>
-                                <option value="tls" <?= ($settings['smtp_secure'] ?? 'none') == 'tls' ? 'selected' : '' ?>>TLS</option>
-                            </select>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Username</label>
+                                <input type="text" name="smtp_user" value="<?= htmlspecialchars($settings['smtp_user'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="SMTP ID (선택)">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Password</label>
+                                <input type="password" name="smtp_pass" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="비밀번호 변경 시 입력">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Secure Protocol</label>
+                                <select name="smtp_secure" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                    <option value="none" <?= ($settings['smtp_secure'] ?? 'none') == 'none' ? 'selected' : '' ?>>None (일반/릴레이)</option>
+                                    <option value="ssl" <?= ($settings['smtp_secure'] ?? 'none') == 'ssl' ? 'selected' : '' ?>>SSL</option>
+                                    <option value="tls" <?= ($settings['smtp_secure'] ?? 'none') == 'tls' ? 'selected' : '' ?>>TLS</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div>
@@ -321,28 +339,27 @@ ini_set('display_errors', '1');
                     </div>
                 </div>
 
-                <!-- 3. 무음 스케줄 및 Retention 설정 -->
+                <!-- 3. DB 비밀번호 변경 및 로그 보존 설정 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- DB 비밀번호 변경 -->
                     <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
-                        <div class="flex justify-between items-center mb-3">
-                            <h4 class="font-bold flex items-center gap-2 text-orange-500"><i class="fas fa-bell-slash"></i> <?= $current_lang == 'KO' ? '야간 무음 스케줄' : 'Alarm Mute Schedule' ?></h4>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="mute_enabled" value="1" class="sr-only peer" <?= ($settings['mute_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
-                            </label>
+                        <div>
+                            <h4 class="font-bold flex items-center gap-2 text-red-500 mb-3"><i class="fas fa-key"></i> <?= $current_lang == 'KO' ? 'DB 비밀번호 변경' : 'Change DB Password' ?></h4>
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '이전 비밀번호와 변경할 새 비밀번호를 입력하여 DB 비밀번호를 변경합니다.' : 'Change database password by providing the current and new password.' ?></p>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 mt-2">
+                        <div class="space-y-2">
                             <div>
-                                <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '무음 시작 시각' : 'Start Time' ?></label>
-                                <input type="time" name="mute_start_time" value="<?= htmlspecialchars($settings['mute_start_time'] ?? '22:00') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none">
+                                <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '이전 DB 패스워드' : 'Current DB Password' ?></label>
+                                <input type="password" name="db_pass_old" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '이전 패스워드 입력' : 'Enter current password' ?>">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '무음 종료 시각' : 'End Time' ?></label>
-                                <input type="time" name="mute_end_time" value="<?= htmlspecialchars($settings['mute_end_time'] ?? '07:00') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none">
+                                <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '변경할 패스워' : 'New DB Password' ?></label>
+                                <input type="password" name="db_pass_new" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '변경할 패스워드 입력' : 'Enter new password' ?>">
                             </div>
                         </div>
                     </div>
 
+                    <!-- 로그 보존 기간 설정 -->
                     <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
                         <div>
                             <h4 class="font-bold flex items-center gap-2 text-green-500 mb-3"><i class="fas fa-hdd"></i> <?= $current_lang == 'KO' ? '로그 보관 기간 설정' : 'Data Retention settings' ?></h4>
@@ -552,12 +569,48 @@ ini_set('display_errors', '1');
         function openSettingsModal() {
             document.getElementById('settingsModal').classList.remove('hidden');
             document.getElementById('settingsModal').classList.add('flex');
+            const smtpMode = document.querySelector('input[name="smtp_mode"]:checked')?.value || 'direct';
+            toggleSmtpFields(smtpMode);
         }
 
         function closeSettingsModal() {
             document.getElementById('settingsModal').classList.remove('flex');
             document.getElementById('settingsModal').classList.add('hidden');
         }
+
+        function toggleSmtpFields(mode) {
+            const fields = document.getElementById('smtpFields');
+            if (fields) {
+                if (mode === 'postfix') {
+                    fields.style.opacity = '0.35';
+                    fields.style.pointerEvents = 'none';
+                } else {
+                    fields.style.opacity = '1';
+                    fields.style.pointerEvents = 'auto';
+                }
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('settings_saved')) {
+                alert('<?= $current_lang == "KO" ? "설정이 성공적으로 저장되었습니다." : "Settings saved successfully." ?>');
+                const newUrl = window.location.pathname + window.location.search.replace(/[?&]settings_saved=1/, '').replace(/^&/, '?').replace(/\?$/, '');
+                window.history.replaceState({}, document.title, newUrl);
+            }
+            if (urlParams.has('settings_error')) {
+                const err = urlParams.get('settings_error');
+                let msg = '<?= $current_lang == "KO" ? "설정 저장 중 오류가 발생했습니다." : "An error occurred while saving settings." ?>';
+                if (err === 'db_pass_incorrect') {
+                    msg = '<?= $current_lang == "KO" ? "이전 DB 패스워드가 올바르지 않습니다." : "The current DB password is incorrect." ?>';
+                } else if (err === 'db_alter_failed') {
+                    msg = '<?= $current_lang == "KO" ? "DB 패스워드 변경에 실패했습니다." : "Failed to change DB password." ?>';
+                }
+                alert(msg);
+                const newUrl = window.location.pathname + window.location.search.replace(/[?&]settings_error=[^&]+/, '').replace(/^&/, '?').replace(/\?$/, '');
+                window.history.replaceState({}, document.title, newUrl);
+            }
+        });
 
         function openScheduleModal(event, row) {
             if (event) event.stopPropagation();

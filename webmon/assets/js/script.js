@@ -99,6 +99,7 @@ function openModal(type, data = null) {
         if (document.getElementById('modalUrl')) document.getElementById('modalUrl').value = data.url;
         if (document.getElementById('modalContents')) document.getElementById('modalContents').value = data.contents;
         if (document.getElementById('modalComment')) document.getElementById('modalComment').value = data.comment || '';
+        if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = data.sender_email || '';
         
         // 알람 상태 셋팅
         if (document.getElementById('modalCheck')) document.getElementById('modalCheck').value = data.check;
@@ -132,6 +133,7 @@ function openModal(type, data = null) {
         if (form) form.reset();
         if (document.getElementById('modalAction')) document.getElementById('modalAction').value = 'add';
         if (document.getElementById('modalComment')) document.getElementById('modalComment').value = '';
+        if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = '';
         if (document.getElementById('modalRetry')) document.getElementById('modalRetry').value = '1';
         if (document.getElementById('modalTimeout')) document.getElementById('modalTimeout').value = '2';
         

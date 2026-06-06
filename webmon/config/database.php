@@ -9,6 +9,15 @@ $db_pass = getenv('DB_PASS') ?: '';
 $db_name = getenv('DB_NAME') ?: 'sitemonitor';
 $db_port = (int)(getenv('DB_PORT') ?: 3306);
 
+// Check for custom password override
+$custom_pass_file = __DIR__ . '/db_pass_custom.php';
+if (file_exists($custom_pass_file)) {
+    $custom_pass = include $custom_pass_file;
+    if (!empty($custom_pass)) {
+        $db_pass = $custom_pass;
+    }
+}
+
 $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
 
 if ($db->connect_error) {
@@ -22,6 +31,18 @@ if ($db->connect_error) {
 }
 
 $db->set_charset('utf8mb4');
+
+// 자동 마이그레이션: monitor_conf 테이블에 sender_email 컬럼 추가
+$col_check = $db->query("SHOW COLUMNS FROM `monitor_conf` LIKE 'sender_email'");
+if ($col_check && $col_check->num_rows == 0) {
+    $db->query("ALTER TABLE `monitor_conf` ADD COLUMN `sender_email` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '발송자 이메일' AFTER `comment`");
+}
+
+// 자동 마이그레이션: system_settings 테이블에 smtp_mode 키 추가
+$key_check = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'smtp_mode'");
+if ($key_check && $key_check->num_rows == 0) {
+    $db->query("INSERT INTO `system_settings` (`key_name`, `key_value`) VALUES ('smtp_mode', 'direct')");
+}
 
 // 시스템 설정 로드
 $settings = [];

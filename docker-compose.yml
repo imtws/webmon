@@ -35,6 +35,7 @@ services:
     restart: unless-stopped
     volumes:
       - scheduler_logs:/app/logs
+      - ./webmon/config:/app/config:ro
     environment:
       # DB
       DB_HOST:         ${DB_HOST:-db}
@@ -53,6 +54,7 @@ services:
       SCHEDULE_REPORT: ${SCHEDULE_REPORT:-0 9 * * 1}
       # 튜닝
       ALERT_CONCURRENCY: ${ALERT_CONCURRENCY:-60}
+      TZ:                ${PHP_TIMEZONE:-Asia/Seoul}
     depends_on:
       db:
         condition: service_healthy

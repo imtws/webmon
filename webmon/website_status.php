@@ -45,19 +45,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ssl_mon = (int)$_POST['ssl_mon'];
         $dom_mon = (int)$_POST['dom_mon'];
         $comment = $db->real_escape_string($_POST['comment'] ?? '');
+        $sender_email = $db->real_escape_string($_POST['sender_email'] ?? '');
         $retry_count = (int)($_POST['retry_count'] ?? 1);
         $engine_type = $db->real_escape_string($_POST['engine_type'] ?? 'lynx');
         $timeout_sec = (int)($_POST['timeout_sec'] ?? 2);
         $mod_date = date('Y-m-d H:i:s');
         
         if ($action === 'add') {
-            $sql = "INSERT INTO monitor_conf (company, group_name, url, contents, `check`, ssl_mon, dom_mon, comment, mod_date, value, response_time, retry_count, timeout_sec, engine_type) 
-                    VALUES ('$company', '$group_name', '$url', '$contents', '$check', $ssl_mon, $dom_mon, '$comment', '$mod_date', 1, 0.0, $retry_count, $timeout_sec, '$engine_type')";
+            $sql = "INSERT INTO monitor_conf (company, group_name, url, contents, `check`, ssl_mon, dom_mon, comment, sender_email, mod_date, value, response_time, retry_count, timeout_sec, engine_type) 
+                    VALUES ('$company', '$group_name', '$url', '$contents', '$check', $ssl_mon, $dom_mon, '$comment', '$sender_email', '$mod_date', 1, 0.0, $retry_count, $timeout_sec, '$engine_type')";
         } else {
             $no = (int)$_POST['no'];
             $sql = "UPDATE monitor_conf SET 
                     company='$company', group_name='$group_name', url='$url', contents='$contents', `check`='$check', 
-                    ssl_mon=$ssl_mon, dom_mon=$dom_mon, comment='$comment', mod_date='$mod_date',
+                    ssl_mon=$ssl_mon, dom_mon=$dom_mon, comment='$comment', sender_email='$sender_email', mod_date='$mod_date',
                     retry_count=$retry_count, timeout_sec=$timeout_sec, engine_type='$engine_type'
                     WHERE no=$no";
         }
