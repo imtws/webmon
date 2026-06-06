@@ -1,0 +1,177 @@
+<?php
+// ==========================================
+// [0] 환경 설정 및 공통 파일 로드 (★ 이 부분이 빠져서 에러가 났던 겁니다!)
+// ==========================================
+require_once 'config/database.php';
+require_once 'config/language.php';
+require_once 'classes/Utils.php';
+
+// ==========================================
+// [1] DB 처리 로직
+// ==========================================
+$query_string = $_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '';
+
+if (isset($_GET['action']) && $_GET['action'] == 'delete') {
+    $no = (int)$_GET['no'];
+    $db->query("DELETE FROM monitor_conf WHERE no = $no");
+    
+    $redirect_url = "website_status.php";
+    if (!empty($_GET['current_query'])) {
+        $redirect_url .= "?" . $_GET['current_query'];
+    }
+    header("Location: " . $redirect_url); 
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    $redirect_url = "website_status.php";
+    if (isset($_POST['current_query']) && !empty($_POST['current_query'])) {
+        $redirect_url .= "?" . $_POST['current_query'];
+    }
+
+    if ($action === 'add' || $action === 'edit') {
+        $company = $db->real_escape_string($_POST['company']);
+        $group_select = $_POST['group_select'] ?? '';
+        $group_name_new = trim($_POST['group_name_new'] ?? '');
+        $final_group = ($group_select === '_NEW_' && $group_name_new !== '') ? $group_name_new : $group_select;
+        if (empty($final_group)) $final_group = '기본 그룹';
+        
+        $group_name = $db->real_escape_string($final_group);
+        $url = $db->real_escape_string($_POST['url']);
+        $contents = $db->real_escape_string($_POST['contents']);
+        $check = $db->real_escape_string($_POST['check']);
+        $ssl_mon = (int)$_POST['ssl_mon'];
+        $dom_mon = (int)$_POST['dom_mon'];
+        $comment = $db->real_escape_string($_POST['comment'] ?? '');
+        $retry_count = (int)($_POST['retry_count'] ?? 1);
+        $engine_type = $db->real_escape_string($_POST['engine_type'] ?? 'lynx');
+        $timeout_sec = (int)($_POST['timeout_sec'] ?? 2);
+        $mod_date = date('Y-m-d H:i:s');
+        
+        if ($action === 'add') {
+            $sql = "INSERT INTO monitor_conf (company, group_name, url, contents, `check`, ssl_mon, dom_mon, comment, mod_date, value, response_time, retry_count, timeout_sec, engine_type) 
+                    VALUES ('$company', '$group_name', '$url', '$contents', '$check', $ssl_mon, $dom_mon, '$comment', '$mod_date', 1, 0.0, $retry_count, $timeout_sec, '$engine_type')";
+        } else {
+            $no = (int)$_POST['no'];
+            $sql = "UPDATE monitor_conf SET 
+                    company='$company', group_name='$group_name', url='$url', contents='$contents', `check`='$check', 
+                    ssl_mon=$ssl_mon, dom_mon=$dom_mon, comment='$comment', mod_date='$mod_date',
+                    retry_count=$retry_count, timeout_sec=$timeout_sec, engine_type='$engine_type'
+                    WHERE no=$no";
+        }
+        
+        $db->query($sql);
+        header("Location: " . $redirect_url); exit;
+    }
+    elseif ($action === 'bulk_delete' && !empty($_POST['ids'])) {
+        $ids = array_map('intval', explode(',', $_POST['ids']));
+        $ids_str = implode(',', $ids);
+        $db->query("DELETE FROM monitor_conf WHERE no IN ($ids_str)");
+        header("Location: " . $redirect_url); exit;
+    }
+    elseif ($action === 'bulk_status' && !empty($_POST['ids'])) {
+        $ids = array_map('intval', explode(',', $_POST['ids']));
+        $ids_str = implode(',', $ids);
+        $status = $db->real_escape_string($_POST['status']);
+        $db->query("UPDATE monitor_conf SET `check`='$status' WHERE no IN ($ids_str)");
+        header("Location: website_status.php"); exit;
+    }
+}
+
+// ==========================================
+// [2] 검색 및 필터 쿼리 구성
+// ==========================================
+$type = $_GET['type'] ?? 'total';
+$search_company = $_GET['search_company'] ?? '';
+$search_group = $_GET['search_group'] ?? 'all';
+$filter_status = $_GET['filter_status'] ?? 'all';
+$sort = $_GET['sort'] ?? 'latest';
+
+$where = ["1=1"];
+if ($type == 'success') $where[] = "`check` = 'alarm' AND value > 0";
+elseif ($type == 'failure') $where[] = "value = 0 AND `check` != 'disable'";
+
+if (!empty($search_company)) {
+    $safe_comp = $db->real_escape_string($search_company);
+    $regex = Utils::buildChosungRegex($search_company);
+    
+    if ($regex !== false) {
+        $safe_regex = $db->real_escape_string($regex);
+        $where[] = "(company LIKE '%$safe_comp%' OR url LIKE '%$safe_comp%' OR company REGEXP '$safe_regex')";
+    } else {
+        $where[] = "(company LIKE '%$safe_comp%' OR url LIKE '%$safe_comp%')";
+    }
+}
+
+if ($search_group !== 'all') {
+    $safe_grp = $db->real_escape_string($search_group);
+    $where[] = "group_name = '$safe_grp'";
+}
+
+if ($filter_status !== 'all') {
+    $safe_status = $db->real_escape_string($filter_status);
+    if ($safe_status === 'cross_on') {
+        $where[] = "cross_check = 1";
+    } elseif ($safe_status === 'cross_off') {
+        $where[] = "cross_check = 0";
+    } elseif ($safe_status === 'timeout_custom') {
+        $where[] = "timeout_sec > 2";
+    } elseif ($safe_status === 'timeout_default') {
+        $where[] = "timeout_sec <= 2";
+    } else {
+        $where[] = "`check` = '$safe_status'";
+    }
+}
+
+$filter_engine = $_GET['filter_engine'] ?? 'all';
+
+if ($filter_engine === 'lynx') {
+    $where[] = "(engine_type = 'lynx' OR engine_type IS NULL OR engine_type = '')";
+} elseif ($filter_engine === 'curl') {
+    $where[] = "engine_type = 'curl'";
+}
+
+$where_sql = implode(' AND ', $where);
+
+$order_query = "ORDER BY no DESC";
+if ($sort == 'comp_asc') {
+    $order_query = "ORDER BY company ASC, no DESC";
+} elseif ($sort == 'comp_desc') {
+    $order_query = "ORDER BY company DESC, no DESC";
+} elseif ($sort == 'ssl') {
+    $order_query = "ORDER BY ssl_expiry ASC";
+} elseif ($sort == 'dom') {
+    $order_query = "ORDER BY dom_expiry ASC";
+} elseif ($sort == 'status_desc') {
+    $order_query = "ORDER BY CASE TRIM(`check`) WHEN 'alarm' THEN 1 WHEN '1' THEN 1 WHEN 'no alarm' THEN 2 WHEN '2' THEN 2 WHEN 'disable' THEN 3 WHEN '0' THEN 3 WHEN 'fail' THEN 3 ELSE 4 END ASC, no DESC";
+} elseif ($sort == 'status_asc') {
+    $order_query = "ORDER BY CASE TRIM(`check`) WHEN 'disable' THEN 1 WHEN '0' THEN 1 WHEN 'fail' THEN 1 WHEN 'no alarm' THEN 2 WHEN '2' THEN 2 WHEN 'alarm' THEN 3 WHEN '1' THEN 3 ELSE 4 END ASC, no DESC";
+} elseif ($sort == 'result_succ') {
+    $order_query = "ORDER BY CASE WHEN `check`='disable' THEN 3 WHEN value>0 THEN 1 ELSE 2 END ASC, no DESC";
+} elseif ($sort == 'result_fail') {
+    $order_query = "ORDER BY CASE WHEN `check`='disable' THEN 3 WHEN value=0 THEN 1 ELSE 2 END ASC, no DESC";
+} elseif ($sort == 'retry_desc') {
+    $order_query = "ORDER BY retry_count DESC, no DESC";
+} elseif ($sort == 'retry_asc') {
+    $order_query = "ORDER BY retry_count ASC, no DESC";
+}
+
+$stat_total = $db->query("SELECT COUNT(*) as cnt FROM monitor_conf")->fetch_assoc()['cnt'] ?? 0;
+$stat_success = $db->query("SELECT COUNT(*) as cnt FROM monitor_conf WHERE `check` = 'alarm' AND value > 0")->fetch_assoc()['cnt'] ?? 0;
+$stat_fail = $db->query("SELECT COUNT(*) as cnt FROM monitor_conf WHERE value = 0 AND `check` != 'disable'")->fetch_assoc()['cnt'] ?? 0;
+$last_run = $db->query("SELECT MAX(mod_date) as last_run FROM monitor_conf")->fetch_assoc()['last_run'] ?? '-';
+$next_run = $last_run !== '-' ? date('Y-m-d H:i:s', strtotime($last_run . ' + 1 minutes')) : '-';
+
+$groups_res = $db->query("SELECT DISTINCT group_name FROM monitor_conf WHERE group_name != '' ORDER BY group_name ASC");
+$existing_groups = [];
+while($g = $groups_res->fetch_assoc()) { $existing_groups[] = $g['group_name']; }
+
+$result = $db->query("SELECT * FROM monitor_conf WHERE $where_sql $order_query");
+
+// ==========================================
+// [3] View(화면) 호출
+// ==========================================
+require_once 'views/index.php';
+?>
