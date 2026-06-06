@@ -33,6 +33,14 @@
                     <input type="text" name="comment" id="modalComment" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="<?= $t['ph_comment'] ?>">
                 </div>
                 <div>
+                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $current_lang == 'KO' ? '이메일 발송 방식' : 'Email Mode' ?></label>
+                    <select name="email_mode" id="modalEmailMode" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]">
+                        <option value="none"><?= $current_lang == 'KO' ? '미발송 (사용 안 함)' : 'Disabled' ?></option>
+                        <option value="postfix"><?= $current_lang == 'KO' ? '로컬 Postfix 직접 발송' : 'Direct Postfix' ?></option>
+                        <option value="smtp"><?= $current_lang == 'KO' ? '외부 SMTP 릴레이 발송' : 'SMTP Relay' ?></option>
+                    </select>
+                </div>
+                <div>
                     <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $current_lang == 'KO' ? '발송자 이메일' : 'Sender Email' ?></label>
                     <input type="email" name="sender_email" id="modalSenderEmail" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="sender@example.com (선택)">
                 </div>

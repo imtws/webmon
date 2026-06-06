@@ -276,12 +276,14 @@ async def run_alert():
                 ])
                 custom_sender = row.get("sender_email", "") or ""
                 custom_receiver = row.get("receiver_email", "") or ""
+                custom_email_mode = row.get("email_mode", "none") or "none"
                 await send_email(
                     subject=f"🚨 [WebSiteMonitor] 장애 발생 알림 ({row['company']})",
                     body=email_body,
                     settings=settings,
                     sender_email=custom_sender,
-                    receiver_email=custom_receiver
+                    receiver_email=custom_receiver,
+                    email_mode=custom_email_mode
                 )
 
             log.info(f"[alert] ✅ {len(failed_items)}건 알람 발송 완료 (Telegram/Email 개별발송)")

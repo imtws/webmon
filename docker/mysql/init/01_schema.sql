@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `monitor_conf` (
     `comment`       VARCHAR(500)    NOT NULL DEFAULT '' COMMENT '권장 처리 내용',
     `sender_email`  VARCHAR(255)    NOT NULL DEFAULT '' COMMENT '발송자 이메일',
     `receiver_email` VARCHAR(255)    NOT NULL DEFAULT '' COMMENT '수신자 이메일',
+    `email_mode`    VARCHAR(20)     NOT NULL DEFAULT 'none' COMMENT '이메일 발송 방식',
     `mod_date`      DATETIME        DEFAULT NULL COMMENT '마지막 수정/실행 시각',
     `value`         TINYINT(1)      NOT NULL DEFAULT 1 COMMENT '마지막 체크 결과 (1=성공, 0=실패)',
     `response_time` FLOAT           NOT NULL DEFAULT 0.0 COMMENT '응답시간(초)',

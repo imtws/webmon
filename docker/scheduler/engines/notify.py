@@ -50,35 +50,57 @@ async def send_telegram(message: str, settings: dict = None) -> bool:
         return False
 
 
-def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str = "", receiver_email: str = "") -> bool:
+def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str = "", receiver_email: str = "", email_mode: str = "none") -> bool:
     """동기식 SMTP 발송 처리 (스레드에서 구동됨)"""
-    email_enabled = settings.get("email_enabled", "0") == "1"
+    # 이메일 발송 방식이 'none'인 경우 발송 안 함
+    if email_mode == "none" or not email_mode:
+        log.debug("이메일 알림 비활성화 상태 (email_mode == none)")
+        return False
+
     # 개별 수신자가 설정되어 있으면 그것을 쓰고, 없으면 전역 수신자 사용
     alert_email = receiver_email.strip() if receiver_email and receiver_email.strip() else settings.get("alert_email", "")
 
-    if not email_enabled:
-        log.debug("이메일 알림 비활성화 상태")
-        return False
-
     if not alert_email:
-        log.warning("이메일 알림이 활성화되었으나 수신 이메일(ALERT_EMAIL)이 입력되지 않음")
+        log.warning("이메일 알림 수신 이메일(alert_email)이 입력되지 않음")
         return False
 
-    # SMTP 모드 분기 (direct 또는 postfix)
-    smtp_mode = settings.get("smtp_mode", "direct")
-    
-    if smtp_mode == "postfix":
+    # SMTP 모드 분기 (postfix vs smtp)
+    if email_mode == "postfix":
         smtp_host = "mail"
         smtp_port = 25
         smtp_user = ""
         smtp_pass = ""
         smtp_secure = "none"
+    elif email_mode == "smtp":
+        # .env 환경변수에서 메일 설정을 로드 (직접 SMTP 릴레이)
+        import re
+        relayhost = os.environ.get("SMTP_RELAYHOST", "mail") # 예: [smtp.gmail.com]:587
+        
+        # 호스트와 포트 파싱
+        host_clean = re.sub(r'[\[\]]', '', relayhost)
+        if ":" in host_clean:
+            smtp_host, port_str = host_clean.split(":", 1)
+            smtp_port = int(port_str)
+        else:
+            smtp_host = host_clean
+            smtp_port = 25
+            
+        smtp_user = os.environ.get("SMTP_USER", "")
+        smtp_pass = os.environ.get("SMTP_PASS", "")
+        
+        if smtp_port == 587:
+            smtp_secure = "tls"
+        elif smtp_port == 465:
+            smtp_secure = "ssl"
+        else:
+            smtp_secure = "none"
     else:
-        smtp_host = settings.get("smtp_host", "mail")
-        smtp_port = int(settings.get("smtp_port", "25") or "25")
-        smtp_user = settings.get("smtp_user", "")
-        smtp_pass = settings.get("smtp_pass", "")
-        smtp_secure = settings.get("smtp_secure", "none").lower()
+        # 레거시 연동용 예외 처리
+        smtp_host = "mail"
+        smtp_port = 25
+        smtp_user = ""
+        smtp_pass = ""
+        smtp_secure = "none"
 
     # 발송자 지정 우선순위:
     # 1. 개별 모니터링 항목에 설정된 발송자 (sender_email)
@@ -103,7 +125,7 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
             if smtp_secure == "tls":
                 server.starttls()
 
-        if smtp_mode != "postfix" and smtp_user and smtp_pass:
+        if email_mode == "smtp" and smtp_user and smtp_pass:
             server.login(smtp_user, smtp_pass)
 
         server.sendmail(sender, [alert_email], msg.as_string())
@@ -114,9 +136,9 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
         return False
 
 
-async def send_email(subject: str, body: str, settings: dict = None, sender_email: str = "", receiver_email: str = "") -> bool:
+async def send_email(subject: str, body: str, settings: dict = None, sender_email: str = "", receiver_email: str = "", email_mode: str = "none") -> bool:
     """이메일(SMTP)로 알림을 발송합니다. 비동기 스레드 풀에서 동기 발송 처리합니다."""
     if settings is None:
         settings = await load_system_settings()
-    return await asyncio.to_thread(_send_email_sync, subject, body, settings, sender_email, receiver_email)
+    return await asyncio.to_thread(_send_email_sync, subject, body, settings, sender_email, receiver_email, email_mode)
 

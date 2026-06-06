@@ -99,6 +99,7 @@ function openModal(type, data = null) {
         if (document.getElementById('modalUrl')) document.getElementById('modalUrl').value = data.url;
         if (document.getElementById('modalContents')) document.getElementById('modalContents').value = data.contents;
         if (document.getElementById('modalComment')) document.getElementById('modalComment').value = data.comment || '';
+        if (document.getElementById('modalEmailMode')) document.getElementById('modalEmailMode').value = data.email_mode || 'none';
         if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = data.sender_email || '';
         if (document.getElementById('modalReceiverEmail')) document.getElementById('modalReceiverEmail').value = data.receiver_email || '';
         
@@ -134,6 +135,7 @@ function openModal(type, data = null) {
         if (form) form.reset();
         if (document.getElementById('modalAction')) document.getElementById('modalAction').value = 'add';
         if (document.getElementById('modalComment')) document.getElementById('modalComment').value = '';
+        if (document.getElementById('modalEmailMode')) document.getElementById('modalEmailMode').value = 'none';
         if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = '';
         if (document.getElementById('modalReceiverEmail')) document.getElementById('modalReceiverEmail').value = '';
         if (document.getElementById('modalRetry')) document.getElementById('modalRetry').value = '1';

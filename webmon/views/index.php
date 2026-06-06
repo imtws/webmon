@@ -278,66 +278,7 @@ ini_set('display_errors', '1');
                     </div>
                 </div>
 
-                <!-- 2. SMTP 이메일 설정 -->
-                <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
-                    <div class="flex justify-between items-center mb-3">
-                        <h4 class="font-bold flex items-center gap-2 text-[#18aee7]"><i class="fas fa-envelope text-lg"></i> <?= $current_lang == 'KO' ? '이메일 SMTP (릴레이) 알림 설정' : 'SMTP Email Relay Settings' ?></h4>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="email_enabled" value="1" class="sr-only peer" <?= ($settings['email_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
-                        </label>
-                    </div>
 
-                    <!-- SMTP Mode (외부 SMTP 릴레이 발송 vs 로컬 Postfix 직접 발송) -->
-                    <div class="mb-4">
-                        <label class="block text-xs font-bold text-[var(--text-sub)] mb-1.5"><?= $current_lang == 'KO' ? 'SMTP 발송 방식' : 'SMTP Mode' ?></label>
-                        <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[42px]">
-                            <label class="flex-1 cursor-pointer h-full">
-                                <input type="radio" name="smtp_mode" value="direct" class="hidden peer" onchange="toggleSmtpFields(this.value)" <?= ($settings['smtp_mode'] ?? 'direct') == 'direct' ? 'checked' : '' ?>>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer"><?= $current_lang == 'KO' ? '외부 SMTP 릴레이 발송' : 'SMTP Relay' ?></div>
-                            </label>
-                            <label class="flex-1 cursor-pointer h-full">
-                                <input type="radio" name="smtp_mode" value="postfix" class="hidden peer" onchange="toggleSmtpFields(this.value)" <?= ($settings['smtp_mode'] ?? 'direct') == 'postfix' ? 'checked' : '' ?>>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer"><?= $current_lang == 'KO' ? '로컬 Postfix 직접 발송' : 'Direct Postfix' ?></div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div id="smtpFields" class="transition-all duration-300">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Host</label>
-                                <input type="text" name="smtp_host" value="<?= htmlspecialchars($settings['smtp_host'] ?? 'mail') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="Host (예: mail 또는 smtp.gmail.com)">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Port</label>
-                                <input type="text" name="smtp_port" value="<?= htmlspecialchars($settings['smtp_port'] ?? '25') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="25 / 587">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Username</label>
-                                <input type="text" name="smtp_user" value="<?= htmlspecialchars($settings['smtp_user'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="SMTP ID (선택)">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Password</label>
-                                <input type="password" name="smtp_pass" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="비밀번호 변경 시 입력">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Secure Protocol</label>
-                                <select name="smtp_secure" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                                    <option value="none" <?= ($settings['smtp_secure'] ?? 'none') == 'none' ? 'selected' : '' ?>>None (일반/릴레이)</option>
-                                    <option value="ssl" <?= ($settings['smtp_secure'] ?? 'none') == 'ssl' ? 'selected' : '' ?>>SSL</option>
-                                    <option value="tls" <?= ($settings['smtp_secure'] ?? 'none') == 'tls' ? 'selected' : '' ?>>TLS</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">수신 이메일 주소 (Alert Destination Email)</label>
-                        <input type="text" name="alert_email" value="<?= htmlspecialchars($settings['alert_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="receiver@example.com">
-                    </div>
-                </div>
 
                 <!-- 3. DB 비밀번호 변경 및 로그 보존 설정 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -569,26 +510,11 @@ ini_set('display_errors', '1');
         function openSettingsModal() {
             document.getElementById('settingsModal').classList.remove('hidden');
             document.getElementById('settingsModal').classList.add('flex');
-            const smtpMode = document.querySelector('input[name="smtp_mode"]:checked')?.value || 'direct';
-            toggleSmtpFields(smtpMode);
         }
 
         function closeSettingsModal() {
             document.getElementById('settingsModal').classList.remove('flex');
             document.getElementById('settingsModal').classList.add('hidden');
-        }
-
-        function toggleSmtpFields(mode) {
-            const fields = document.getElementById('smtpFields');
-            if (fields) {
-                if (mode === 'postfix') {
-                    fields.style.opacity = '0.35';
-                    fields.style.pointerEvents = 'none';
-                } else {
-                    fields.style.opacity = '1';
-                    fields.style.pointerEvents = 'auto';
-                }
-            }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
