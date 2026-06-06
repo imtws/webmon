@@ -4,7 +4,21 @@
             <input type="checkbox" name="chk_ids[]" value="<?=$row['no']?>" data-company="<?=htmlspecialchars($row['company'])?>" class="item-checkbox w-4 h-4 rounded accent-[#18aee7]">
             <span class="group-badge clickable" onclick="filterByGroup('<?=$group_name_display?>')"># <?= $group_name_display ?></span>
         </div>
-        <div class="flex gap-3 text-[var(--text-sub)]">
+        <div class="flex gap-3 text-[var(--text-sub)] items-center">
+            <?php
+            $bell_color = 'hover:text-yellow-500';
+            $bell_title = '스케줄 설정';
+            if ($is_scheduled) {
+                if ($is_currently_off_schedule) {
+                    $bell_color = 'text-violet-400 hover:text-violet-500';
+                    $bell_title = '스케줄 무음 적용 중 (' . htmlspecialchars($row['sched_start_time']) . ' ~ ' . htmlspecialchars($row['sched_end_time']) . ')';
+                } else {
+                    $bell_color = 'text-[#18aee7] hover:text-blue-500';
+                    $bell_title = '스케줄 모니터링 중 (' . htmlspecialchars($row['sched_start_time']) . ' ~ ' . htmlspecialchars($row['sched_end_time']) . ')';
+                }
+            }
+            ?>
+            <i class="fas fa-bell cursor-pointer <?= $bell_color ?>" title="<?= $bell_title ?>" onclick='openScheduleModal(event, <?= json_encode($row) ?>)'></i>
             <i class="fas fa-cog cursor-pointer hover:text-[#18aee7]" onclick='openModal("edit", <?= json_encode($row) ?>)'></i>
             <i class="fas fa-trash cursor-pointer hover:text-red-500" onclick="confirmDelete('<?=htmlspecialchars($row['company'])?>', <?=$row['no']?>)"></i>
         </div>

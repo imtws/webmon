@@ -12,7 +12,21 @@
     <div class="flex-1 text-center text-[var(--text-sub)] truncate px-1"><?= htmlspecialchars($row['contents']) ?></div>
     <div class="flex-1 text-center font-bold <?= $status_class ?>"><?= $check_text ?></div>
     <div class="flex-1 text-center font-black <?= $result_color ?>"><?= $is_disabled ? '-' : $result_text ?></div>
-    <div class="w-24 text-right pr-2 text-[var(--text-sub)] flex justify-end items-center gap-3">
+    <div class="w-28 text-right pr-2 text-[var(--text-sub)] flex justify-end items-center gap-3">
+        <?php
+        $bell_color = 'hover:text-yellow-500';
+        $bell_title = '스케줄 설정';
+        if ($is_scheduled) {
+            if ($is_currently_off_schedule) {
+                $bell_color = 'text-violet-400 hover:text-violet-500';
+                $bell_title = '스케줄 무음 적용 중 (' . htmlspecialchars($row['sched_start_time']) . ' ~ ' . htmlspecialchars($row['sched_end_time']) . ')';
+            } else {
+                $bell_color = 'text-[#18aee7] hover:text-blue-500';
+                $bell_title = '스케줄 모니터링 중 (' . htmlspecialchars($row['sched_start_time']) . ' ~ ' . htmlspecialchars($row['sched_end_time']) . ')';
+            }
+        }
+        ?>
+        <i class="fas fa-bell cursor-pointer <?= $bell_color ?>" title="<?= $bell_title ?>" onclick='openScheduleModal(event, <?= json_encode($row) ?>)'></i>
         <i class="fas fa-cog cursor-pointer hover:text-[#18aee7]" onclick='openModal("edit", <?= json_encode($row) ?>)'></i>
         <i class="fas fa-trash cursor-pointer hover:text-red-500" onclick="confirmDelete('<?=htmlspecialchars($row['company'])?>', <?=$row['no']?>)"></i>
         <i class="fas fa-chevron-down cursor-pointer hover:text-[#18aee7] transition-transform duration-200" id="arrow-<?=$row['no']?>" onclick="toggleAccordion(event, <?=$row['no']?>)"></i>

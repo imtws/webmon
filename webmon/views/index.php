@@ -160,7 +160,7 @@ ini_set('display_errors', '1');
                     <div class="flex-1 text-center"><?= $t['h_keyword'] ?></div>
                     <div class="flex-1 text-center cursor-pointer hover:text-[#18aee7] transition-colors" onclick="toggleSortStatus()"><?= $t['h_alarm'] ?></div>
                     <div class="flex-1 text-center cursor-pointer hover:text-[#18aee7] transition-colors" onclick="toggleSortResult()"><?= $t['h_result'] ?></div>
-                    <div class="w-20 text-right pr-2"><?= $t['h_setting'] ?></div>
+                    <div class="w-28 text-right pr-2"><?= $t['h_setting'] ?></div>
                 </div>
             </div>
         </div>
@@ -179,11 +179,53 @@ ini_set('display_errors', '1');
                     if($result && $result->num_rows > 0) {
                         while($row = $result->fetch_assoc()): 
                             $is_disabled = ($row['check'] == 'disable');
-                            $border_color = $is_disabled ? 'bg-gray-400' : ($row['value'] > 0 ? 'bg-[#18aee7]' : 'bg-red-500');
-                            $status_class = ($row['check'] == 'alarm') ? "text-green-500" : (($row['check'] == 'no alarm') ? "text-orange-500" : "text-gray-400");
-                            $check_text = ($row['check'] == 'alarm') ? $t['status_alarm'] : (($row['check'] == 'no alarm') ? $t['status_noalarm'] : $t['status_disable']);
+                            
+                            // 스케줄 상태 판별
+                            $is_scheduled = (($row['sched_enabled'] ?? 0) == 1);
+                            $is_currently_off_schedule = false;
+                            if ($is_scheduled && !$is_disabled) {
+                                if (!function_exists('is_in_schedule_range')) {
+                                    function is_in_schedule_range($start_str, $end_str) {
+                                        $now = new DateTime();
+                                        $now_time = $now->format('H:i');
+                                        $start = trim($start_str);
+                                        $end = trim($end_str);
+                                        if ($start <= $end) {
+                                            return ($now_time >= $start && $now_time <= $end);
+                                        } else {
+                                            return ($now_time >= $start || $now_time <= $end);
+                                        }
+                                    }
+                                }
+                                $in_range = is_in_schedule_range($row['sched_start_time'] ?? '09:00', $row['sched_end_time'] ?? '18:00');
+                                $mode = $row['sched_mode'] ?? 'active';
+                                if ($mode == 'active' && !$in_range) {
+                                    $is_currently_off_schedule = true;
+                                } elseif ($mode == 'mute' && $in_range) {
+                                    $is_currently_off_schedule = true;
+                                }
+                            }
+
+                            if ($is_disabled) {
+                                $border_color = 'bg-gray-400';
+                                $status_class = 'text-gray-400';
+                                $check_text = $t['status_disable'];
+                            } elseif ($is_currently_off_schedule) {
+                                $border_color = 'bg-violet-400';
+                                $status_class = 'text-violet-500';
+                                $check_text = $current_lang == 'KO' ? '스케줄 무음' : 'Sched Mute';
+                            } else {
+                                $border_color = $row['value'] > 0 ? 'bg-[#18aee7]' : 'bg-red-500';
+                                $status_class = ($row['check'] == 'alarm') ? "text-green-500" : "text-orange-500";
+                                $check_text = ($row['check'] == 'alarm') ? $t['status_alarm'] : $t['status_noalarm'];
+                            }
+
                             $result_text = $row['value'] > 0 ? $t['v_success'] : $t['v_fail'];
                             $result_color = $row['value'] > 0 ? 'text-green-500' : 'text-red-500';
+                            if ($is_currently_off_schedule) {
+                                $result_text = $current_lang == 'KO' ? '대기중' : 'Standby';
+                                $result_color = 'text-violet-400';
+                            }
                             $group_name_display = htmlspecialchars($row['group_name'] ?: '기본 그룹');
                     ?>
                     
@@ -316,6 +358,66 @@ ini_set('display_errors', '1');
                 <div class="flex justify-end gap-3 mt-4 border-t border-[var(--border-color)] pt-4">
                     <button type="button" onclick="closeSettingsModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl font-bold transition-all text-xs"><?= $current_lang == 'KO' ? '취소' : 'Cancel' ?></button>
                     <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '설정 저장' : 'Save Settings' ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 🔔 개별 모니터링 스케줄 설정 모달 ────────────────────────────── -->
+    <div id="itemScheduleModal" class="fixed inset-0 z-[1000] hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-[var(--card-bg)] border border-[var(--border-color)] w-full max-w-md rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-clock text-[#18aee7]"></i> <span id="schedModalTitle">모니터링 스케줄 설정</span></h3>
+                <i class="fas fa-times cursor-pointer hover:text-red-500" onclick="closeItemScheduleModal()"></i>
+            </div>
+            
+            <form action="save_item_schedule.php" method="POST" class="p-6 flex flex-col gap-4 text-sm">
+                <input type="hidden" name="no" id="schedItemNo" value="">
+                
+                <!-- 스케줄 활성화 토글 -->
+                <div class="flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20 p-3 rounded-xl border border-[var(--border-color)]">
+                    <div>
+                        <span class="font-bold block">개별 스케줄링 사용</span>
+                        <span class="text-[10px] text-[var(--text-sub)]">지정한 시간에만 알림을 보내거나 무음 처리합니다.</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="sched_enabled" id="schedEnabled" value="1" class="sr-only peer" onchange="toggleSchedFields(this.checked)">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
+                    </label>
+                </div>
+
+                <div id="schedFields" class="flex flex-col gap-4 transition-all duration-300">
+                    <!-- 동작 모드 -->
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-sub)] mb-1.5">스케줄 동작 방식</label>
+                        <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[42px]">
+                            <label class="flex-1 cursor-pointer h-full">
+                                <input type="radio" name="sched_mode" id="schedModeActive" value="active" class="hidden peer" checked>
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer">활성화 (지정 시간대 모니터링)</div>
+                            </label>
+                            <label class="flex-1 cursor-pointer h-full">
+                                <input type="radio" name="sched_mode" id="schedModeMute" value="mute" class="hidden peer">
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer">비활성화 (지정 시간대 무음)</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 시간 범위 -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">시작 시각</label>
+                            <input type="time" name="sched_start_time" id="schedStartTime" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">종료 시각</label>
+                            <input type="time" name="sched_end_time" id="schedEndTime" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-4 border-t border-[var(--border-color)] pt-4">
+                    <button type="button" onclick="closeItemScheduleModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl font-bold transition-all text-xs">취소</button>
+                    <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs">스케줄 저장</button>
                 </div>
             </form>
         </div>
@@ -455,6 +557,50 @@ ini_set('display_errors', '1');
         function closeSettingsModal() {
             document.getElementById('settingsModal').classList.remove('flex');
             document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function openScheduleModal(event, row) {
+            if (event) event.stopPropagation();
+            document.getElementById('schedItemNo').value = row.no;
+            document.getElementById('schedModalTitle').innerText = `${row.company} 스케줄 설정`;
+            
+            const enabled = parseInt(row.sched_enabled || 0) === 1;
+            document.getElementById('schedEnabled').checked = enabled;
+            
+            const mode = row.sched_mode || 'active';
+            if (mode === 'active') {
+                document.getElementById('schedModeActive').checked = true;
+            } else {
+                document.getElementById('schedModeMute').checked = true;
+            }
+            
+            // sched_start_time과 sched_end_time에서 HH:MM만 추출
+            const start = row.sched_start_time ? row.sched_start_time.substring(0, 5) : '09:00';
+            const end = row.sched_end_time ? row.sched_end_time.substring(0, 5) : '18:00';
+            
+            document.getElementById('schedStartTime').value = start;
+            document.getElementById('schedEndTime').value = end;
+            
+            toggleSchedFields(enabled);
+            
+            document.getElementById('itemScheduleModal').classList.remove('hidden');
+            document.getElementById('itemScheduleModal').classList.add('flex');
+        }
+
+        function closeItemScheduleModal() {
+            document.getElementById('itemScheduleModal').classList.remove('flex');
+            document.getElementById('itemScheduleModal').classList.add('hidden');
+        }
+
+        function toggleSchedFields(enabled) {
+            const fields = document.getElementById('schedFields');
+            if (enabled) {
+                fields.style.opacity = '1';
+                fields.style.pointerEvents = 'auto';
+            } else {
+                fields.style.opacity = '0.5';
+                fields.style.pointerEvents = 'none';
+            }
         }
     </script>
 </body>

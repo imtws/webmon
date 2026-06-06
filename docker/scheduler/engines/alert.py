@@ -160,8 +160,39 @@ async def run_alert():
                 )
                 targets = await cur.fetchall()
 
+        # 개별 아이템 스케줄 필터링
+        active_targets = []
+        for row in targets:
+            if row.get("sched_enabled") == 1:
+                start_str = row.get("sched_start_time") or "09:00"
+                end_str = row.get("sched_end_time") or "18:00"
+                mode = row.get("sched_mode") or "active"
+                
+                in_range = False
+                try:
+                    now = datetime.now().time()
+                    start = datetime.strptime(start_str.strip()[:5], "%H:%M").time()
+                    end = datetime.strptime(end_str.strip()[:5], "%H:%M").time()
+                    if start <= end:
+                        in_range = start <= now <= end
+                    else:
+                        in_range = now >= start or now <= end
+                except Exception as e:
+                    log.error(f"개별 스케줄 시간 계산 실패 ({row['company']}): {e}")
+                    in_range = False
+                
+                if mode == "active" and not in_range:
+                    log.debug(f"[alert] [{row['company']}] 스케줄 활성 시간대 아님 -> 모니터링 스킵")
+                    continue
+                elif mode == "mute" and in_range:
+                    log.debug(f"[alert] [{row['company']}] 스케줄 무음 시간대 -> 모니터링 스킵")
+                    continue
+            active_targets.append(row)
+            
+        targets = active_targets
+
         if not targets:
-            log.info("[alert] 모니터링 대상 없음")
+            log.info("[alert] 모니터링 대상 없음 (모두 스케줄 외 또는 무음)")
             return
 
         sem = asyncio.Semaphore(CONCURRENCY)
