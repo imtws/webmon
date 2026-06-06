@@ -10,6 +10,10 @@ ini_set('display_errors', '1');
     <title><?= $t['logo'] ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Flatpickr (Datetime picker) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <link rel="stylesheet" href="../assets/css/style.css?v=<?=time()?>">
@@ -702,15 +706,18 @@ ini_set('display_errors', '1');
                 return;
             }
             
-            // 날짜 논리 검증 (시작일이 종료일보다 늦을 경우)
-            if (new Date(startVal) > new Date(endVal)) {
+            // 날짜 논리 검증 (시작일이 종료일보다 늦을 경우) - 브라우저 크로스 호환성을 위해 대시를 슬래시로 변경
+            const startDate = new Date(startVal.replace(/-/g, '/'));
+            const endDate = new Date(endVal.replace(/-/g, '/'));
+            
+            if (startDate > endDate) {
                 alert('<?= $current_lang == "KO" ? "시작일은 종료일보다 이전 날짜여야 합니다." : "The start date must be before the end date." ?>');
                 return;
             }
             
             // 미래 날짜 제한 검증
             const now = new Date();
-            if (new Date(startVal) > now || new Date(endVal) > now) {
+            if (startDate > now || endDate > now) {
                 alert('<?= $current_lang == "KO" ? "현재 시간 이후는 조회할 수 없습니다." : "You cannot query future times." ?>');
                 return;
             }
@@ -804,6 +811,25 @@ ini_set('display_errors', '1');
                 const newUrl = window.location.pathname + window.location.search.replace(/[?&]settings_error=[^&]+/, '').replace(/^&/, '?').replace(/\?$/, '');
                 window.history.replaceState({}, document.title, newUrl);
             }
+
+            // 📅 응답속도 추이 그래프의 시작/종료일 Flatpickr 연동
+            const fpLocale = document.documentElement.lang === 'ko' ? 'ko' : 'en';
+            document.querySelectorAll('input[id^="chart-start-"], input[id^="chart-end-"]').forEach(el => {
+                const isStart = el.id.includes('start');
+                const defaultDate = isStart 
+                    ? new Date(Date.now() - 24 * 60 * 60 * 1000) // 24시간 전
+                    : new Date(); // 현재 시각
+
+                flatpickr(el, {
+                    enableTime: true,
+                    enableSeconds: true,
+                    dateFormat: "Y-m-d H:i:S",
+                    time_24hr: true,
+                    defaultDate: defaultDate,
+                    locale: fpLocale,
+                    allowInput: true
+                });
+            });
         });
 
         function openScheduleModal(event, row) {

@@ -45,9 +45,9 @@
             </div>
             <div class="flex items-center gap-1.5 text-xs text-[var(--text-sub)] font-bold ml-2">
                 <span><?= $current_lang == 'KO' ? '직접 선택:' : 'Custom:' ?></span>
-                <input type="datetime-local" id="chart-start-<?=$row['no']?>" step="1" class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-1 text-[10px] text-[var(--text-main)] outline-none focus:border-[#18aee7]">
+                <input type="text" id="chart-start-<?=$row['no']?>" placeholder="YYYY-MM-DD HH:MM:SS" class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-1 text-[10px] text-[var(--text-main)] outline-none focus:border-[#18aee7] w-[135px]">
                 <span>~</span>
-                <input type="datetime-local" id="chart-end-<?=$row['no']?>" step="1" class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-1 text-[10px] text-[var(--text-main)] outline-none focus:border-[#18aee7]">
+                <input type="text" id="chart-end-<?=$row['no']?>" placeholder="YYYY-MM-DD HH:MM:SS" class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-1 text-[10px] text-[var(--text-main)] outline-none focus:border-[#18aee7] w-[135px]">
                 <button type="button" onclick="loadCustomChart(<?=$row['no']?>)" class="px-2 py-1 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-lg font-bold text-[10px] transition-colors"><?= $current_lang == 'KO' ? '조회' : 'Go' ?></button>
             </div>
         </div>
