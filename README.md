@@ -132,7 +132,3 @@ docker compose --profile dev up -d --build
 | `ALERT_CONCURRENCY` | `60` | 동시 체크 상한 |
 
 ---
-
-## 라이선스
-
-MIT
