@@ -258,8 +258,8 @@ async def run_alert():
 </head>
 <body style="font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background-color: #f8fafc; color: #1e293b; padding: 20px; margin: 0; -webkit-text-size-adjust: none; -ms-text-size-adjust: none;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-        <div style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); color: #ffffff; padding: 24px; text-align: center;">
-            <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">🚨 [WebMon] 웹사이트 장애 발생 알림</h1>
+        <div style="background-color: #f8fafc; color: #18aee7; padding: 24px; text-align: center; border-bottom: 1px solid #e2e8f0;">
+            <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #18aee7;">🚨 [WebMon] 웹사이트 장애 발생 알림</h1>
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; background-color: #ffffff;">
