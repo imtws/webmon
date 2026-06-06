@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $smtp_pass = trim($_POST['smtp_pass'] ?? '');
     $smtp_secure = trim($_POST['smtp_secure'] ?? 'none');
     $alert_email = trim($_POST['alert_email'] ?? '');
+    $webmon_url = trim($_POST['webmon_url'] ?? '');
 
     $retention_days = (int)($_POST['retention_days'] ?? 30);
     if ($retention_days < 1) $retention_days = 30;
@@ -71,18 +72,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_template_html = $_POST['email_template_html'] ?? '';
     $tg_template_html = $_POST['tg_template_html'] ?? '';
 
+    // 민감 정보는 .env 파일에 저장
+    require_once __DIR__ . '/classes/Utils.php';
+    $env_updates = [
+        'TG_TOKEN' => $tg_token,
+        'TG_CHAT_ID' => $tg_chat_id,
+        'SMTP_HOST' => $smtp_host,
+        'SMTP_PORT' => $smtp_port,
+        'SMTP_USER' => $smtp_user,
+        'SMTP_SECURE' => $smtp_secure,
+        'WEBMON_URL' => $webmon_url
+    ];
+    if (!empty($smtp_pass)) {
+        $env_updates['SMTP_PASS'] = $smtp_pass;
+    }
+    Utils::writeEnv($env_updates);
+
     $stmt = $db->prepare("INSERT INTO system_settings (key_name, key_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE key_value = VALUES(key_value)");
 
     $updates = [
         'tg_enabled' => $tg_enabled,
-        'tg_token' => $tg_token,
-        'tg_chat_id' => $tg_chat_id,
         'email_enabled' => $email_enabled,
         'smtp_mode' => $smtp_mode,
-        'smtp_host' => $smtp_host,
-        'smtp_port' => $smtp_port,
-        'smtp_user' => $smtp_user,
-        'smtp_secure' => $smtp_secure,
         'alert_email' => $alert_email,
         'retention_days' => (string)$retention_days,
         'def_email_mode' => $def_email_mode,
@@ -100,16 +111,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'tg_template_html' => $tg_template_html
     ];
 
-    if (!empty($smtp_pass)) {
-        $updates['smtp_pass'] = $smtp_pass;
-    }
-
     foreach ($updates as $k => $v) {
         $stmt->bind_param("ss", $k, $v);
         $stmt->execute();
     }
 
     $stmt->close();
+
+    // 민감 정보는 system_settings 테이블에서 삭제하여 .env에서만 관리되도록 함
+    $sensitive_keys = ['tg_token', 'tg_chat_id', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_secure', 'webmon_url'];
+    $placeholders = implode(',', array_fill(0, count($sensitive_keys), '?'));
+    $del_stmt = $db->prepare("DELETE FROM system_settings WHERE key_name IN ($placeholders)");
+    if ($del_stmt) {
+        $types = str_repeat('s', count($sensitive_keys));
+        $del_stmt->bind_param($types, ...$sensitive_keys);
+        $del_stmt->execute();
+        $del_stmt->close();
+    }
 }
 
 header("Location: website_status.php?settings_saved=1");

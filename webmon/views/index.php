@@ -265,215 +265,246 @@ ini_set('display_errors', '1');
                 </button>
             </div>
             
-            <form action="save_settings.php" method="POST" class="flex-1 overflow-y-auto p-6 flex flex-col gap-6 text-sm">
+            <form action="save_settings.php" method="POST" class="flex-1 overflow-y-auto p-6 flex flex-col gap-4 text-sm">
                 <!-- 탭 1: 시스템 설정 -->
-                <div id="tabContent-sys" class="flex flex-col gap-6">
+                <div id="tabContent-sys" class="flex flex-col gap-4">
                     <!-- 1. 텔레그램 설정 -->
-                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
-                        <div class="flex justify-between items-center mb-3">
-                            <h4 class="font-bold flex items-center gap-2 text-blue-500"><i class="fab fa-telegram text-lg"></i> <?= $current_lang == 'KO' ? '텔레그램 알림 설정' : 'Telegram Alert Settings' ?></h4>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="tg_enabled" value="1" class="sr-only peer" <?= ($settings['tg_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
-                            </label>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Bot Token</label>
-                                <input type="password" name="tg_token" value="<?= htmlspecialchars($settings['tg_token'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="토큰 입력">
+                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                        <button type="button" onclick="toggleSettingsAccordion('tg')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                            <span class="flex items-center gap-2 text-blue-500"><i class="fab fa-telegram text-lg"></i> <?= $current_lang == 'KO' ? '텔레그램 알림 설정' : 'Telegram Alert Settings' ?></span>
+                            <div class="flex items-center gap-3" onclick="event.stopPropagation()">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="tg_enabled" value="1" class="sr-only peer" <?= ($settings['tg_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
+                                </label>
+                                <i id="set-arrow-tg" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200 ml-1"></i>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Chat ID</label>
-                                <input type="text" name="tg_chat_id" value="<?= htmlspecialchars($settings['tg_chat_id'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="챗 ID 입력">
+                        </button>
+                        <div id="set-body-tg" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Bot Token</label>
+                                    <input type="password" name="tg_token" value="<?= htmlspecialchars($settings['tg_token'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="토큰 입력">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Chat ID</label>
+                                    <input type="text" name="tg_chat_id" value="<?= htmlspecialchars($settings['tg_chat_id'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="챗 ID 입력">
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- 2. SMTP 릴레이 서버 설정 -->
-                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
-                        <h4 class="font-bold flex items-center gap-2 text-[#18aee7] mb-3"><i class="fas fa-mail-bulk"></i> <?= $current_lang == 'KO' ? '전역 SMTP 릴레이 서버 설정' : 'Global SMTP Relay Settings' ?></h4>
-                        <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '모니터링 항목에서 외부 SMTP 발송을 선택할 경우 사용될 메일 서버 계정 정보입니다.' : 'Mail credentials used when SMTP mode is chosen for monitor targets.' ?></p>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Host</label>
-                                <input type="text" name="smtp_host" value="<?= htmlspecialchars($settings['smtp_host'] ?? 'mail') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="smtp.gmail.com">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Port</label>
-                                <input type="text" name="smtp_port" value="<?= htmlspecialchars($settings['smtp_port'] ?? '25') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="587">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Secure Mode</label>
-                                <select name="smtp_secure" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                                    <option value="none" <?= ($settings['smtp_secure'] ?? 'none') == 'none' ? 'selected' : '' ?>>None</option>
-                                    <option value="tls" <?= ($settings['smtp_secure'] ?? 'none') == 'tls' ? 'selected' : '' ?>>TLS (587)</option>
-                                    <option value="ssl" <?= ($settings['smtp_secure'] ?? 'none') == 'ssl' ? 'selected' : '' ?>>SSL (465)</option>
-                                </select>
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Username</label>
-                                <input type="text" name="smtp_user" value="<?= htmlspecialchars($settings['smtp_user'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="user@gmail.com">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Password</label>
-                                <input type="password" name="smtp_pass" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="••••••••">
+                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                        <button type="button" onclick="toggleSettingsAccordion('smtp')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                            <span class="flex items-center gap-2 text-[#18aee7]"><i class="fas fa-mail-bulk"></i> <?= $current_lang == 'KO' ? '전역 SMTP 릴레이 서버 설정' : 'Global SMTP Relay Settings' ?></span>
+                            <i id="set-arrow-smtp" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                        </button>
+                        <div id="set-body-smtp" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '모니터링 항목에서 외부 SMTP 발송을 선택할 경우 사용될 메일 서버 계정 정보입니다.' : 'Mail credentials used when SMTP mode is chosen for monitor targets.' ?></p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Host</label>
+                                    <input type="text" name="smtp_host" value="<?= htmlspecialchars($settings['smtp_host'] ?? 'mail') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="smtp.gmail.com">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Port</label>
+                                    <input type="text" name="smtp_port" value="<?= htmlspecialchars($settings['smtp_port'] ?? '25') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="587">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Secure Mode</label>
+                                    <select name="smtp_secure" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                        <option value="none" <?= ($settings['smtp_secure'] ?? 'none') == 'none' ? 'selected' : '' ?>>None</option>
+                                        <option value="tls" <?= ($settings['smtp_secure'] ?? 'none') == 'tls' ? 'selected' : '' ?>>TLS (587)</option>
+                                        <option value="ssl" <?= ($settings['smtp_secure'] ?? 'none') == 'ssl' ? 'selected' : '' ?>>SSL (465)</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Username</label>
+                                    <input type="text" name="smtp_user" value="<?= htmlspecialchars($settings['smtp_user'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="user@gmail.com">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Password</label>
+                                    <input type="password" name="smtp_pass" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="••••••••">
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- 3. 알림 발송 포맷 및 템플릿 설정 -->
-                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
-                        <h4 class="font-bold flex items-center gap-2 text-indigo-500 mb-3"><i class="fas fa-envelope-open-text"></i> <?= $current_lang == 'KO' ? '알림 발송 포맷 및 템플릿 설정' : 'Alert Format & Template' ?></h4>
-                        
-                        <div class="mb-4">
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '알림 포맷 방식' : 'Alert Format' ?></label>
-                            <select name="alert_format" id="alertFormatSelect" onchange="toggleAlertFormatTemplates()" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                                <option value="plain" <?= ($settings['alert_format'] ?? 'plain') == 'plain' ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'Plain Text (일반 텍스트)' : 'Plain Text' ?></option>
-                                <option value="html" <?= ($settings['alert_format'] ?? 'plain') == 'html' ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'HTML (서식 있는 템플릿)' : 'HTML (Formatted Template)' ?></option>
-                            </select>
-                        </div>
-
-                        <!-- HTML 템플릿 작성 영역 (HTML 모드 시 노출) -->
-                        <div id="htmlTemplateFields" class="hidden space-y-4">
-                            <div class="p-3 bg-blue-50/50 dark:bg-slate-800/40 border border-blue-200 dark:border-slate-700 rounded-lg text-xs">
-                                <h5 class="font-bold text-[#18aee7] mb-1"><i class="fas fa-info-circle"></i> <?= $current_lang == 'KO' ? '사용 가능한 변수 안내' : 'Available Variables' ?></h5>
-                                <p class="text-[11px] text-[var(--text-sub)] leading-relaxed">
-                                    <?= $current_lang == 'KO' ? '아래 템플릿 내에 변수를 삽입하면 알림 발송 시 실제 값으로 자동 치환됩니다:' : 'Insert variables into the templates below to replace with actual values:' ?><br>
-                                    <span class="font-mono text-xs text-orange-500">
-                                        {company} (<?= $current_lang == 'KO' ? '회사명' : 'Company' ?>), 
-                                        {url} (<?= $current_lang == 'KO' ? '대상 URL' : 'URL' ?>), 
-                                        {keyword} (<?= $current_lang == 'KO' ? '검색 키워드' : 'Keyword' ?>), 
-                                        {time} (<?= $current_lang == 'KO' ? '발생 시각' : 'Time' ?>), 
-                                        {engine} (<?= $current_lang == 'KO' ? '실행 엔진' : 'Engine' ?>), 
-                                        {response_time} (<?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?>), 
-                                        {comment} (<?= $current_lang == 'KO' ? '가이드 권장 처리 내용' : 'Action Guide' ?>), 
-                                        {web_url} (<?= $current_lang == 'KO' ? 'WebMon 주소' : 'Dashboard URL' ?>)
-                                    </span>
-                                </p>
+                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                        <button type="button" onclick="toggleSettingsAccordion('template')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                            <span class="flex items-center gap-2 text-indigo-500"><i class="fas fa-envelope-open-text"></i> <?= $current_lang == 'KO' ? '알림 발송 포맷 및 템플릿 설정' : 'Alert Format & Template' ?></span>
+                            <i id="set-arrow-template" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                        </button>
+                        <div id="set-body-template" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <div class="mb-4">
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '알림 포맷 방식' : 'Alert Format' ?></label>
+                                <select name="alert_format" id="alertFormatSelect" onchange="toggleAlertFormatTemplates()" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                    <option value="plain" <?= ($settings['alert_format'] ?? 'plain') == 'plain' ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'Plain Text (일반 텍스트)' : 'Plain Text' ?></option>
+                                    <option value="html" <?= ($settings['alert_format'] ?? 'plain') == 'html' ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'HTML (서식 있는 템플릿)' : 'HTML (Formatted Template)' ?></option>
+                                </select>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이메일 HTML 템플릿' : 'Email HTML Template' ?></label>
-                                <textarea name="email_template_html" rows="8" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 코드를 입력해 주세요..."><?= htmlspecialchars($settings['email_template_html'] ?? '') ?></textarea>
-                            </div>
+                            <!-- HTML 템플릿 작성 영역 (HTML 모드 시 노출) -->
+                            <div id="htmlTemplateFields" class="hidden space-y-4">
+                                <div class="p-3 bg-blue-50/50 dark:bg-slate-800/40 border border-blue-200 dark:border-slate-700 rounded-lg text-xs">
+                                    <h5 class="font-bold text-[#18aee7] mb-1"><i class="fas fa-info-circle"></i> <?= $current_lang == 'KO' ? '사용 가능한 변수 안내' : 'Available Variables' ?></h5>
+                                    <p class="text-[11px] text-[var(--text-sub)] leading-relaxed">
+                                        <?= $current_lang == 'KO' ? '아래 템플릿 내에 변수를 삽입하면 알림 발송 시 실제 값으로 자동 치환됩니다:' : 'Insert variables into the templates below to replace with actual values:' ?><br>
+                                        <span class="font-mono text-xs text-orange-500">
+                                            {company} (<?= $current_lang == 'KO' ? '회사명' : 'Company' ?>), 
+                                            {url} (<?= $current_lang == 'KO' ? '대상 URL' : 'URL' ?>), 
+                                            {keyword} (<?= $current_lang == 'KO' ? '검색 키워드' : 'Keyword' ?>), 
+                                            {time} (<?= $current_lang == 'KO' ? '발생 시각' : 'Time' ?>), 
+                                            {engine} (<?= $current_lang == 'KO' ? '실행 엔진' : 'Engine' ?>), 
+                                            {response_time} (<?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?>), 
+                                            {comment} (<?= $current_lang == 'KO' ? '가이드 권장 처리 내용' : 'Action Guide' ?>), 
+                                            {web_url} (<?= $current_lang == 'KO' ? 'WebMon 주소' : 'Dashboard URL' ?>)
+                                        </span>
+                                    </p>
+                                </div>
 
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '텔레그램 HTML 템플릿' : 'Telegram HTML Template' ?></label>
-                                <textarea name="tg_template_html" rows="6" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 형식 텍스트를 입력해 주세요..."><?= htmlspecialchars($settings['tg_template_html'] ?? '') ?></textarea>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이메일 HTML 템플릿' : 'Email HTML Template' ?></label>
+                                    <textarea name="email_template_html" rows="8" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 코드를 입력해 주세요..."><?= htmlspecialchars($settings['email_template_html'] ?? '') ?></textarea>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '텔레그램 HTML 템플릿' : 'Telegram HTML Template' ?></label>
+                                    <textarea name="tg_template_html" rows="6" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 형식 텍스트를 입력해 주세요..."><?= htmlspecialchars($settings['tg_template_html'] ?? '') ?></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- DB 비밀번호 변경 및 로그 보존 설정 -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- DB 비밀번호 변경 -->
-                        <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
-                            <div>
-                                <h4 class="font-bold flex items-center gap-2 text-red-500 mb-3"><i class="fas fa-key"></i> <?= $current_lang == 'KO' ? 'DB 비밀번호 변경' : 'Change DB Password' ?></h4>
-                                <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '이전 비밀번호와 변경할 새 비밀번호를 입력하여 DB 비밀번호를 변경합니다.' : 'Change database password by providing the current and new password.' ?></p>
-                            </div>
-                            <div class="space-y-2">
+                    <!-- 4. DB 비밀번호 변경 -->
+                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                        <button type="button" onclick="toggleSettingsAccordion('dbpass')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                            <span class="flex items-center gap-2 text-red-500"><i class="fas fa-key"></i> <?= $current_lang == 'KO' ? 'DB 비밀번호 변경' : 'Change DB Password' ?></span>
+                            <i id="set-arrow-dbpass" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                        </button>
+                        <div id="set-body-dbpass" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '이전 비밀번호와 변경할 새 비밀번호를 입력하여 DB 비밀번호를 변경합니다.' : 'Change database password by providing the current and new password.' ?></p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '이전 DB 패스워드' : 'Current DB Password' ?></label>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이전 DB 패스워드' : 'Current DB Password' ?></label>
                                     <input type="password" name="db_pass_old" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '이전 패스워드 입력' : 'Enter current password' ?>">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '변경할 패스워드' : 'New DB Password' ?></label>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '변경할 패스워드' : 'New DB Password' ?></label>
                                     <input type="password" name="db_pass_new" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '변경할 패스워드 입력' : 'Enter new password' ?>">
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- 로그 보존 기간 설정 -->
-                        <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
-                            <div>
-                                <h4 class="font-bold flex items-center gap-2 text-green-500 mb-3"><i class="fas fa-hdd"></i> <?= $current_lang == 'KO' ? '로그 보관 기간 설정' : 'Data Retention settings' ?></h4>
-                                <p class="text-[11px] text-[var(--text-sub)] mb-2"><?= $current_lang == 'KO' ? '시계열 응답 기록 데이터를 보관할 일수입니다. 기간이 경과하면 자동 정리됩니다.' : 'Number of days to keep response logs in DB. Old logs are cleared.' ?></p>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '보존 기간 (일)' : 'Retention (Days)' ?></label>
-                                <input type="number" name="retention_days" min="1" max="365" value="<?= htmlspecialchars($settings['retention_days'] ?? '30') ?>" class="w-24 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                    <!-- 5. 시스템 환경 설정 -->
+                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                        <button type="button" onclick="toggleSettingsAccordion('sysenv')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                            <span class="flex items-center gap-2 text-green-500"><i class="fas fa-hdd"></i> <?= $current_lang == 'KO' ? '시스템 환경 설정' : 'System Environment' ?></span>
+                            <i id="set-arrow-sysenv" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                        </button>
+                        <div id="set-body-sysenv" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '로그 보관 일수 및 알림 메일에 포함될 대시보드 접속 URL을 설정합니다.' : 'Set retention days and the dashboard URL used in alert notifications.' ?></p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '보존 기간 (일)' : 'Retention (Days)' ?></label>
+                                    <input type="number" name="retention_days" min="1" max="365" value="<?= htmlspecialchars($settings['retention_days'] ?? '30') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '웹 대시보드 URL (알림 링크용)' : 'Dashboard URL' ?></label>
+                                    <input type="text" name="webmon_url" value="<?= htmlspecialchars($settings['webmon_url'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="http://your-server-ip:8080">
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 탭 2: 신규 등록 기본값 설정 -->
-                <div id="tabContent-def" class="hidden flex flex-col gap-6">
-                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
-                        <h4 class="font-bold flex items-center gap-2 text-sky-500 mb-4"><i class="fas fa-sliders-h"></i> <?= $current_lang == 'KO' ? '모니터링 항목 기본값' : 'Default Monitoring Settings' ?></h4>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- 실행 엔진 -->
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 실행 엔진' : 'Default Engine' ?></label>
-                                <select name="def_engine_type" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                                    <option value="lynx" <?= ($settings['def_engine_type'] ?? 'lynx') == 'lynx' ? 'selected' : '' ?>>LYNX (텍스트 추출 방식)</option>
-                                    <option value="curl" <?= ($settings['def_engine_type'] ?? 'lynx') == 'curl' ? 'selected' : '' ?>>CURL (Raw HTML 방식)</option>
-                                </select>
-                            </div>
+                <div id="tabContent-def" class="hidden flex flex-col gap-4">
+                    <!-- 1. 모니터링 항목 기본값 -->
+                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                        <button type="button" onclick="toggleSettingsAccordion('defmon')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                            <span class="flex items-center gap-2 text-sky-500"><i class="fas fa-sliders-h"></i> <?= $current_lang == 'KO' ? '모니터링 항목 기본값' : 'Default Monitoring Settings' ?></span>
+                            <i id="set-arrow-defmon" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                        </button>
+                        <div id="set-body-defmon" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- 실행 엔진 -->
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 실행 엔진' : 'Default Engine' ?></label>
+                                    <select name="def_engine_type" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                        <option value="lynx" <?= ($settings['def_engine_type'] ?? 'lynx') == 'lynx' ? 'selected' : '' ?>>LYNX (텍스트 추출 방식)</option>
+                                        <option value="curl" <?= ($settings['def_engine_type'] ?? 'lynx') == 'curl' ? 'selected' : '' ?>>CURL (Raw HTML 방식)</option>
+                                    </select>
+                                </div>
 
-                            <!-- 알람 상태 -->
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 알람 상태' : 'Default Status' ?></label>
-                                <select name="def_check" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                                    <option value="alarm" <?= ($settings['def_check'] ?? 'alarm') == 'alarm' ? 'selected' : '' ?>><?= $t['status_alarm'] ?? '활성화' ?></option>
-                                    <option value="no alarm" <?= ($settings['def_check'] ?? 'alarm') == 'no alarm' ? 'selected' : '' ?>><?= $t['status_noalarm'] ?? '무음' ?></option>
-                                    <option value="disable" <?= ($settings['def_check'] ?? 'alarm') == 'disable' ? 'selected' : '' ?>><?= $t['status_disable'] ?? '비활성화' ?></option>
-                                </select>
-                            </div>
+                                <!-- 알람 상태 -->
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 알람 상태' : 'Default Status' ?></label>
+                                    <select name="def_check" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                        <option value="alarm" <?= ($settings['def_check'] ?? 'alarm') == 'alarm' ? 'selected' : '' ?>><?= $t['status_alarm'] ?? '활성화' ?></option>
+                                        <option value="no alarm" <?= ($settings['def_check'] ?? 'alarm') == 'no alarm' ? 'selected' : '' ?>><?= $t['status_noalarm'] ?? '무음' ?></option>
+                                        <option value="disable" <?= ($settings['def_check'] ?? 'alarm') == 'disable' ? 'selected' : '' ?>><?= $t['status_disable'] ?? '비활성화' ?></option>
+                                    </select>
+                                </div>
 
-                            <!-- 체크 횟수 및 타임아웃 -->
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 체크 횟수' : 'Default Retry' ?></label>
-                                <input type="number" name="def_retry_count" min="1" max="10" value="<?= htmlspecialchars($settings['def_retry_count'] ?? '1') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 타임아웃 (초)' : 'Default Timeout (sec)' ?></label>
-                                <input type="number" name="def_timeout_sec" min="1" max="30" value="<?= htmlspecialchars($settings['def_timeout_sec'] ?? '2') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                            </div>
+                                <!-- 체크 횟수 및 타임아웃 -->
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 체크 횟수' : 'Default Retry' ?></label>
+                                    <input type="number" name="def_retry_count" min="1" max="10" value="<?= htmlspecialchars($settings['def_retry_count'] ?? '1') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 타임아웃 (초)' : 'Default Timeout (sec)' ?></label>
+                                    <input type="number" name="def_timeout_sec" min="1" max="30" value="<?= htmlspecialchars($settings['def_timeout_sec'] ?? '2') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                </div>
 
-                            <!-- 기본 무음 설정 예약 시간 (def_mute_hours) -->
-                            <div class="col-span-1 md:col-span-2">
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 무음 설정 예약 시간 (시간 단위)' : 'Default Mute Duration (Hours)' ?></label>
-                                <input type="number" name="def_mute_hours" min="0" max="720" value="<?= htmlspecialchars($settings['def_mute_hours'] ?? '2') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                            </div>
+                                <!-- 기본 무음 설정 예약 시간 (def_mute_hours) -->
+                                <div class="col-span-1 md:col-span-2">
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 무음 설정 예약 시간 (시간 단위)' : 'Default Mute Duration (Hours)' ?></label>
+                                    <input type="number" name="def_mute_hours" min="0" max="720" value="<?= htmlspecialchars($settings['def_mute_hours'] ?? '2') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                </div>
 
-                            <!-- SSL, DOMAIN 체크박스 -->
-                            <div class="col-span-1 md:col-span-2 flex gap-6 py-2 border-t border-dashed border-[var(--border-color)] mt-2">
-                                <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-[var(--text-sub)]">
-                                    <input type="checkbox" name="def_ssl_mon" value="1" class="w-4 h-4 rounded accent-[#18aee7]" <?= ($settings['def_ssl_mon'] ?? '1') == '1' ? 'checked' : '' ?>>
-                                    <span>SSL EXPIRY 감지 기본 활성화</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-[var(--text-sub)]">
-                                    <input type="checkbox" name="def_dom_mon" value="1" class="w-4 h-4 rounded accent-[#18aee7]" <?= ($settings['def_dom_mon'] ?? '1') == '1' ? 'checked' : '' ?>>
-                                    <span>DOMAIN EXPIRY 감지 기본 활성화</span>
-                                </label>
+                                <!-- SSL, DOMAIN 체크박스 -->
+                                <div class="col-span-1 md:col-span-2 flex gap-6 py-2 border-t border-dashed border-[var(--border-color)] mt-2">
+                                    <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-[var(--text-sub)]">
+                                        <input type="checkbox" name="def_ssl_mon" value="1" class="w-4 h-4 rounded accent-[#18aee7]" <?= ($settings['def_ssl_mon'] ?? '1') == '1' ? 'checked' : '' ?>>
+                                        <span>SSL EXPIRY 감지 기본 활성화</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-[var(--text-sub)]">
+                                        <input type="checkbox" name="def_dom_mon" value="1" class="w-4 h-4 rounded accent-[#18aee7]" <?= ($settings['def_dom_mon'] ?? '1') == '1' ? 'checked' : '' ?>>
+                                        <span>DOMAIN EXPIRY 감지 기본 활성화</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 기본 이메일 발송 방식 및 주소 -->
-                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
-                        <h4 class="font-bold flex items-center gap-2 text-green-500 mb-3"><i class="fas fa-envelope"></i> <?= $current_lang == 'KO' ? '기본 이메일 알림 설정' : 'Default Email Alerts Settings' ?></h4>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 발송 방식' : 'Default Email Mode' ?></label>
-                                <select name="def_email_mode" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                                    <option value="none" <?= ($settings['def_email_mode'] ?? 'none') == 'none' ? 'selected' : '' ?>>미발송 (none)</option>
-                                    <option value="postfix" <?= ($settings['def_email_mode'] ?? 'none') == 'postfix' ? 'selected' : '' ?>>로컬 Postfix 직접발송</option>
-                                    <option value="smtp" <?= ($settings['def_email_mode'] ?? 'none') == 'smtp' ? 'selected' : '' ?>>외부 SMTP 릴레이발송</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 발송자 주소 (From)' : 'Default From Email' ?></label>
-                                <input type="email" name="def_sender_email" value="<?= htmlspecialchars($settings['def_sender_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="sender@example.com">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 수신자 주소 (To)' : 'Default To Email' ?></label>
-                                <input type="email" name="def_receiver_email" value="<?= htmlspecialchars($settings['def_receiver_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="receiver@example.com">
+                    <!-- 2. 기본 이메일 알림 설정 -->
+                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                        <button type="button" onclick="toggleSettingsAccordion('defmail')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                            <span class="flex items-center gap-2 text-green-500"><i class="fas fa-envelope"></i> <?= $current_lang == 'KO' ? '기본 이메일 알림 설정' : 'Default Email Alerts Settings' ?></span>
+                            <i id="set-arrow-defmail" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                        </button>
+                        <div id="set-body-defmail" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 발송 방식' : 'Default Email Mode' ?></label>
+                                    <select name="def_email_mode" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                        <option value="none" <?= ($settings['def_email_mode'] ?? 'none') == 'none' ? 'selected' : '' ?>>미발송 (none)</option>
+                                        <option value="postfix" <?= ($settings['def_email_mode'] ?? 'none') == 'postfix' ? 'selected' : '' ?>>로컬 Postfix 직접발송</option>
+                                        <option value="smtp" <?= ($settings['def_email_mode'] ?? 'none') == 'smtp' ? 'selected' : '' ?>>외부 SMTP 릴레이발송</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 발송자 주소 (From)' : 'Default From Email' ?></label>
+                                    <input type="email" name="def_sender_email" value="<?= htmlspecialchars($settings['def_sender_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="sender@example.com">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 수신자 주소 (To)' : 'Default To Email' ?></label>
+                                    <input type="email" name="def_receiver_email" value="<?= htmlspecialchars($settings['def_receiver_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="receiver@example.com">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -716,11 +747,30 @@ ini_set('display_errors', '1');
             document.getElementById('settingsModal').classList.remove('hidden');
             document.getElementById('settingsModal').classList.add('flex');
             toggleAlertFormatTemplates();
+            // Open first accordions by default
+            toggleSettingsAccordion('tg', true);
+            toggleSettingsAccordion('defmon', true);
         }
 
         function closeSettingsModal() {
             document.getElementById('settingsModal').classList.remove('flex');
             document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function toggleSettingsAccordion(id, forceOpen = null) {
+            const body = document.getElementById('set-body-' + id);
+            const arrow = document.getElementById('set-arrow-' + id);
+            if (body && arrow) {
+                const isHidden = body.classList.contains('hidden');
+                const shouldOpen = forceOpen !== null ? forceOpen : isHidden;
+                if (shouldOpen) {
+                    body.classList.remove('hidden');
+                    arrow.classList.add('rotate-180');
+                } else {
+                    body.classList.add('hidden');
+                    arrow.classList.remove('rotate-180');
+                }
+            }
         }
 
         function toggleAlertFormatTemplates() {

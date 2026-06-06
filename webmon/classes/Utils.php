@@ -20,5 +20,76 @@ class Utils {
         }
         return $is_chosung ? $result : false;
     }
+
+    public static function readEnv() {
+        $path = '/var/www/html/.env';
+        if (!file_exists($path)) {
+            return [];
+        }
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $env = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line) || strpos($line, '#') === 0) {
+                continue;
+            }
+            if (strpos($line, '=') !== false) {
+                list($key, $value) = explode('=', $line, 2);
+                $key = trim($key);
+                $value = trim($value);
+                // Strip quotes if any
+                if (preg_match('/^["\'](.*)["\']$/', $value, $matches)) {
+                    $value = $matches[1];
+                }
+                $env[$key] = $value;
+            }
+        }
+        return $env;
+    }
+
+    public static function writeEnv(array $data) {
+        $path = '/var/www/html/.env';
+        if (!file_exists($path)) {
+            file_put_contents($path, "");
+        }
+        $lines = file($path, FILE_IGNORE_NEW_LINES);
+        $newLines = [];
+        $writtenKeys = [];
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+            if (empty($trimmed) || strpos($trimmed, '#') === 0) {
+                $newLines[] = $line;
+                continue;
+            }
+            if (strpos($trimmed, '=') !== false) {
+                list($key, $val) = explode('=', $trimmed, 2);
+                $key = trim($key);
+                if (array_key_exists($key, $data)) {
+                    $newLines[] = "{$key}=" . self::escapeEnvValue($data[$key]);
+                    $writtenKeys[$key] = true;
+                } else {
+                    $newLines[] = $line;
+                }
+            } else {
+                $newLines[] = $line;
+            }
+        }
+
+        foreach ($data as $key => $val) {
+            if (!isset($writtenKeys[$key])) {
+                $newLines[] = "{$key}=" . self::escapeEnvValue($val);
+            }
+        }
+
+        file_put_contents($path, implode("\n", $newLines) . "\n");
+    }
+
+    private static function escapeEnvValue($value) {
+        if (preg_match('/[#\s"\'\\\\]/', $value)) {
+            return '"' . str_replace('"', '\\"', $value) . '"';
+        }
+        return $value;
+    }
 }
 ?>
