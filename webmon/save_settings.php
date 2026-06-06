@@ -67,6 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $def_mute_hours = (int)($_POST['def_mute_hours'] ?? 2);
     if ($def_mute_hours < 0) $def_mute_hours = 0;
 
+    $alert_format = trim($_POST['alert_format'] ?? 'plain');
+    $email_template_html = $_POST['email_template_html'] ?? '';
+    $tg_template_html = $_POST['tg_template_html'] ?? '';
+
     $stmt = $db->prepare("INSERT INTO system_settings (key_name, key_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE key_value = VALUES(key_value)");
 
     $updates = [
@@ -90,7 +94,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'def_engine_type' => $def_engine_type,
         'def_retry_count' => (string)$def_retry_count,
         'def_timeout_sec' => (string)$def_timeout_sec,
-        'def_mute_hours' => (string)$def_mute_hours
+        'def_mute_hours' => (string)$def_mute_hours,
+        'alert_format' => $alert_format,
+        'email_template_html' => $email_template_html,
+        'tg_template_html' => $tg_template_html
     ];
 
     if (!empty($smtp_pass)) {

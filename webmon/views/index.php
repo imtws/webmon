@@ -322,6 +322,49 @@ ini_set('display_errors', '1');
                         </div>
                     </div>
 
+                    <!-- 3. 알림 발송 포맷 및 템플릿 설정 -->
+                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
+                        <h4 class="font-bold flex items-center gap-2 text-indigo-500 mb-3"><i class="fas fa-envelope-open-text"></i> <?= $current_lang == 'KO' ? '알림 발송 포맷 및 템플릿 설정' : 'Alert Format & Template' ?></h4>
+                        
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '알림 포맷 방식' : 'Alert Format' ?></label>
+                            <select name="alert_format" id="alertFormatSelect" onchange="toggleAlertFormatTemplates()" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                <option value="plain" <?= ($settings['alert_format'] ?? 'plain') == 'plain' ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'Plain Text (일반 텍스트)' : 'Plain Text' ?></option>
+                                <option value="html" <?= ($settings['alert_format'] ?? 'plain') == 'html' ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'HTML (서식 있는 템플릿)' : 'HTML (Formatted Template)' ?></option>
+                            </select>
+                        </div>
+
+                        <!-- HTML 템플릿 작성 영역 (HTML 모드 시 노출) -->
+                        <div id="htmlTemplateFields" class="hidden space-y-4">
+                            <div class="p-3 bg-blue-50/50 dark:bg-slate-800/40 border border-blue-200 dark:border-slate-700 rounded-lg text-xs">
+                                <h5 class="font-bold text-[#18aee7] mb-1"><i class="fas fa-info-circle"></i> <?= $current_lang == 'KO' ? '사용 가능한 변수 안내' : 'Available Variables' ?></h5>
+                                <p class="text-[11px] text-[var(--text-sub)] leading-relaxed">
+                                    <?= $current_lang == 'KO' ? '아래 템플릿 내에 변수를 삽입하면 알림 발송 시 실제 값으로 자동 치환됩니다:' : 'Insert variables into the templates below to replace with actual values:' ?><br>
+                                    <span class="font-mono text-xs text-orange-500">
+                                        {company} (<?= $current_lang == 'KO' ? '회사명' : 'Company' ?>), 
+                                        {url} (<?= $current_lang == 'KO' ? '대상 URL' : 'URL' ?>), 
+                                        {keyword} (<?= $current_lang == 'KO' ? '검색 키워드' : 'Keyword' ?>), 
+                                        {time} (<?= $current_lang == 'KO' ? '발생 시각' : 'Time' ?>), 
+                                        {engine} (<?= $current_lang == 'KO' ? '실행 엔진' : 'Engine' ?>), 
+                                        {response_time} (<?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?>), 
+                                        {comment} (<?= $current_lang == 'KO' ? '가이드 권장 처리 내용' : 'Action Guide' ?>), 
+                                        {web_url} (<?= $current_lang == 'KO' ? 'WebMon 주소' : 'Dashboard URL' ?>)
+                                    </span>
+                                </p>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이메일 HTML 템플릿' : 'Email HTML Template' ?></label>
+                                <textarea name="email_template_html" rows="8" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 코드를 입력해 주세요..."><?= htmlspecialchars($settings['email_template_html'] ?? '') ?></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '텔레그램 HTML 템플릿' : 'Telegram HTML Template' ?></label>
+                                <textarea name="tg_template_html" rows="6" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 형식 텍스트를 입력해 주세요..."><?= htmlspecialchars($settings['tg_template_html'] ?? '') ?></textarea>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- DB 비밀번호 변경 및 로그 보존 설정 -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- DB 비밀번호 변경 -->
@@ -672,11 +715,24 @@ ini_set('display_errors', '1');
         function openSettingsModal() {
             document.getElementById('settingsModal').classList.remove('hidden');
             document.getElementById('settingsModal').classList.add('flex');
+            toggleAlertFormatTemplates();
         }
 
         function closeSettingsModal() {
             document.getElementById('settingsModal').classList.remove('flex');
             document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function toggleAlertFormatTemplates() {
+            const formatSelect = document.getElementById('alertFormatSelect');
+            const fields = document.getElementById('htmlTemplateFields');
+            if (formatSelect && fields) {
+                if (formatSelect.value === 'html') {
+                    fields.classList.remove('hidden');
+                } else {
+                    fields.classList.add('hidden');
+                }
+            }
         }
 
         window.addEventListener('DOMContentLoaded', () => {

@@ -18,7 +18,7 @@ from .db import load_system_settings
 log = logging.getLogger("webmon.notify")
 
 
-async def send_telegram(message: str, settings: dict = None) -> bool:
+async def send_telegram(message: str, settings: dict = None, parse_mode: str = "") -> bool:
     """텔레그램으로 메시지를 발송합니다. DB 설정을 기반으로 발송 여부를 판단합니다."""
     if settings is None:
         settings = await load_system_settings()
@@ -37,6 +37,8 @@ async def send_telegram(message: str, settings: dict = None) -> bool:
 
     url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
     payload = {"chat_id": tg_chat_id, "text": message}
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -52,7 +54,8 @@ async def send_telegram(message: str, settings: dict = None) -> bool:
 
 
 def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str = "", receiver_email: str = "", email_mode: str = "none",
-                     smtp_host: str = "", smtp_port: int = 25, smtp_user: str = "", smtp_pass: str = "", smtp_secure: str = "none") -> bool:
+                     smtp_host: str = "", smtp_port: int = 25, smtp_user: str = "", smtp_pass: str = "", smtp_secure: str = "none",
+                     alert_format: str = "plain") -> bool:
     """동기식 SMTP 발송 처리 (스레드에서 구동됨)"""
     # 이메일 발송 방식이 'none'인 경우 발송 안 함
     if email_mode == "none" or not email_mode:
@@ -110,7 +113,8 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
     elif smtp_user and "@" in smtp_user:
         sender = smtp_user
 
-    msg = MIMEText(body, "plain", "utf-8")
+    subtype = "html" if alert_format == "html" else "plain"
+    msg = MIMEText(body, subtype, "utf-8")
     msg["Subject"] = Header(subject, "utf-8")
     msg["From"] = sender
     msg["To"] = alert_email
@@ -135,7 +139,8 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
 
 
 async def send_email(subject: str, body: str, settings: dict = None, sender_email: str = "", receiver_email: str = "", email_mode: str = "none",
-                     smtp_host: str = "", smtp_port: int = 25, smtp_user: str = "", smtp_pass: str = "", smtp_secure: str = "none") -> bool:
+                     smtp_host: str = "", smtp_port: int = 25, smtp_user: str = "", smtp_pass: str = "", smtp_secure: str = "none",
+                     alert_format: str = "plain") -> bool:
     """이메일(SMTP)로 알림을 발송합니다. 비동기 스레드 풀에서 동기 발송 처리합니다."""
     if settings is None:
         settings = await load_system_settings()
@@ -151,6 +156,7 @@ async def send_email(subject: str, body: str, settings: dict = None, sender_emai
         smtp_port,
         smtp_user,
         smtp_pass,
-        smtp_secure
+        smtp_secure,
+        alert_format
     )
 

@@ -220,74 +220,199 @@ async def run_alert():
 
             now = datetime.now().strftime("%Y-%m-%d | %I:%M:%S%p")
             web_url = settings.get("webmon_url", WEBMON_URL)
+            alert_format = settings.get("alert_format", "plain")
 
-            # 1. 텔레그램 발송 (모든 장애 항목을 취합하여 1개의 메시지로 통합 발송)
-            telegram_lines = []
-            telegram_actions = []
-            for item in failed_items:
-                row = item["row"]
-                telegram_lines.append(
-                    f"| {row['company']} 업체의 {row['url']} 사이트내에 [{row['contents']}] 컨텐츠 감지 불가!!"
-                )
-                telegram_actions.append(
-                    f"| {row.get('comment') or '별도 권장 처리 내용 없음'}"
-                )
+            if alert_format == "html":
+                # HTML templates from settings (or fallbacks)
+                default_tg_tpl = """🚨 <b>[WebMon] 웹사이트 장애 발생 알림</b>
 
-            tg_msg = "\n".join([
-                "🚨 [WebSiteMonitor 알람발생]",
-                "",
-                f"시간 : {now}",
-                "",
-                "-------------------------- 감지 내용 --------------------------",
-                "\n".join(telegram_lines),
-                "-------------------------- 권 장 처 리 -------------------------",
-                "\n".join(telegram_actions),
-                "--------------------------------------------------------------",
-                "",
-                f"🔗 웹사이트 모니터링 : {web_url}",
-            ])
-            await send_telegram(tg_msg, settings)
+📌 <b>대상 업체</b>: {company}
+🔗 <b>대상 URL</b>: {url}
+❌ <b>감지 실패 키워드</b>: <code>{keyword}</code>
+⏱️ <b>발생 시간</b>: {time}
+⚙️ <b>실행 엔진</b>: {engine} ({response_time}s)
 
-            # 2. 이메일 발송 (발송자/수신자를 개별 설정할 수 있도록 각 장애 항목별로 개별 발송)
-            for item in failed_items:
-                row = item["row"]
-                email_body = "\n".join([
+💡 <b>권장 처리 내용</b>:
+{comment}
+
+🖥️ <a href="{web_url}">대시보드 바로가기</a>"""
+                
+                default_email_tpl = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-family: sans-serif;">
+        <div style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); color: #ffffff; padding: 24px; text-align: center;">
+            <h1 style="margin: 0; font-size: 20px; font-weight: 800;">🚨 [WebMon] 웹사이트 장애 발생 알림</h1>
+        </div>
+        <div style="padding: 30px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+                <tr>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; background-color: #f8fafc; color: #64748b; font-size: 12px; font-weight: 800; width: 30%;">대상 업체</th>
+                    <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; color: #0f172a; font-size: 13px; font-weight: 600;">{company}</td>
+                </tr>
+                <tr>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; background-color: #f8fafc; color: #64748b; font-size: 12px; font-weight: 800;">모니터링 URL</th>
+                    <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; color: #0f172a; font-size: 13px; font-weight: 600;"><a href="{url}" target="_blank" style="color: #18aee7; text-decoration: none;">{url}</a></td>
+                </tr>
+                <tr>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; background-color: #f8fafc; color: #64748b; font-size: 12px; font-weight: 800;">검출 키워드</th>
+                    <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; color: #0f172a; font-size: 13px; font-weight: 600;"><span style="color: #ef4444; background-color: #fee2e2; padding: 2px 6px; border-radius: 4px;">{keyword}</span> (감지 불가)</td>
+                </tr>
+                <tr>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; background-color: #f8fafc; color: #64748b; font-size: 12px; font-weight: 800;">발생 시간</th>
+                    <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; color: #0f172a; font-size: 13px; font-weight: 600;">{time}</td>
+                </tr>
+                <tr>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; background-color: #f8fafc; color: #64748b; font-size: 12px; font-weight: 800;">실행 엔진</th>
+                    <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; color: #0f172a; font-size: 13px; font-weight: 600;">{engine}</td>
+                </tr>
+                <tr>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; background-color: #f8fafc; color: #64748b; font-size: 12px; font-weight: 800;">응답 속도</th>
+                    <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; color: #0f172a; font-size: 13px; font-weight: 600;">{response_time}s</td>
+                </tr>
+            </table>
+            
+            <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                <h4 style="margin: 0 0 6px 0; color: #b45309; font-size: 13px; font-weight: 800;">💡 권장 처리 가이드</h4>
+                <p style="margin: 0; color: #78350f; font-size: 13px;">{comment}</p>
+            </div>
+        </div>
+        <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #f1f5f9;">
+            <a href="{web_url}" style="display: inline-block; background-color: #18aee7; color: #ffffff !important; text-decoration: none; padding: 10px 20px; font-size: 13px; font-weight: 800; border-radius: 8px; box-shadow: 0 2px 4px rgba(24,174,231,0.2);" target="_blank">대시보드 바로가기</a>
+        </div>
+    </div>
+</body>
+</html>"""
+
+                tg_tpl = settings.get("tg_template_html") or default_tg_tpl
+                email_tpl = settings.get("email_template_html") or default_email_tpl
+
+                def render_template(template: str, row: dict, elapsed: float) -> str:
+                    replacements = {
+                        "{company}": str(row.get("company", "")),
+                        "{url}": str(row.get("url", "")),
+                        "{keyword}": str(row.get("contents", "")),
+                        "{comment}": str(row.get("comment", "") or "별도 권장 처리 내용 없음"),
+                        "{time}": str(now),
+                        "{engine}": str(row.get("engine_type") or "lynx").upper(),
+                        "{response_time}": f"{elapsed:.3f}",
+                        "{web_url}": str(web_url)
+                    }
+                    rendered = template
+                    for key, val in replacements.items():
+                        rendered = rendered.replace(key, val)
+                    return rendered
+
+                # 1. 텔레그램 개별 발송 (HTML 렌더링)
+                for item in failed_items:
+                    row = item["row"]
+                    elapsed = item["elapsed"]
+                    tg_msg = render_template(tg_tpl, row, elapsed)
+                    await send_telegram(tg_msg, settings, parse_mode="HTML")
+
+                # 2. 이메일 개별 발송 (HTML 렌더링)
+                for item in failed_items:
+                    row = item["row"]
+                    elapsed = item["elapsed"]
+                    email_body = render_template(email_tpl, row, elapsed)
+                    
+                    custom_sender = row.get("sender_email", "") or ""
+                    custom_receiver = row.get("receiver_email", "") or ""
+                    custom_email_mode = row.get("email_mode", "none") or "none"
+
+                    # Target-specific SMTP credentials
+                    indiv_host = row.get("smtp_host", "") or ""
+                    indiv_port = row.get("smtp_port", 25)
+                    indiv_user = row.get("smtp_user", "") or ""
+                    indiv_pass = row.get("smtp_pass", "") or ""
+                    indiv_secure = row.get("smtp_secure", "none") or "none"
+
+                    await send_email(
+                        subject=f"🚨 [WebSiteMonitor] 장애 발생 알림 ({row['company']})",
+                        body=email_body,
+                        settings=settings,
+                        sender_email=custom_sender,
+                        receiver_email=custom_receiver,
+                        email_mode=custom_email_mode,
+                        smtp_host=indiv_host,
+                        smtp_port=indiv_port,
+                        smtp_user=indiv_user,
+                        smtp_pass=indiv_pass,
+                        smtp_secure=indiv_secure,
+                        alert_format="html"
+                    )
+            else:
+                # 1. 텔레그램 발송 (모든 장애 항목을 취합하여 1개의 메시지로 통합 발송)
+                telegram_lines = []
+                telegram_actions = []
+                for item in failed_items:
+                    row = item["row"]
+                    telegram_lines.append(
+                        f"| {row['company']} 업체의 {row['url']} 사이트내에 [{row['contents']}] 컨텐츠 감지 불가!!"
+                    )
+                    telegram_actions.append(
+                        f"| {row.get('comment') or '별도 권장 처리 내용 없음'}"
+                    )
+
+                tg_msg = "\n".join([
                     "🚨 [WebSiteMonitor 알람발생]",
                     "",
                     f"시간 : {now}",
                     "",
                     "-------------------------- 감지 내용 --------------------------",
-                    f"| {row['company']} 업체의 {row['url']} 사이트내에 [{row['contents']}] 컨텐츠 감지 불가!!",
+                    "\n".join(telegram_lines),
                     "-------------------------- 권 장 처 리 -------------------------",
-                    f"| {row.get('comment') or '별도 권장 처리 내용 없음'}",
+                    "\n".join(telegram_actions),
                     "--------------------------------------------------------------",
                     "",
                     f"🔗 웹사이트 모니터링 : {web_url}",
                 ])
-                custom_sender = row.get("sender_email", "") or ""
-                custom_receiver = row.get("receiver_email", "") or ""
-                custom_email_mode = row.get("email_mode", "none") or "none"
+                await send_telegram(tg_msg, settings)
 
-                # Target-specific SMTP credentials
-                indiv_host = row.get("smtp_host", "") or ""
-                indiv_port = row.get("smtp_port", 25)
-                indiv_user = row.get("smtp_user", "") or ""
-                indiv_pass = row.get("smtp_pass", "") or ""
-                indiv_secure = row.get("smtp_secure", "none") or "none"
+                # 2. 이메일 발송 (발송자/수신자를 개별 설정할 수 있도록 각 장애 항목별로 개별 발송)
+                for item in failed_items:
+                    row = item["row"]
+                    email_body = "\n".join([
+                        "🚨 [WebSiteMonitor 알람발생]",
+                        "",
+                        f"시간 : {now}",
+                        "",
+                        "-------------------------- 감지 내용 --------------------------",
+                        f"| {row['company']} 업체의 {row['url']} 사이트내에 [{row['contents']}] 컨텐츠 감지 불가!!",
+                        "-------------------------- 권 장 처 리 -------------------------",
+                        f"| {row.get('comment') or '별도 권장 처리 내용 없음'}",
+                        "--------------------------------------------------------------",
+                        "",
+                        f"🔗 웹사이트 모니터링 : {web_url}",
+                    ])
+                    custom_sender = row.get("sender_email", "") or ""
+                    custom_receiver = row.get("receiver_email", "") or ""
+                    custom_email_mode = row.get("email_mode", "none") or "none"
 
-                await send_email(
-                    subject=f"🚨 [WebSiteMonitor] 장애 발생 알림 ({row['company']})",
-                    body=email_body,
-                    settings=settings,
-                    sender_email=custom_sender,
-                    receiver_email=custom_receiver,
-                    email_mode=custom_email_mode,
-                    smtp_host=indiv_host,
-                    smtp_port=indiv_port,
-                    smtp_user=indiv_user,
-                    smtp_pass=indiv_pass,
-                    smtp_secure=indiv_secure
-                )
+                    # Target-specific SMTP credentials
+                    indiv_host = row.get("smtp_host", "") or ""
+                    indiv_port = row.get("smtp_port", 25)
+                    indiv_user = row.get("smtp_user", "") or ""
+                    indiv_pass = row.get("smtp_pass", "") or ""
+                    indiv_secure = row.get("smtp_secure", "none") or "none"
+
+                    await send_email(
+                        subject=f"🚨 [WebSiteMonitor] 장애 발생 알림 ({row['company']})",
+                        body=email_body,
+                        settings=settings,
+                        sender_email=custom_sender,
+                        receiver_email=custom_receiver,
+                        email_mode=custom_email_mode,
+                        smtp_host=indiv_host,
+                        smtp_port=indiv_port,
+                        smtp_user=indiv_user,
+                        smtp_pass=indiv_pass,
+                        smtp_secure=indiv_secure,
+                        alert_format="plain"
+                    )
 
             log.info(f"[alert] ✅ {len(failed_items)}건 알람 발송 완료 (Telegram/Email 개별발송)")
         else:
