@@ -830,6 +830,21 @@ ini_set('display_errors', '1');
                     allowInput: true
                 });
             });
+
+            // 🔍 URL 파라미터에 expand가 있으면 해당 아코디언을 자동으로 엽니다.
+            if (urlParams.has('expand')) {
+                const expandNo = urlParams.get('expand');
+                setTimeout(() => {
+                    toggleAccordion(null, expandNo);
+                }, 500); // UI 안정화를 위한 지연
+            }
+
+            // ⚙️ URL 파라미터에 settings가 있으면 설정 모달을 자동으로 엽니다.
+            if (urlParams.has('settings')) {
+                setTimeout(() => {
+                    openSettingsModal();
+                }, 500); // UI 안정화를 위한 지연
+            }
         });
 
         function openScheduleModal(event, row) {
