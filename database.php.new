@@ -1,0 +1,25 @@
+<?php
+// =============================================
+// DB 연결 - 환경변수 기반 (Docker/보안 대응)
+// =============================================
+
+$db_host = getenv('DB_HOST') ?: 'localhost';
+$db_user = getenv('DB_USER') ?: 'sitemonitor';
+$db_pass = getenv('DB_PASS') ?: '';
+$db_name = getenv('DB_NAME') ?: 'sitemonitor';
+$db_port = (int)(getenv('DB_PORT') ?: 3306);
+
+$db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
+
+if ($db->connect_error) {
+    // 프로덕션에서는 상세 에러 노출 금지
+    $debug = getenv('APP_DEBUG') === 'true';
+    if ($debug) {
+        die("DB 연결 실패: " . $db->connect_error);
+    } else {
+        die("서비스 연결에 실패했습니다. 관리자에게 문의하세요.");
+    }
+}
+
+$db->set_charset('utf8mb4');
+?>

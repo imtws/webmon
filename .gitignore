@@ -1,0 +1,24 @@
+# 환경변수 (절대 커밋 금지)
+.env
+
+# Docker 볼륨
+db_data/
+
+# 로그
+logs/
+*.log
+*.log.old
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp

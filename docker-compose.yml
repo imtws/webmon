@@ -1,0 +1,110 @@
+version: '3.9'
+
+services:
+  # ── PHP + Apache 웹 UI ───────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: webmon_web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./webmon:/var/www/html
+    environment:
+      DB_HOST:      ${DB_HOST:-db}
+      DB_PORT:      ${DB_PORT:-3306}
+      DB_NAME:      ${DB_NAME:-sitemonitor}
+      DB_USER:      ${DB_USER:-sitemonitor}
+      DB_PASS:      ${DB_PASS}
+      PHP_TIMEZONE: ${PHP_TIMEZONE:-Asia/Seoul}
+      APP_DEBUG:    ${APP_DEBUG:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - webmon_net
+
+  # ── Python 통합 스케줄러 + 엔진 ─────────────────────────────────────
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/scheduler/Dockerfile
+    container_name: webmon_scheduler
+    restart: unless-stopped
+    volumes:
+      - scheduler_logs:/app/logs
+    environment:
+      # DB
+      DB_HOST:         ${DB_HOST:-db}
+      DB_PORT:         ${DB_PORT:-3306}
+      DB_NAME:         ${DB_NAME:-sitemonitor}
+      DB_USER:         ${DB_USER:-sitemonitor}
+      DB_PASS:         ${DB_PASS}
+      # 알림
+      TG_TOKEN:        ${TG_TOKEN}
+      TG_CHAT_ID:      ${TG_CHAT_ID}
+      WEBMON_URL:      ${WEBMON_URL:-http://localhost:8080}
+      ALERT_EMAIL:     ${ALERT_EMAIL}
+      # 스케줄 (cron 표현식)
+      SCHEDULE_ALERT:  ${SCHEDULE_ALERT:-* * * * *}
+      SCHEDULE_ASSET:  ${SCHEDULE_ASSET:-0 1 * * *}
+      SCHEDULE_REPORT: ${SCHEDULE_REPORT:-0 9 * * 1}
+      # 튜닝
+      ALERT_CONCURRENCY: ${ALERT_CONCURRENCY:-60}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - webmon_net
+
+  # ── MariaDB ──────────────────────────────────────────────────────────
+  db:
+    image: mariadb:10.11
+    container_name: webmon_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
+      MYSQL_DATABASE:      ${DB_NAME:-sitemonitor}
+      MYSQL_USER:          ${DB_USER:-sitemonitor}
+      MYSQL_PASSWORD:      ${DB_PASS}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webmon_net
+
+  # ── phpMyAdmin (개발용: docker compose --profile dev up) ──────────────
+  pma:
+    image: phpmyadmin:latest
+    container_name: webmon_pma
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST:     db
+      PMA_USER:     ${DB_USER:-sitemonitor}
+      PMA_PASSWORD: ${DB_PASS}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - webmon_net
+    profiles:
+      - dev
+
+volumes:
+  db_data:
+    driver: local
+  scheduler_logs:
+    driver: local
+
+networks:
+  webmon_net:
+    driver: bridge
