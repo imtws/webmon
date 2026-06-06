@@ -4,28 +4,43 @@ require_once 'config/database.php';
 
 $no = isset($_GET['no']) ? (int)$_GET['no'] : 0;
 $range = isset($_GET['range']) ? $_GET['range'] : '1d';
+$start = isset($_GET['start']) ? $_GET['start'] : '';
+$end = isset($_GET['end']) ? $_GET['end'] : '';
 
 if ($no <= 0) {
     echo json_encode(['error' => 'Invalid ID']);
     exit;
 }
 
-$interval = '1 DAY';
-if ($range === '7d') {
-    $interval = '7 DAY';
-} elseif ($range === '30d') {
-    $interval = '30 DAY';
+if (!empty($start) && !empty($end) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+    $stmt = $db->prepare("
+        SELECT log_time, response_time, result 
+        FROM monitor_log 
+        WHERE monitor_conf_no = ? 
+          AND log_time >= ? 
+          AND log_time <= ?
+        ORDER BY log_time ASC
+    ");
+    $start_full = $start . ' 00:00:00';
+    $end_full = $end . ' 23:59:59';
+    $stmt->bind_param("iss", $no, $start_full, $end_full);
+} else {
+    $interval = '1 DAY';
+    if ($range === '7d') {
+        $interval = '7 DAY';
+    } elseif ($range === '30d') {
+        $interval = '30 DAY';
+    }
+    $stmt = $db->prepare("
+        SELECT log_time, response_time, result 
+        FROM monitor_log 
+        WHERE monitor_conf_no = ? 
+          AND log_time >= DATE_SUB(NOW(), INTERVAL $interval)
+        ORDER BY log_time ASC
+    ");
+    $stmt->bind_param("i", $no);
 }
 
-$stmt = $db->prepare("
-    SELECT log_time, response_time, result 
-    FROM monitor_log 
-    WHERE monitor_conf_no = ? 
-      AND log_time >= DATE_SUB(NOW(), INTERVAL $interval)
-    ORDER BY log_time ASC
-");
-
-$stmt->bind_param("i", $no);
 $stmt->execute();
 $res = $stmt->get_result();
 

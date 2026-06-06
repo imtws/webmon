@@ -6,6 +6,7 @@
 """
 
 import logging
+import os
 import smtplib
 import asyncio
 from email.mime.text import MIMEText

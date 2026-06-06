@@ -43,6 +43,13 @@
                 <button type="button" onclick="loadChart(<?=$row['no']?>, '7d')" class="px-3 py-1 text-xs font-bold text-gray-700 bg-white border-t border-b border-gray-200 hover:bg-gray-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:hover:bg-slate-600">7D</button>
                 <button type="button" onclick="loadChart(<?=$row['no']?>, '30d')" class="px-3 py-1 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-r-md hover:bg-gray-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:hover:bg-slate-600">30D</button>
             </div>
+            <div class="flex items-center gap-1.5 text-xs text-[var(--text-sub)] font-bold ml-2">
+                <span><?= $current_lang == 'KO' ? '직접 선택:' : 'Custom:' ?></span>
+                <input type="date" id="chart-start-<?=$row['no']?>" class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-1 text-[10px] text-[var(--text-main)] outline-none focus:border-[#18aee7]">
+                <span>~</span>
+                <input type="date" id="chart-end-<?=$row['no']?>" class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-1 text-[10px] text-[var(--text-main)] outline-none focus:border-[#18aee7]">
+                <button type="button" onclick="loadCustomChart(<?=$row['no']?>)" class="px-2 py-1 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-lg font-bold text-[10px] transition-colors"><?= $current_lang == 'KO' ? '조회' : 'Go' ?></button>
+            </div>
         </div>
         <div class="text-xs text-[var(--text-sub)] font-bold">
             <?= $current_lang == 'KO' ? '평균 응답속도' : 'Avg Time' ?>: <span id="avg-time-<?=$row['no']?>" class="text-blue-500 font-extrabold">-</span>s | 

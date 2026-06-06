@@ -191,17 +191,17 @@ function setCookie(name, value, days) {
 }
 
 function toggleViewMode(mode) {
-    setCookie('ncloud24_view', mode, 365);
+    setCookie('webmon_view', mode, 365);
     location.reload(); 
 }
 
 function toggleTheme(theme) {
-    setCookie('ncloud24_theme', theme, 365);
+    setCookie('webmon_theme', theme, 365);
     location.reload();
 }
 
 function toggleLang(lang) {
-    setCookie('ncloud24_lang', lang, 365);
+    setCookie('webmon_lang', lang, 365);
     location.reload();
 }
 

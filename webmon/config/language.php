@@ -1,12 +1,12 @@
 <?php
 // [수정] 쿠키값이 소문자(ko/en)로 들어와도 강제로 대문자로 변환하여 오류 방지
-$current_lang = strtoupper($_COOKIE['ncloud24_lang'] ?? 'KO');
-$current_theme = $_COOKIE['ncloud24_theme'] ?? 'light';
-$current_view = $_COOKIE['ncloud24_view'] ?? 'card';
+$current_lang = strtoupper($_COOKIE['webmon_lang'] ?? 'KO');
+$current_theme = $_COOKIE['webmon_theme'] ?? 'light';
+$current_view = $_COOKIE['webmon_view'] ?? 'card';
 
 $lang_pack = [
     'KO' => [
-        'logo' => '엔클라우드24 웹사이트 모니터링',
+        'logo' => 'WebMon 웹사이트 모니터링',
         'btn_status' => '알람 확인 상태 변경',
         'btn_del' => '선택 삭제',
         'btn_add' => '+ 추가',
@@ -73,7 +73,7 @@ $lang_pack = [
         'msg_err_read' => '로그를 읽어올 수 없습니다.',
     ],
     'EN' => [
-        'logo' => 'Ncloud24 Monitoring',
+        'logo' => 'WebMon Monitoring',
         'btn_status' => 'Change Status',
         'btn_del' => 'Delete Selected',
         'btn_add' => '+ Add',

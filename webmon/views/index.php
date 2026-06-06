@@ -407,14 +407,20 @@ ini_set('display_errors', '1');
             }
         }
 
-        async function loadChart(no, range) {
+        async function loadChart(no, range, start = '', end = '') {
             const canvas = document.getElementById('chart-canvas-' + no);
             const avgSpan = document.getElementById('avg-time-' + no);
             const rateSpan = document.getElementById('success-rate-' + no);
             if (!canvas) return;
 
             try {
-                const response = await fetch(`get_chart_data.php?no=${no}&range=${range}`);
+                let url = `get_chart_data.php?no=${no}`;
+                if (start && end) {
+                    url += `&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+                } else {
+                    url += `&range=${range}`;
+                }
+                const response = await fetch(url);
                 const data = await response.json();
                 
                 if (data.error) {
@@ -505,6 +511,16 @@ ini_set('display_errors', '1');
             } catch (err) {
                 console.error('Failed to load chart data:', err);
             }
+        }
+
+        async function loadCustomChart(no) {
+            const startVal = document.getElementById('chart-start-' + no).value;
+            const endVal = document.getElementById('chart-end-' + no).value;
+            if (!startVal || !endVal) {
+                alert('<?= $current_lang == "KO" ? "시작일과 종료일을 모두 선택해주세요." : "Please select both start and end dates." ?>');
+                return;
+            }
+            loadChart(no, '', startVal, endVal);
         }
 
         function openSettingsModal() {
