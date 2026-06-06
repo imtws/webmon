@@ -16,6 +16,17 @@ ini_set('display_errors', '1');
     <script>
         tailwind.config = { darkMode: 'class' };
         const langPack = <?= isset($js_lang) ? $js_lang : '{}' ?>;
+        const defaultSettings = {
+            emailMode: '<?= htmlspecialchars($settings['def_email_mode'] ?? 'none') ?>',
+            senderEmail: '<?= htmlspecialchars($settings['def_sender_email'] ?? '') ?>',
+            receiverEmail: '<?= htmlspecialchars($settings['def_receiver_email'] ?? '') ?>',
+            check: '<?= htmlspecialchars($settings['def_check'] ?? 'alarm') ?>',
+            sslMon: '<?= htmlspecialchars($settings['def_ssl_mon'] ?? '1') ?>',
+            domMon: '<?= htmlspecialchars($settings['def_dom_mon'] ?? '1') ?>',
+            engineType: '<?= htmlspecialchars($settings['def_engine_type'] ?? 'lynx') ?>',
+            retryCount: '<?= htmlspecialchars($settings['def_retry_count'] ?? '1') ?>',
+            timeoutSec: '<?= htmlspecialchars($settings['def_timeout_sec'] ?? '2') ?>'
+        };
     </script>
 </head>
 <body class="m-0 p-0 text-[var(--text-main)] transition-colors duration-200">
@@ -255,60 +266,154 @@ ini_set('display_errors', '1');
                 <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-sliders text-[#18aee7]"></i> <?= $current_lang == 'KO' ? '모니터링 프로그램 환경 설정' : 'System Configuration' ?></h3>
                 <i class="fas fa-times cursor-pointer hover:text-red-500" onclick="closeSettingsModal()"></i>
             </div>
+
+            <!-- 탭 버튼 헤더 -->
+            <div class="flex border-b border-[var(--border-color)] bg-slate-50 dark:bg-slate-800/50">
+                <button type="button" onclick="switchSettingsTab('sys')" id="tabBtn-sys" class="flex-1 py-3 text-xs font-bold border-b-2 border-[#18aee7] text-[#18aee7] focus:outline-none">
+                    <?= $current_lang == 'KO' ? '시스템 연동 설정' : 'System Config' ?>
+                </button>
+                <button type="button" onclick="switchSettingsTab('def')" id="tabBtn-def" class="flex-1 py-3 text-xs font-bold border-b-2 border-transparent text-[var(--text-sub)] hover:text-[var(--text-main)] focus:outline-none">
+                    <?= $current_lang == 'KO' ? '신규 항목 기본값 설정' : 'Default Monitoring Values' ?>
+                </button>
+            </div>
             
             <form action="save_settings.php" method="POST" class="flex-1 overflow-y-auto p-6 flex flex-col gap-6 text-sm">
-                <!-- 1. 텔레그램 설정 -->
-                <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
-                    <div class="flex justify-between items-center mb-3">
-                        <h4 class="font-bold flex items-center gap-2 text-blue-500"><i class="fab fa-telegram text-lg"></i> <?= $current_lang == 'KO' ? '텔레그램 알림 설정' : 'Telegram Alert Settings' ?></h4>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="tg_enabled" value="1" class="sr-only peer" <?= ($settings['tg_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
-                        </label>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Bot Token</label>
-                            <input type="password" name="tg_token" value="<?= htmlspecialchars($settings['tg_token'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="토큰 입력">
+                <!-- 탭 1: 시스템 설정 -->
+                <div id="tabContent-sys" class="flex flex-col gap-6">
+                    <!-- 1. 텔레그램 설정 -->
+                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold flex items-center gap-2 text-blue-500"><i class="fab fa-telegram text-lg"></i> <?= $current_lang == 'KO' ? '텔레그램 알림 설정' : 'Telegram Alert Settings' ?></h4>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="tg_enabled" value="1" class="sr-only peer" <?= ($settings['tg_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
+                            </label>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Chat ID</label>
-                            <input type="text" name="tg_chat_id" value="<?= htmlspecialchars($settings['tg_chat_id'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="챗 ID 입력">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Bot Token</label>
+                                <input type="password" name="tg_token" value="<?= htmlspecialchars($settings['tg_token'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="토큰 입력">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Chat ID</label>
+                                <input type="text" name="tg_chat_id" value="<?= htmlspecialchars($settings['tg_chat_id'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="챗 ID 입력">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DB 비밀번호 변경 및 로그 보존 설정 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- DB 비밀번호 변경 -->
+                        <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
+                            <div>
+                                <h4 class="font-bold flex items-center gap-2 text-red-500 mb-3"><i class="fas fa-key"></i> <?= $current_lang == 'KO' ? 'DB 비밀번호 변경' : 'Change DB Password' ?></h4>
+                                <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '이전 비밀번호와 변경할 새 비밀번호를 입력하여 DB 비밀번호를 변경합니다.' : 'Change database password by providing the current and new password.' ?></p>
+                            </div>
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '이전 DB 패스워드' : 'Current DB Password' ?></label>
+                                    <input type="password" name="db_pass_old" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '이전 패스워드 입력' : 'Enter current password' ?>">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '변경할 패스워드' : 'New DB Password' ?></label>
+                                    <input type="password" name="db_pass_new" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '변경할 패스워드 입력' : 'Enter new password' ?>">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 로그 보존 기간 설정 -->
+                        <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
+                            <div>
+                                <h4 class="font-bold flex items-center gap-2 text-green-500 mb-3"><i class="fas fa-hdd"></i> <?= $current_lang == 'KO' ? '로그 보관 기간 설정' : 'Data Retention settings' ?></h4>
+                                <p class="text-[11px] text-[var(--text-sub)] mb-2"><?= $current_lang == 'KO' ? '시계열 응답 기록 데이터를 보관할 일수입니다. 기간이 경과하면 자동 정리됩니다.' : 'Number of days to keep response logs in DB. Old logs are cleared.' ?></p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '보존 기간 (일)' : 'Retention (Days)' ?></label>
+                                <input type="number" name="retention_days" min="1" max="365" value="<?= htmlspecialchars($settings['retention_days'] ?? '30') ?>" class="w-24 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                            </div>
                         </div>
                     </div>
                 </div>
 
-
-
-                <!-- 3. DB 비밀번호 변경 및 로그 보존 설정 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- DB 비밀번호 변경 -->
-                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
-                        <div>
-                            <h4 class="font-bold flex items-center gap-2 text-red-500 mb-3"><i class="fas fa-key"></i> <?= $current_lang == 'KO' ? 'DB 비밀번호 변경' : 'Change DB Password' ?></h4>
-                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '이전 비밀번호와 변경할 새 비밀번호를 입력하여 DB 비밀번호를 변경합니다.' : 'Change database password by providing the current and new password.' ?></p>
-                        </div>
-                        <div class="space-y-2">
+                <!-- 탭 2: 신규 등록 기본값 설정 -->
+                <div id="tabContent-def" class="hidden flex flex-col gap-6">
+                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
+                        <h4 class="font-bold flex items-center gap-2 text-sky-500 mb-4"><i class="fas fa-sliders-h"></i> <?= $current_lang == 'KO' ? '모니터링 항목 기본값' : 'Default Monitoring Settings' ?></h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- 실행 엔진 -->
                             <div>
-                                <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '이전 DB 패스워드' : 'Current DB Password' ?></label>
-                                <input type="password" name="db_pass_old" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '이전 패스워드 입력' : 'Enter current password' ?>">
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 실행 엔진' : 'Default Engine' ?></label>
+                                <select name="def_engine_type" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                    <option value="lynx" <?= ($settings['def_engine_type'] ?? 'lynx') == 'lynx' ? 'selected' : '' ?>>LYNX (텍스트 추출 방식)</option>
+                                    <option value="curl" <?= ($settings['def_engine_type'] ?? 'lynx') == 'curl' ? 'selected' : '' ?>>CURL (Raw HTML 방식)</option>
+                                </select>
+                            </div>
+
+                            <!-- 알람 상태 -->
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 알람 상태' : 'Default Status' ?></label>
+                                <select name="def_check" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                    <option value="alarm" <?= ($settings['def_check'] ?? 'alarm') == 'alarm' ? 'selected' : '' ?>><?= $t['status_alarm'] ?? '활성화' ?></option>
+                                    <option value="no alarm" <?= ($settings['def_check'] ?? 'alarm') == 'no alarm' ? 'selected' : '' ?>><?= $t['status_noalarm'] ?? '무음' ?></option>
+                                    <option value="disable" <?= ($settings['def_check'] ?? 'alarm') == 'disable' ? 'selected' : '' ?>><?= $t['status_disable'] ?? '비활성화' ?></option>
+                                </select>
+                            </div>
+
+                            <!-- 체크 횟수 및 타임아웃 -->
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 체크 횟수' : 'Default Retry' ?></label>
+                                <input type="number" name="def_retry_count" min="1" max="10" value="<?= htmlspecialchars($settings['def_retry_count'] ?? '1') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-[var(--text-sub)] mb-0.5"><?= $current_lang == 'KO' ? '변경할 패스워' : 'New DB Password' ?></label>
-                                <input type="password" name="db_pass_new" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '변경할 패스워드 입력' : 'Enter new password' ?>">
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 타임아웃 (초)' : 'Default Timeout (sec)' ?></label>
+                                <input type="number" name="def_timeout_sec" min="1" max="30" value="<?= htmlspecialchars($settings['def_timeout_sec'] ?? '2') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                            </div>
+
+                            <!-- SSL, DOMAIN 체크박스 -->
+                            <div class="col-span-1 md:col-span-2 flex gap-6 py-2 border-t border-dashed border-[var(--border-color)] mt-2">
+                                <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-[var(--text-sub)]">
+                                    <input type="checkbox" name="def_ssl_mon" value="1" class="w-4 h-4 rounded accent-[#18aee7]" <?= ($settings['def_ssl_mon'] ?? '1') == '1' ? 'checked' : '' ?>>
+                                    <span>SSL EXPIRY 감지 기본 활성화</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-[var(--text-sub)]">
+                                    <input type="checkbox" name="def_dom_mon" value="1" class="w-4 h-4 rounded accent-[#18aee7]" <?= ($settings['def_dom_mon'] ?? '1') == '1' ? 'checked' : '' ?>>
+                                    <span>DOMAIN EXPIRY 감지 기본 활성화</span>
+                                </label>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 로그 보존 기간 설정 -->
-                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10 flex flex-col justify-between">
-                        <div>
-                            <h4 class="font-bold flex items-center gap-2 text-green-500 mb-3"><i class="fas fa-hdd"></i> <?= $current_lang == 'KO' ? '로그 보관 기간 설정' : 'Data Retention settings' ?></h4>
-                            <p class="text-[11px] text-[var(--text-sub)] mb-2"><?= $current_lang == 'KO' ? '시계열 응답 기록 데이터를 보관할 일수입니다. 기간이 경과하면 자동 정리됩니다.' : 'Number of days to keep response logs in DB. Old logs are cleared.' ?></p>
+                    <!-- 기본 이메일 발송 방식 및 주소 -->
+                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
+                        <h4 class="font-bold flex items-center gap-2 text-green-500 mb-3"><i class="fas fa-envelope"></i> <?= $current_lang == 'KO' ? '기본 이메일 알림 설정' : 'Default Email Alerts Settings' ?></h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 발송 방식' : 'Default Email Mode' ?></label>
+                                <select name="def_email_mode" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                    <option value="none" <?= ($settings['def_email_mode'] ?? 'none') == 'none' ? 'selected' : '' ?>>미발송 (none)</option>
+                                    <option value="postfix" <?= ($settings['def_email_mode'] ?? 'none') == 'postfix' ? 'selected' : '' ?>>로컬 Postfix 직접발송</option>
+                                    <option value="smtp" <?= ($settings['def_email_mode'] ?? 'none') == 'smtp' ? 'selected' : '' ?>>외부 SMTP 릴레이발송</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 발송자 주소 (From)' : 'Default From Email' ?></label>
+                                <input type="email" name="def_sender_email" value="<?= htmlspecialchars($settings['def_sender_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="sender@example.com">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 수신자 주소 (To)' : 'Default To Email' ?></label>
+                                <input type="email" name="def_receiver_email" value="<?= htmlspecialchars($settings['def_receiver_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="receiver@example.com">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '보존 기간 (일)' : 'Retention (Days)' ?></label>
-                            <input type="number" name="retention_days" min="1" max="365" value="<?= htmlspecialchars($settings['retention_days'] ?? '30') ?>" class="w-24 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+
+                        <!-- 💡 외부 SMTP 릴레이 안내 설명 배너 -->
+                        <div class="bg-blue-50/50 dark:bg-slate-800/40 border border-blue-200 dark:border-slate-700 rounded-xl p-3 flex gap-2.5 text-xs text-[var(--text-sub)]">
+                            <i class="fas fa-info-circle text-blue-500 mt-0.5 text-sm"></i>
+                            <div class="leading-relaxed">
+                                <strong class="text-[var(--text-main)] block mb-1">외부 SMTP 릴레이 발송 시 연동 안내</strong>
+                                <span>이메일 발송 방식을 <strong>'외부 SMTP 릴레이발송'</strong>으로 적용할 경우, 보안 및 계정 유출 방지를 위해 SMTP 호스트/포트/접속 계정 비밀번호는 시스템 소스 코드나 DB 대신 컨테이너 환경설정 파일(프로젝트 루트의 <code class="bg-gray-150 dark:bg-slate-700 px-1 py-0.5 rounded text-[10px]">.env</code>) 내의 변수(<code class="text-[10px]">SMTP_RELAYHOST</code>, <code class="text-[10px]">SMTP_USER</code>, <code class="text-[10px]">SMTP_PASS</code>)로부터 로드해 백그라운드 스케줄러가 안전하게 발송을 수행합니다.</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -318,6 +423,8 @@ ini_set('display_errors', '1');
                     <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '설정 저장' : 'Save Settings' ?></button>
                 </div>
             </form>
+        </div>
+    </div>
         </div>
     </div>
 
@@ -520,7 +627,46 @@ ini_set('display_errors', '1');
                 alert('<?= $current_lang == "KO" ? "시작일과 종료일을 모두 선택해주세요." : "Please select both start and end dates." ?>');
                 return;
             }
+            
+            // 날짜 논리 검증 (시작일이 종료일보다 늦을 경우)
+            if (new Date(startVal) > new Date(endVal)) {
+                alert('<?= $current_lang == "KO" ? "시작일은 종료일보다 이전 날짜여야 합니다." : "The start date must be before the end date." ?>');
+                return;
+            }
+            
+            // 미래 날짜 제한 검증
+            const today = new Date().toISOString().split('T')[0];
+            if (startVal > today || endVal > today) {
+                alert('<?= $current_lang == "KO" ? "오늘 이후의 날짜는 조회할 수 없습니다." : "You cannot query dates in the future." ?>');
+                return;
+            }
+            
             loadChart(no, '', startVal, endVal);
+        }
+
+        function switchSettingsTab(tab) {
+            const btnSys = document.getElementById('tabBtn-sys');
+            const btnDef = document.getElementById('tabBtn-def');
+            const contentSys = document.getElementById('tabContent-sys');
+            const contentDef = document.getElementById('tabContent-def');
+            
+            if (tab === 'sys') {
+                btnSys.classList.add('border-[#18aee7]', 'text-[#18aee7]');
+                btnSys.classList.remove('border-transparent', 'text-[var(--text-sub)]');
+                btnDef.classList.add('border-transparent', 'text-[var(--text-sub)]');
+                btnDef.classList.remove('border-[#18aee7]', 'text-[#18aee7]');
+                
+                contentSys.classList.remove('hidden');
+                contentDef.classList.add('hidden');
+            } else {
+                btnDef.classList.add('border-[#18aee7]', 'text-[#18aee7]');
+                btnDef.classList.remove('border-transparent', 'text-[var(--text-sub)]');
+                btnSys.classList.add('border-transparent', 'text-[var(--text-sub)]');
+                btnSys.classList.remove('border-[#18aee7]', 'text-[#18aee7]');
+                
+                contentDef.classList.remove('hidden');
+                contentSys.classList.add('hidden');
+            }
         }
 
         function openSettingsModal() {

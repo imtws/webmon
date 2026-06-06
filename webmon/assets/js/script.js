@@ -134,14 +134,26 @@ function openModal(type, data = null) {
     } else {
         if (form) form.reset();
         if (document.getElementById('modalAction')) document.getElementById('modalAction').value = 'add';
-        if (document.getElementById('modalComment')) document.getElementById('modalComment').value = '';
-        if (document.getElementById('modalEmailMode')) document.getElementById('modalEmailMode').value = 'none';
-        if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = '';
-        if (document.getElementById('modalReceiverEmail')) document.getElementById('modalReceiverEmail').value = '';
-        if (document.getElementById('modalRetry')) document.getElementById('modalRetry').value = '1';
-        if (document.getElementById('modalTimeout')) document.getElementById('modalTimeout').value = '2';
         
-        const engineRadio = document.querySelector('input[name="engine_type"][value="lynx"]');
+        // 기본값 적용
+        const defaults = typeof defaultSettings !== 'undefined' ? defaultSettings : {
+            emailMode: 'none', senderEmail: '', receiverEmail: '', check: 'alarm',
+            sslMon: '1', domMon: '1', engineType: 'lynx', retryCount: '1', timeoutSec: '2'
+        };
+
+        if (document.getElementById('modalComment')) document.getElementById('modalComment').value = '';
+        if (document.getElementById('modalEmailMode')) document.getElementById('modalEmailMode').value = defaults.emailMode;
+        if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = defaults.senderEmail;
+        if (document.getElementById('modalReceiverEmail')) document.getElementById('modalReceiverEmail').value = defaults.receiverEmail;
+        if (document.getElementById('modalRetry')) document.getElementById('modalRetry').value = defaults.retryCount;
+        if (document.getElementById('modalTimeout')) document.getElementById('modalTimeout').value = defaults.timeoutSec;
+        
+        if (document.getElementById('modalCheck')) document.getElementById('modalCheck').value = defaults.check;
+        if (document.getElementById('modalSsl')) document.getElementById('modalSsl').value = defaults.sslMon;
+        if (document.getElementById('modalDom')) document.getElementById('modalDom').value = defaults.domMon;
+        
+        const engine = defaults.engineType || 'lynx';
+        const engineRadio = document.querySelector('input[name="engine_type"][value="' + engine + '"]');
         if (engineRadio) engineRadio.checked = true;
 
         if (document.getElementById('modalGroupSelect')) {

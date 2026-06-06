@@ -55,6 +55,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $retention_days = (int)($_POST['retention_days'] ?? 30);
     if ($retention_days < 1) $retention_days = 30;
 
+    $def_email_mode = trim($_POST['def_email_mode'] ?? 'none');
+    $def_sender_email = trim($_POST['def_sender_email'] ?? '');
+    $def_receiver_email = trim($_POST['def_receiver_email'] ?? '');
+    $def_check = trim($_POST['def_check'] ?? 'alarm');
+    $def_ssl_mon = isset($_POST['def_ssl_mon']) ? '1' : '0';
+    $def_dom_mon = isset($_POST['def_dom_mon']) ? '1' : '0';
+    $def_engine_type = trim($_POST['def_engine_type'] ?? 'lynx');
+    $def_retry_count = (int)($_POST['def_retry_count'] ?? 1);
+    $def_timeout_sec = (int)($_POST['def_timeout_sec'] ?? 2);
+
     $stmt = $db->prepare("INSERT INTO system_settings (key_name, key_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE key_value = VALUES(key_value)");
 
     $updates = [
@@ -68,7 +78,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'smtp_user' => $smtp_user,
         'smtp_secure' => $smtp_secure,
         'alert_email' => $alert_email,
-        'retention_days' => (string)$retention_days
+        'retention_days' => (string)$retention_days,
+        'def_email_mode' => $def_email_mode,
+        'def_sender_email' => $def_sender_email,
+        'def_receiver_email' => $def_receiver_email,
+        'def_check' => $def_check,
+        'def_ssl_mon' => $def_ssl_mon,
+        'def_dom_mon' => $def_dom_mon,
+        'def_engine_type' => $def_engine_type,
+        'def_retry_count' => (string)$def_retry_count,
+        'def_timeout_sec' => (string)$def_timeout_sec
     ];
 
     if (!empty($smtp_pass)) {
