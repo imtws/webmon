@@ -56,6 +56,21 @@ if ($col_check4 && $col_check4->num_rows == 0) {
     $db->query("ALTER TABLE `monitor_conf` ADD COLUMN `mute_until` DATETIME NULL COMMENT '임시 무음 기한' AFTER `email_mode`");
 }
 
+// 자동 마이그레이션: monitor_conf 테이블에 개별 SMTP 컬럼들 추가
+$smtp_cols = [
+    'smtp_host' => "VARCHAR(255) NOT NULL DEFAULT '' COMMENT '개별 SMTP 호스트'",
+    'smtp_port' => "INT NOT NULL DEFAULT 25 COMMENT '개별 SMTP 포트'",
+    'smtp_user' => "VARCHAR(255) NOT NULL DEFAULT '' COMMENT '개별 SMTP 계정'",
+    'smtp_pass' => "VARCHAR(255) NOT NULL DEFAULT '' COMMENT '개별 SMTP 비번'",
+    'smtp_secure' => "VARCHAR(50) NOT NULL DEFAULT 'none' COMMENT '개별 SMTP 보안'"
+];
+foreach ($smtp_cols as $col => $def) {
+    $col_chk = $db->query("SHOW COLUMNS FROM `monitor_conf` LIKE '$col'");
+    if ($col_chk && $col_chk->num_rows == 0) {
+        $db->query("ALTER TABLE `monitor_conf` ADD COLUMN `$col` $def AFTER `mute_until`");
+    }
+}
+
 // 자동 마이그레이션: system_settings 테이블에 smtp_mode 키 추가
 $key_check = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'smtp_mode'");
 if ($key_check && $key_check->num_rows == 0) {

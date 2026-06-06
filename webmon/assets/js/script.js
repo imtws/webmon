@@ -103,6 +103,13 @@ function openModal(type, data = null) {
         if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = data.sender_email || '';
         if (document.getElementById('modalReceiverEmail')) document.getElementById('modalReceiverEmail').value = data.receiver_email || '';
         
+        // 개별 SMTP 필드 로딩
+        if (document.getElementById('modalSmtpHost')) document.getElementById('modalSmtpHost').value = data.smtp_host || '';
+        if (document.getElementById('modalSmtpPort')) document.getElementById('modalSmtpPort').value = data.smtp_port || '25';
+        if (document.getElementById('modalSmtpSecure')) document.getElementById('modalSmtpSecure').value = data.smtp_secure || 'none';
+        if (document.getElementById('modalSmtpUser')) document.getElementById('modalSmtpUser').value = data.smtp_user || '';
+        if (document.getElementById('modalSmtpPass')) document.getElementById('modalSmtpPass').value = data.smtp_pass || '';
+        
         // 알람 상태 셋팅
         if (document.getElementById('modalCheck')) document.getElementById('modalCheck').value = data.check;
         if (document.getElementById('modalSsl')) document.getElementById('modalSsl').value = data.ssl_mon;
@@ -130,6 +137,8 @@ function openModal(type, data = null) {
             select.value = groupName;
             toggleGroupNewInput();
         }
+        
+        toggleModalSmtpFields();
 
     } else {
         if (form) form.reset();
@@ -148,6 +157,13 @@ function openModal(type, data = null) {
         if (document.getElementById('modalRetry')) document.getElementById('modalRetry').value = defaults.retryCount;
         if (document.getElementById('modalTimeout')) document.getElementById('modalTimeout').value = defaults.timeoutSec;
         
+        // 개별 SMTP 필드 초기화
+        if (document.getElementById('modalSmtpHost')) document.getElementById('modalSmtpHost').value = '';
+        if (document.getElementById('modalSmtpPort')) document.getElementById('modalSmtpPort').value = '25';
+        if (document.getElementById('modalSmtpSecure')) document.getElementById('modalSmtpSecure').value = 'none';
+        if (document.getElementById('modalSmtpUser')) document.getElementById('modalSmtpUser').value = '';
+        if (document.getElementById('modalSmtpPass')) document.getElementById('modalSmtpPass').value = '';
+        
         if (document.getElementById('modalCheck')) document.getElementById('modalCheck').value = defaults.check;
         if (document.getElementById('modalSsl')) document.getElementById('modalSsl').value = defaults.sslMon;
         if (document.getElementById('modalDom')) document.getElementById('modalDom').value = defaults.domMon;
@@ -160,6 +176,8 @@ function openModal(type, data = null) {
             document.getElementById('modalGroupSelect').selectedIndex = 0;
             toggleGroupNewInput();
         }
+        
+        toggleModalSmtpFields();
     }
 }
 
@@ -188,6 +206,18 @@ function toggleGroupNewInput() {
         } else {
             input.classList.add('hidden');
             input.required = false;
+        }
+    }
+}
+
+function toggleModalSmtpFields() {
+    const emailMode = document.getElementById('modalEmailMode');
+    const smtpFields = document.getElementById('modalSmtpFields');
+    if (emailMode && smtpFields) {
+        if (emailMode.value === 'smtp') {
+            smtpFields.classList.remove('hidden');
+        } else {
+            smtpFields.classList.add('hidden');
         }
     }
 }
@@ -257,6 +287,8 @@ function confirmBulkStatusUpdate(status) {
     if(status === 'alarm') statusName = typeof langPack !== 'undefined' && langPack.statusAlarm ? langPack.statusAlarm : '활성화';
     if(status === 'no alarm') statusName = typeof langPack !== 'undefined' && langPack.statusNoAlarm ? langPack.statusNoAlarm : '무음';
     if(status === 'disable') statusName = typeof langPack !== 'undefined' && langPack.statusDisable ? langPack.statusDisable : '비활성화';
+    if(status === 'alarm_unmute') statusName = typeof langPack !== 'undefined' && langPack.statusUnmute ? langPack.statusUnmute : '일시 무음 해제';
+    if(status === 'alarm_mute_default') statusName = typeof langPack !== 'undefined' && langPack.statusMuteDefault ? langPack.statusMuteDefault : '일시 무음 설정 (기본 2시간)';
 
     const companies = Array.from(checked).map(cb => cb.getAttribute('data-company')).join(', ');
     if (confirm(`[ ${companies} ]\n\n위 항목들의 알람 상태를 '${statusName}'(으)로 변경하시겠습니까?`)) {

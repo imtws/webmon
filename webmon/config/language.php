@@ -155,6 +155,8 @@ $js_lang = json_encode([
     'statusAlarm' => $t['status_alarm'],
     'statusNoAlarm' => $t['status_noalarm'],
     'statusDisable' => $t['status_disable'],
+    'statusUnmute' => ($current_lang === 'KO' ? '일시 무음 해제 (활성화)' : 'Disable Mute (Unmute)'),
+    'statusMuteDefault' => ($current_lang === 'KO' ? '일시 무음 설정 (기본 2시간)' : 'Mute Alarm (Default 2h)'),
     'modalAddTitle' => $t['modal_add'],
     'modalEditTitle' => $t['modal_edit'],
     'msg_confirm_del' => $t['msg_confirm_del']

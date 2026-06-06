@@ -33,9 +33,9 @@ ini_set('display_errors', '1');
 <body class="m-0 p-0 text-[var(--text-main)] transition-colors duration-200">
 
     <?php if ($db_pass === 'your_secure_password_here' || empty($db_pass)): ?>
-    <div class="w-full bg-gradient-to-r from-red-600 to-orange-500 text-white px-8 py-3 text-center text-sm font-extrabold flex justify-center items-center gap-2 shadow-md">
+    <div onclick="openSettingsModal(); switchSettingsTab('sys');" class="w-full bg-gradient-to-r from-red-600 to-orange-500 text-white px-8 py-3 text-center text-sm font-extrabold flex justify-center items-center gap-2 shadow-md cursor-pointer hover:opacity-90 transition-opacity">
         <i class="fas fa-shield-alt animate-bounce"></i>
-        <span><?= $current_lang == 'KO' ? '보안 경고: 현재 기본/비어있는 DB 비밀번호가 사용 중입니다! 우측 상단 설정 아이콘(⚙️)을 눌러 안전한 DB 비밀번호로 변경(설정)해 주세요.' : 'Security Warning: Default or empty DB password is in use! Please click the settings icon (⚙️) on the top right to change/set a secure DB password.' ?></span>
+        <span><?= $current_lang == 'KO' ? '보안 경고: 현재 기본/비어있는 DB 비밀번호가 사용 중입니다! 여기를 누르거나 우측 상단 설정 아이콘(⚙️)을 눌러 안전한 DB 비밀번호로 변경(설정)해 주세요.' : 'Security Warning: Default or empty DB password is in use! Click here or click the settings icon (⚙️) on the top right to change/set a secure DB password.' ?></span>
     </div>
     <?php endif; ?>
 
@@ -49,10 +49,12 @@ ini_set('display_errors', '1');
                             <div onclick="toggleBulkDropdown(event)" class="unified-ui cursor-pointer px-4 bg-blue-50 dark:bg-slate-800 text-[#18aee7] border border-blue-200 dark:border-slate-600 hover:bg-blue-100 transition-colors">
                                 <?= $t['btn_status'] ?> <i class="fas fa-chevron-down ml-2 text-[10px]"></i>
                             </div>
-                            <div id="bulkStatusDropdown" class="custom-dropdown-card hidden absolute top-full right-0 mt-2 w-48 bg-[var(--card-bg)] shadow-xl rounded-xl z-50 border border-[var(--border-color)] overflow-hidden">
+                            <div id="bulkStatusDropdown" class="custom-dropdown-card hidden absolute top-full right-0 mt-2 w-56 bg-[var(--card-bg)] shadow-xl rounded-xl z-50 border border-[var(--border-color)] overflow-hidden">
                                 <div onclick="confirmBulkStatusUpdate('alarm')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-green-500 border-b border-[var(--border-color)]"><?= $t['status_alarm'] ?></div>
                                 <div onclick="confirmBulkStatusUpdate('no alarm')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-orange-500 border-b border-[var(--border-color)]"><?= $t['status_noalarm'] ?></div>
-                                <div onclick="confirmBulkStatusUpdate('disable')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-gray-500"><?= $t['status_disable'] ?></div>
+                                <div onclick="confirmBulkStatusUpdate('disable')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-gray-500 border-b border-[var(--border-color)]"><?= $t['status_disable'] ?></div>
+                                <div onclick="confirmBulkStatusUpdate('alarm_unmute')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-blue-500 border-b border-[var(--border-color)]"><?= $current_lang == 'KO' ? '일시 무음 해제 (활성화)' : 'Disable Mute (Unmute)' ?></div>
+                                <div onclick="confirmBulkStatusUpdate('alarm_mute_default')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-purple-500"><?= $current_lang == 'KO' ? '일시 무음 설정 (기본 2시간)' : 'Mute Alarm (Default 2h)' ?></div>
                             </div>
                         </div>
                         <button onclick="confirmBulkDeleteSubmit()" class="unified-ui px-4 bg-red-50 dark:bg-rose-900/20 text-red-500 border border-red-200 dark:border-rose-800 hover:bg-red-100"><?= $t['btn_del'] ?></button>
@@ -536,6 +538,8 @@ ini_set('display_errors', '1');
                     const dt = new Date(item.time);
                     if (range === '1d') {
                         return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } else if (!range) {
+                        return (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
                     } else {
                         return (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + 'h';
                     }
@@ -631,9 +635,9 @@ ini_set('display_errors', '1');
             }
             
             // 미래 날짜 제한 검증
-            const today = new Date().toISOString().split('T')[0];
-            if (startVal > today || endVal > today) {
-                alert('<?= $current_lang == "KO" ? "오늘 이후의 날짜는 조회할 수 없습니다." : "You cannot query dates in the future." ?>');
+            const now = new Date();
+            if (new Date(startVal) > now || new Date(endVal) > now) {
+                alert('<?= $current_lang == "KO" ? "현재 시간 이후는 조회할 수 없습니다." : "You cannot query future times." ?>');
                 return;
             }
             

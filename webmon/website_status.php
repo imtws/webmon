@@ -51,17 +51,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $retry_count = (int)($_POST['retry_count'] ?? 1);
         $engine_type = $db->real_escape_string($_POST['engine_type'] ?? 'lynx');
         $timeout_sec = (int)($_POST['timeout_sec'] ?? 2);
+        
+        // 개별 SMTP 정보
+        $smtp_host = $db->real_escape_string($_POST['smtp_host'] ?? '');
+        $smtp_port = (int)($_POST['smtp_port'] ?? 25);
+        $smtp_user = $db->real_escape_string($_POST['smtp_user'] ?? '');
+        $smtp_pass = $db->real_escape_string($_POST['smtp_pass'] ?? '');
+        $smtp_secure = $db->real_escape_string($_POST['smtp_secure'] ?? 'none');
+        
         $mod_date = date('Y-m-d H:i:s');
         
         if ($action === 'add') {
-            $sql = "INSERT INTO monitor_conf (company, group_name, url, contents, `check`, ssl_mon, dom_mon, comment, sender_email, receiver_email, email_mode, mod_date, value, response_time, retry_count, timeout_sec, engine_type) 
-                    VALUES ('$company', '$group_name', '$url', '$contents', '$check', $ssl_mon, $dom_mon, '$comment', '$sender_email', '$receiver_email', '$email_mode', '$mod_date', 1, 0.0, $retry_count, $timeout_sec, '$engine_type')";
+            $sql = "INSERT INTO monitor_conf (company, group_name, url, contents, `check`, ssl_mon, dom_mon, comment, sender_email, receiver_email, email_mode, mod_date, value, response_time, retry_count, timeout_sec, engine_type, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure) 
+                    VALUES ('$company', '$group_name', '$url', '$contents', '$check', $ssl_mon, $dom_mon, '$comment', '$sender_email', '$receiver_email', '$email_mode', '$mod_date', 1, 0.0, $retry_count, $timeout_sec, '$engine_type', '$smtp_host', $smtp_port, '$smtp_user', '$smtp_pass', '$smtp_secure')";
         } else {
             $no = (int)$_POST['no'];
             $sql = "UPDATE monitor_conf SET 
                     company='$company', group_name='$group_name', url='$url', contents='$contents', `check`='$check', 
                     ssl_mon=$ssl_mon, dom_mon=$dom_mon, comment='$comment', sender_email='$sender_email', receiver_email='$receiver_email', email_mode='$email_mode', mod_date='$mod_date',
-                    retry_count=$retry_count, timeout_sec=$timeout_sec, engine_type='$engine_type'
+                    retry_count=$retry_count, timeout_sec=$timeout_sec, engine_type='$engine_type',
+                    smtp_host='$smtp_host', smtp_port=$smtp_port, smtp_user='$smtp_user', smtp_pass='$smtp_pass', smtp_secure='$smtp_secure'
                     WHERE no=$no";
         }
         
@@ -78,8 +87,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ids = array_map('intval', explode(',', $_POST['ids']));
         $ids_str = implode(',', $ids);
         $status = $db->real_escape_string($_POST['status']);
-        $db->query("UPDATE monitor_conf SET `check`='$status' WHERE no IN ($ids_str)");
-        header("Location: website_status.php"); exit;
+        
+        // 일괄 무음 및 무음 해제 지원
+        $def_hours_res = $db->query("SELECT key_value FROM system_settings WHERE key_name = 'def_mute_hours'");
+        $def_hours = ($def_hours_res && $row_h = $def_hours_res->fetch_assoc()) ? (int)$row_h['key_value'] : 2;
+        if ($def_hours < 0) $def_hours = 2;
+        
+        if ($status === 'alarm_unmute') {
+            $db->query("UPDATE monitor_conf SET sched_enabled = 0, mute_until = NULL WHERE no IN ($ids_str)");
+        } elseif ($status === 'alarm_mute_default') {
+            $db->query("UPDATE monitor_conf SET sched_enabled = 1, mute_until = DATE_ADD(NOW(), INTERVAL $def_hours HOUR) WHERE no IN ($ids_str)");
+        } else {
+            $db->query("UPDATE monitor_conf SET `check`='$status' WHERE no IN ($ids_str)");
+        }
+        header("Location: " . $redirect_url); exit;
     }
 }
 
