@@ -64,6 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $def_engine_type = trim($_POST['def_engine_type'] ?? 'lynx');
     $def_retry_count = (int)($_POST['def_retry_count'] ?? 1);
     $def_timeout_sec = (int)($_POST['def_timeout_sec'] ?? 2);
+    $def_mute_hours = (int)($_POST['def_mute_hours'] ?? 2);
+    if ($def_mute_hours < 0) $def_mute_hours = 0;
 
     $stmt = $db->prepare("INSERT INTO system_settings (key_name, key_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE key_value = VALUES(key_value)");
 
@@ -87,7 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'def_dom_mon' => $def_dom_mon,
         'def_engine_type' => $def_engine_type,
         'def_retry_count' => (string)$def_retry_count,
-        'def_timeout_sec' => (string)$def_timeout_sec
+        'def_timeout_sec' => (string)$def_timeout_sec,
+        'def_mute_hours' => (string)$def_mute_hours
     ];
 
     if (!empty($smtp_pass)) {

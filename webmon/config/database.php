@@ -50,6 +50,12 @@ if ($col_check3 && $col_check3->num_rows == 0) {
     $db->query("ALTER TABLE `monitor_conf` ADD COLUMN `email_mode` VARCHAR(20) NOT NULL DEFAULT 'none' COMMENT '이메일 발송 방식' AFTER `receiver_email`");
 }
 
+// 자동 마이그레이션: monitor_conf 테이블에 mute_until 컬럼 추가
+$col_check4 = $db->query("SHOW COLUMNS FROM `monitor_conf` LIKE 'mute_until'");
+if ($col_check4 && $col_check4->num_rows == 0) {
+    $db->query("ALTER TABLE `monitor_conf` ADD COLUMN `mute_until` DATETIME NULL COMMENT '임시 무음 기한' AFTER `email_mode`");
+}
+
 // 자동 마이그레이션: system_settings 테이블에 smtp_mode 키 추가
 $key_check = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'smtp_mode'");
 if ($key_check && $key_check->num_rows == 0) {

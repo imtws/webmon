@@ -25,7 +25,8 @@ ini_set('display_errors', '1');
             domMon: '<?= htmlspecialchars($settings['def_dom_mon'] ?? '1') ?>',
             engineType: '<?= htmlspecialchars($settings['def_engine_type'] ?? 'lynx') ?>',
             retryCount: '<?= htmlspecialchars($settings['def_retry_count'] ?? '1') ?>',
-            timeoutSec: '<?= htmlspecialchars($settings['def_timeout_sec'] ?? '2') ?>'
+            timeoutSec: '<?= htmlspecialchars($settings['def_timeout_sec'] ?? '2') ?>',
+            muteHours: '<?= htmlspecialchars($settings['def_mute_hours'] ?? '2') ?>'
         };
     </script>
 </head>
@@ -191,28 +192,13 @@ ini_set('display_errors', '1');
                         while($row = $result->fetch_assoc()): 
                             $is_disabled = ($row['check'] == 'disable');
                             
-                            // 스케줄 상태 판별
+                            // 스케줄 상태 판별 (일시 무음 시간 판별)
                             $is_scheduled = (($row['sched_enabled'] ?? 0) == 1);
                             $is_currently_off_schedule = false;
-                            if ($is_scheduled && !$is_disabled) {
-                                if (!function_exists('is_in_schedule_range')) {
-                                    function is_in_schedule_range($start_str, $end_str) {
-                                        $now = new DateTime();
-                                        $now_time = $now->format('H:i');
-                                        $start = trim($start_str);
-                                        $end = trim($end_str);
-                                        if ($start <= $end) {
-                                            return ($now_time >= $start && $now_time <= $end);
-                                        } else {
-                                            return ($now_time >= $start || $now_time <= $end);
-                                        }
-                                    }
-                                }
-                                $in_range = is_in_schedule_range($row['sched_start_time'] ?? '09:00', $row['sched_end_time'] ?? '18:00');
-                                $mode = $row['sched_mode'] ?? 'active';
-                                if ($mode == 'active' && !$in_range) {
-                                    $is_currently_off_schedule = true;
-                                } elseif ($mode == 'mute' && $in_range) {
+                            if ($is_scheduled && !$is_disabled && !empty($row['mute_until'])) {
+                                $now = new DateTime();
+                                $mute_until = new DateTime($row['mute_until']);
+                                if ($now < $mute_until) {
                                     $is_currently_off_schedule = true;
                                 }
                             }
@@ -301,6 +287,39 @@ ini_set('display_errors', '1');
                         </div>
                     </div>
 
+                    <!-- 2. SMTP 릴레이 서버 설정 -->
+                    <div class="border border-[var(--border-color)] rounded-xl p-4 bg-slate-50/30 dark:bg-slate-800/10">
+                        <h4 class="font-bold flex items-center gap-2 text-[#18aee7] mb-3"><i class="fas fa-mail-bulk"></i> <?= $current_lang == 'KO' ? '전역 SMTP 릴레이 서버 설정' : 'Global SMTP Relay Settings' ?></h4>
+                        <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '모니터링 항목에서 외부 SMTP 발송을 선택할 경우 사용될 메일 서버 계정 정보입니다.' : 'Mail credentials used when SMTP mode is chosen for monitor targets.' ?></p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Host</label>
+                                <input type="text" name="smtp_host" value="<?= htmlspecialchars($settings['smtp_host'] ?? 'mail') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="smtp.gmail.com">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Port</label>
+                                <input type="text" name="smtp_port" value="<?= htmlspecialchars($settings['smtp_port'] ?? '25') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="587">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Secure Mode</label>
+                                <select name="smtp_secure" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                    <option value="none" <?= ($settings['smtp_secure'] ?? 'none') == 'none' ? 'selected' : '' ?>>None</option>
+                                    <option value="tls" <?= ($settings['smtp_secure'] ?? 'none') == 'tls' ? 'selected' : '' ?>>TLS (587)</option>
+                                    <option value="ssl" <?= ($settings['smtp_secure'] ?? 'none') == 'ssl' ? 'selected' : '' ?>>SSL (465)</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Username</label>
+                                <input type="text" name="smtp_user" value="<?= htmlspecialchars($settings['smtp_user'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="user@gmail.com">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Password</label>
+                                <input type="password" name="smtp_pass" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="••••••••">
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- DB 비밀번호 변경 및 로그 보존 설정 -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- DB 비밀번호 변경 -->
@@ -370,6 +389,12 @@ ini_set('display_errors', '1');
                                 <input type="number" name="def_timeout_sec" min="1" max="30" value="<?= htmlspecialchars($settings['def_timeout_sec'] ?? '2') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
                             </div>
 
+                            <!-- 기본 무음 설정 예약 시간 (def_mute_hours) -->
+                            <div class="col-span-1 md:col-span-2">
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 무음 설정 예약 시간 (시간 단위)' : 'Default Mute Duration (Hours)' ?></label>
+                                <input type="number" name="def_mute_hours" min="0" max="720" value="<?= htmlspecialchars($settings['def_mute_hours'] ?? '2') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                            </div>
+
                             <!-- SSL, DOMAIN 체크박스 -->
                             <div class="col-span-1 md:col-span-2 flex gap-6 py-2 border-t border-dashed border-[var(--border-color)] mt-2">
                                 <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-[var(--text-sub)]">
@@ -406,15 +431,6 @@ ini_set('display_errors', '1');
                                 <input type="email" name="def_receiver_email" value="<?= htmlspecialchars($settings['def_receiver_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="receiver@example.com">
                             </div>
                         </div>
-
-                        <!-- 💡 외부 SMTP 릴레이 안내 설명 배너 -->
-                        <div class="bg-blue-50/50 dark:bg-slate-800/40 border border-blue-200 dark:border-slate-700 rounded-xl p-3 flex gap-2.5 text-xs text-[var(--text-sub)]">
-                            <i class="fas fa-info-circle text-blue-500 mt-0.5 text-sm"></i>
-                            <div class="leading-relaxed">
-                                <strong class="text-[var(--text-main)] block mb-1">외부 SMTP 릴레이 발송 시 연동 안내</strong>
-                                <span>이메일 발송 방식을 <strong>'외부 SMTP 릴레이발송'</strong>으로 적용할 경우, 보안 및 계정 유출 방지를 위해 SMTP 호스트/포트/접속 계정 비밀번호는 시스템 소스 코드나 DB 대신 컨테이너 환경설정 파일(프로젝트 루트의 <code class="bg-gray-150 dark:bg-slate-700 px-1 py-0.5 rounded text-[10px]">.env</code>) 내의 변수(<code class="text-[10px]">SMTP_RELAYHOST</code>, <code class="text-[10px]">SMTP_USER</code>, <code class="text-[10px]">SMTP_PASS</code>)로부터 로드해 백그라운드 스케줄러가 안전하게 발송을 수행합니다.</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -429,21 +445,22 @@ ini_set('display_errors', '1');
     </div>
 
     <!-- 🔔 개별 모니터링 스케줄 설정 모달 ────────────────────────────── -->
+    <!-- 🔔 개별 모니터링 알람 일시 무음 설정 모달 ────────────────────────────── -->
     <div id="itemScheduleModal" class="fixed inset-0 z-[1000] hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
         <div class="bg-[var(--card-bg)] border border-[var(--border-color)] w-full max-w-md rounded-2xl shadow-2xl flex flex-col overflow-hidden">
             <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-clock text-[#18aee7]"></i> <span id="schedModalTitle">모니터링 스케줄 설정</span></h3>
+                <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-bell-slash text-[#18aee7]"></i> <span id="schedModalTitle">알람 일시 무음 설정</span></h3>
                 <i class="fas fa-times cursor-pointer hover:text-red-500" onclick="closeItemScheduleModal()"></i>
             </div>
             
             <form action="save_item_schedule.php" method="POST" class="p-6 flex flex-col gap-4 text-sm">
                 <input type="hidden" name="no" id="schedItemNo" value="">
                 
-                <!-- 스케줄 활성화 토글 -->
+                <!-- 무음 활성화 토글 -->
                 <div class="flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20 p-3 rounded-xl border border-[var(--border-color)]">
                     <div>
-                        <span class="font-bold block">개별 스케줄링 사용</span>
-                        <span class="text-[10px] text-[var(--text-sub)]">지정한 시간에만 알림을 보내거나 무음 처리합니다.</span>
+                        <span class="font-bold block"><?= $current_lang == 'KO' ? '일시 무음 설정 사용' : 'Enable Temporary Mute' ?></span>
+                        <span class="text-[10px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '지정한 일시까지 알람을 일시적으로 중지합니다.' : 'Temporarily disables notifications until the specified date and time.' ?></span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" name="sched_enabled" id="schedEnabled" value="1" class="sr-only peer" onchange="toggleSchedFields(this.checked)">
@@ -452,37 +469,16 @@ ini_set('display_errors', '1');
                 </div>
 
                 <div id="schedFields" class="flex flex-col gap-4 transition-all duration-300">
-                    <!-- 동작 모드 -->
+                    <!-- 무음 종료 일시 설정 -->
                     <div>
-                        <label class="block text-xs font-bold text-[var(--text-sub)] mb-1.5">스케줄 동작 방식</label>
-                        <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[42px]">
-                            <label class="flex-1 cursor-pointer h-full">
-                                <input type="radio" name="sched_mode" id="schedModeActive" value="active" class="hidden peer" checked>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer">활성화 (지정 시간대 모니터링)</div>
-                            </label>
-                            <label class="flex-1 cursor-pointer h-full">
-                                <input type="radio" name="sched_mode" id="schedModeMute" value="mute" class="hidden peer">
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all cursor-pointer">비활성화 (지정 시간대 무음)</div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- 시간 범위 -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">시작 시각</label>
-                            <input type="time" name="sched_start_time" id="schedStartTime" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">종료 시각</label>
-                            <input type="time" name="sched_end_time" id="schedEndTime" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                        </div>
+                        <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '무음 종료 일시' : 'Mute Until (Date & Time)' ?></label>
+                        <input type="datetime-local" name="mute_until" id="schedMuteUntil" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" required>
                     </div>
                 </div>
 
                 <div class="flex justify-end gap-3 mt-4 border-t border-[var(--border-color)] pt-4">
-                    <button type="button" onclick="closeItemScheduleModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl font-bold transition-all text-xs">취소</button>
-                    <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs">스케줄 저장</button>
+                    <button type="button" onclick="closeItemScheduleModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl font-bold transition-all text-xs"><?= $current_lang == 'KO' ? '취소' : 'Cancel' ?></button>
+                    <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '스케줄 저장' : 'Save Schedule' ?></button>
                 </div>
             </form>
         </div>
@@ -703,24 +699,29 @@ ini_set('display_errors', '1');
         function openScheduleModal(event, row) {
             if (event) event.stopPropagation();
             document.getElementById('schedItemNo').value = row.no;
-            document.getElementById('schedModalTitle').innerText = `${row.company} 스케줄 설정`;
+            document.getElementById('schedModalTitle').innerText = `${row.company} 알람 일시 무음 설정`;
             
             const enabled = parseInt(row.sched_enabled || 0) === 1;
             document.getElementById('schedEnabled').checked = enabled;
             
-            const mode = row.sched_mode || 'active';
-            if (mode === 'active') {
-                document.getElementById('schedModeActive').checked = true;
-            } else {
-                document.getElementById('schedModeMute').checked = true;
+            const now = new Date();
+            const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+            
+            let muteTime = null;
+            if (row.mute_until) {
+                const temp = new Date(row.mute_until.replace(' ', 'T'));
+                if (temp > now) {
+                    muteTime = temp;
+                }
             }
             
-            // sched_start_time과 sched_end_time에서 HH:MM만 추출
-            const start = row.sched_start_time ? row.sched_start_time.substring(0, 5) : '09:00';
-            const end = row.sched_end_time ? row.sched_end_time.substring(0, 5) : '18:00';
+            if (!muteTime) {
+                const muteHours = parseInt(defaultSettings.muteHours || 2);
+                muteTime = new Date(now.getTime() + (muteHours * 60 * 60 * 1000));
+            }
             
-            document.getElementById('schedStartTime').value = start;
-            document.getElementById('schedEndTime').value = end;
+            const localISOTime = new Date(muteTime.getTime() - offsetMs).toISOString().substring(0, 16);
+            document.getElementById('schedMuteUntil').value = localISOTime;
             
             toggleSchedFields(enabled);
             

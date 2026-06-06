@@ -15,14 +15,14 @@
     <div class="w-28 text-right pr-2 text-[var(--text-sub)] flex justify-end items-center gap-3">
         <?php
         $bell_color = 'hover:text-yellow-500';
-        $bell_title = '스케줄 설정';
-        if ($is_scheduled) {
+        $bell_title = $current_lang == 'KO' ? '알람 일시 무음 설정' : 'Mute Settings';
+        if ($is_scheduled && !empty($row['mute_until'])) {
             if ($is_currently_off_schedule) {
                 $bell_color = 'text-violet-400 hover:text-violet-500';
-                $bell_title = '스케줄 무음 적용 중 (' . htmlspecialchars($row['sched_start_time']) . ' ~ ' . htmlspecialchars($row['sched_end_time']) . ')';
+                $bell_title = ($current_lang == 'KO' ? '일시 무음 적용 중 (종료: ' : 'Muted until (End: ') . htmlspecialchars($row['mute_until']) . ')';
             } else {
                 $bell_color = 'text-[#18aee7] hover:text-blue-500';
-                $bell_title = '스케줄 모니터링 중 (' . htmlspecialchars($row['sched_start_time']) . ' ~ ' . htmlspecialchars($row['sched_end_time']) . ')';
+                $bell_title = ($current_lang == 'KO' ? '일시 무음 기한 만료 (기한: ' : 'Mute expired (Limit: ') . htmlspecialchars($row['mute_until']) . ')';
             }
         }
         ?>

@@ -73,28 +73,16 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
         smtp_pass = ""
         smtp_secure = "none"
     elif email_mode == "smtp":
-        # .env 환경변수에서 메일 설정을 로드 (직접 SMTP 릴레이)
-        import re
-        relayhost = os.environ.get("SMTP_RELAYHOST", "mail") # 예: [smtp.gmail.com]:587
-        
-        # 호스트와 포트 파싱
-        host_clean = re.sub(r'[\[\]]', '', relayhost)
-        if ":" in host_clean:
-            smtp_host, port_str = host_clean.split(":", 1)
-            smtp_port = int(port_str)
-        else:
-            smtp_host = host_clean
+        # DB system_settings 에서 메일 설정을 로드 (직접 SMTP 릴레이)
+        smtp_host = settings.get("smtp_host", "mail")
+        try:
+            smtp_port = int(settings.get("smtp_port", "25"))
+        except ValueError:
             smtp_port = 25
             
-        smtp_user = os.environ.get("SMTP_USER", "")
-        smtp_pass = os.environ.get("SMTP_PASS", "")
-        
-        if smtp_port == 587:
-            smtp_secure = "tls"
-        elif smtp_port == 465:
-            smtp_secure = "ssl"
-        else:
-            smtp_secure = "none"
+        smtp_user = settings.get("smtp_user", "")
+        smtp_pass = settings.get("smtp_pass", "")
+        smtp_secure = settings.get("smtp_secure", "none")
     else:
         # 레거시 연동용 예외 처리
         smtp_host = "mail"
