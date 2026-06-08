@@ -109,7 +109,7 @@ services:
     container_name: webmon_mail
     restart: unless-stopped
     ports:
-      - "127.0.0.1:25:25"
+      - "127.0.0.1:2525:25"
     environment:
       RELAYHOST: ${SMTP_RELAYHOST}
       RELAYHOST_USERNAME: ${SMTP_USER}

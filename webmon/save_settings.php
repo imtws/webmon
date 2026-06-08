@@ -76,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $alert_format = trim($_POST['alert_format'] ?? 'plain');
     $email_template_html = $_POST['email_template_html'] ?? '';
+    $email_template_plain = $_POST['email_template_plain'] ?? '';
     $tg_template_html = $_POST['tg_template_html'] ?? '';
 
     // 민감 정보는 .env 파일에 저장
@@ -116,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'log_rotate_mb' => (string)$log_rotate_mb,
         'alert_format' => $alert_format,
         'email_template_html' => $email_template_html,
+        'email_template_plain' => $email_template_plain,
         'tg_template_html' => $tg_template_html
     ];
 

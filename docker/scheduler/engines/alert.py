@@ -355,21 +355,26 @@ async def run_alert():
                         alert_format="html"
                     )
             else:
+                default_plain_tpl = "\n".join([
+                    "🚨 [WebSiteMonitor 알람발생]",
+                    "",
+                    "시간 : {time}",
+                    "",
+                    "-------------------------- 감지 내용 --------------------------",
+                    "| {company} 업체의 {url} 사이트내에 [{keyword}] 컨텐츠 감지 불가!!",
+                    "-------------------------- 권 장 처 리 -------------------------",
+                    "| {comment}",
+                    "--------------------------------------------------------------",
+                    "",
+                    "🔗 웹사이트 모니터링 : {web_url}",
+                ])
+                email_tpl = settings.get("email_template_plain") or default_plain_tpl
+
                 for item in failed_items:
                     row = item["row"]
-                    email_body = "\n".join([
-                        "🚨 [WebSiteMonitor 알람발생]",
-                        "",
-                        f"시간 : {now}",
-                        "",
-                        "-------------------------- 감지 내용 --------------------------",
-                        f"| {row['company']} 업체의 {row['url']} 사이트내에 [{row['contents']}] 컨텐츠 감지 불가!!",
-                        "-------------------------- 권 장 처 리 -------------------------",
-                        f"| {row.get('comment') or '별도 권장 처리 내용 없음'}",
-                        "--------------------------------------------------------------",
-                        "",
-                        f"🔗 웹사이트 모니터링 : {web_url}",
-                    ])
+                    elapsed = item["elapsed"]
+                    email_body = render_template(email_tpl, row, elapsed)
+
                     custom_sender = row.get("sender_email", "") or ""
                     custom_receiver = row.get("receiver_email", "") or ""
                     custom_email_mode = row.get("email_mode", "none") or "none"

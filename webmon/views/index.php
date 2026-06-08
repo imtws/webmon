@@ -119,7 +119,7 @@ if (($current_view ?? 'card') === 'log') {
                                 <div onclick="confirmBulkStatusUpdate('no alarm')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-orange-500 border-b border-[var(--border-color)]"><?= $t['status_noalarm'] ?></div>
                                 <div onclick="confirmBulkStatusUpdate('disable')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-gray-500 border-b border-[var(--border-color)]"><?= $t['status_disable'] ?></div>
                                 <div onclick="confirmBulkStatusUpdate('alarm_unmute')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-blue-500 border-b border-[var(--border-color)]"><?= $current_lang == 'KO' ? '일시 무음 해제 (활성화)' : 'Disable Mute (Unmute)' ?></div>
-                                <div onclick="confirmBulkStatusUpdate('alarm_mute_default')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-purple-500"><?= $current_lang == 'KO' ? '일시 무음 설정 (기본 2시간)' : 'Mute Alarm (Default 2h)' ?></div>
+                                <div onclick="confirmBulkStatusUpdate('alarm_mute_default')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-purple-500"><?= $current_lang == 'KO' ? '일시 무음 설정 (기본 ' . ($settings['def_mute_hours'] ?? 2) . '시간)' : 'Mute Alarm (Default ' . ($settings['def_mute_hours'] ?? 2) . 'h)' ?></div>
                             </div>
                         </div>
                         <button onclick="confirmBulkDeleteSubmit()" class="unified-ui px-4 bg-red-50 dark:bg-rose-900/20 text-red-500 border border-red-200 dark:border-rose-800 hover:bg-red-100"><?= $t['btn_del'] ?></button>
@@ -499,9 +499,9 @@ if (($current_view ?? 'card') === 'log') {
                             <!-- HTML 템플릿 작성 영역 (HTML 모드 시 노출) -->
                             <div id="htmlTemplateFields" class="hidden space-y-4">
                                 <div class="p-3 bg-blue-50/50 dark:bg-slate-800/40 border border-blue-200 dark:border-slate-700 rounded-lg text-xs">
-                                    <h5 class="font-bold text-[#18aee7] mb-1"><i class="fas fa-info-circle"></i> <?= $current_lang == 'KO' ? '사용 가능한 변수 안내' : 'Available Variables' ?></h5>
+                                    <h5 class="font-bold text-[#18aee7] mb-1"><i class="fas fa-info-circle"></i> <?= $current_lang == 'KO' ? '사용 가능한 변수 안내 (HTML)' : 'Available Variables (HTML)' ?></h5>
                                     <p class="text-[11px] text-[var(--text-sub)] leading-relaxed">
-                                        <?= $current_lang == 'KO' ? '아래 템플릿 내에 변수를 삽입하면 알림 발송 시 실제 값으로 자동 치환됩니다:' : 'Insert variables into the templates below to replace with actual values:' ?><br>
+                                        <?= $current_lang == 'KO' ? '아래 HTML 템플릿 내에 변수를 삽입하면 알림 발송 시 실제 값으로 자동 치환됩니다:' : 'Insert variables into the HTML templates below to replace with actual values:' ?><br>
                                         <span class="font-mono text-xs text-orange-500">
                                             {company} (<?= $current_lang == 'KO' ? '회사명' : 'Company' ?>), 
                                             {url} (<?= $current_lang == 'KO' ? '대상 URL' : 'URL' ?>), 
@@ -519,11 +519,37 @@ if (($current_view ?? 'card') === 'log') {
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이메일 HTML 템플릿' : 'Email HTML Template' ?></label>
                                     <textarea name="email_template_html" rows="8" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 코드를 입력해 주세요..."><?= htmlspecialchars($settings['email_template_html'] ?? '') ?></textarea>
                                 </div>
+                            </div>
+
+                            <!-- Plain Text 템플릿 작성 영역 (Plain 모드 시 노출) -->
+                            <div id="plainTemplateFields" class="hidden space-y-4">
+                                <div class="p-3 bg-blue-50/50 dark:bg-slate-800/40 border border-blue-200 dark:border-slate-700 rounded-lg text-xs">
+                                    <h5 class="font-bold text-[#18aee7] mb-1"><i class="fas fa-info-circle"></i> <?= $current_lang == 'KO' ? '사용 가능한 변수 안내 (Plain Text)' : 'Available Variables (Plain Text)' ?></h5>
+                                    <p class="text-[11px] text-[var(--text-sub)] leading-relaxed">
+                                        <?= $current_lang == 'KO' ? '아래 일반 텍스트 템플릿 내에 변수를 삽입하면 알림 발송 시 실제 값으로 자동 치환됩니다:' : 'Insert variables into the plain text templates below to replace with actual values:' ?><br>
+                                        <span class="font-mono text-xs text-orange-500">
+                                            {company} (<?= $current_lang == 'KO' ? '회사명' : 'Company' ?>), 
+                                            {url} (<?= $current_lang == 'KO' ? '대상 URL' : 'URL' ?>), 
+                                            {keyword} (<?= $current_lang == 'KO' ? '검색 키워드' : 'Keyword' ?>), 
+                                            {time} (<?= $current_lang == 'KO' ? '발생 시각' : 'Time' ?>), 
+                                            {engine} (<?= $current_lang == 'KO' ? '실행 엔진' : 'Engine' ?>), 
+                                            {response_time} (<?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?>), 
+                                            {comment} (<?= $current_lang == 'KO' ? '가이드 권장 처리 내용' : 'Action Guide' ?>), 
+                                            {web_url} (<?= $current_lang == 'KO' ? 'WebMon 주소' : 'Dashboard URL' ?>)
+                                        </span>
+                                    </p>
+                                </div>
 
                                 <div>
-                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '텔레그램 HTML 템플릿' : 'Telegram HTML Template' ?></label>
-                                    <textarea name="tg_template_html" rows="6" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 형식 텍스트를 입력해 주세요..."><?= htmlspecialchars($settings['tg_template_html'] ?? '') ?></textarea>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이메일 Plain Text 템플릿' : 'Email Plain Text Template' ?></label>
+                                    <textarea name="email_template_plain" rows="8" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '일반 텍스트 형식의 템플릿을 입력해 주세요...' : 'Enter template in plain text format...' ?>"><?= htmlspecialchars($settings['email_template_plain'] ?? '') ?></textarea>
                                 </div>
+                            </div>
+
+                            <!-- 공통 텔레그램 HTML 템플릿 (언제나 노출) -->
+                            <div class="mt-4">
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '텔레그램 HTML 템플릿' : 'Telegram HTML Template' ?></label>
+                                <textarea name="tg_template_html" rows="6" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 형식 텍스트를 입력해 주세요..."><?= htmlspecialchars($settings['tg_template_html'] ?? '') ?></textarea>
                             </div>
                         </div>
                     </div>
@@ -936,12 +962,15 @@ if (($current_view ?? 'card') === 'log') {
 
         function toggleAlertFormatTemplates() {
             const formatSelect = document.getElementById('alertFormatSelect');
-            const fields = document.getElementById('htmlTemplateFields');
-            if (formatSelect && fields) {
+            const htmlFields = document.getElementById('htmlTemplateFields');
+            const plainFields = document.getElementById('plainTemplateFields');
+            if (formatSelect) {
                 if (formatSelect.value === 'html') {
-                    fields.classList.remove('hidden');
+                    if (htmlFields) htmlFields.classList.remove('hidden');
+                    if (plainFields) plainFields.classList.add('hidden');
                 } else {
-                    fields.classList.add('hidden');
+                    if (htmlFields) htmlFields.classList.add('hidden');
+                    if (plainFields) plainFields.classList.remove('hidden');
                 }
             }
         }

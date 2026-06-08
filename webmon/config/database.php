@@ -172,6 +172,26 @@ if ($key_check_tg && $key_check_tg->num_rows == 0) {
     $stmt->close();
 }
 
+$key_check_pl = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'email_template_plain'");
+if ($key_check_pl && $key_check_pl->num_rows == 0) {
+    $default_plain_template = "🚨 [WebSiteMonitor 알람발생]
+
+시간 : {time}
+
+-------------------------- 감지 내용 --------------------------
+| {company} 업체의 {url} 사이트내에 [{keyword}] 컨텐츠 감지 불가!!
+-------------------------- 권 장 처 리 -------------------------
+| {comment}
+--------------------------------------------------------------
+
+🔗 웹사이트 모니터링 : {web_url}";
+    $stmt = $db->prepare("INSERT INTO `system_settings` (`key_name`, `key_value`) VALUES ('email_template_plain', ?)");
+    $stmt->bind_param("s", $default_plain_template);
+    $stmt->execute();
+    $stmt->close();
+}
+
+
 // 시스템 설정 로드
 $settings = [];
 $res = $db->query("SELECT key_name, key_value FROM system_settings");

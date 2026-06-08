@@ -288,7 +288,7 @@ function confirmBulkStatusUpdate(status) {
     if(status === 'no alarm') statusName = typeof langPack !== 'undefined' && langPack.statusNoAlarm ? langPack.statusNoAlarm : '무음';
     if(status === 'disable') statusName = typeof langPack !== 'undefined' && langPack.statusDisable ? langPack.statusDisable : '비활성화';
     if(status === 'alarm_unmute') statusName = typeof langPack !== 'undefined' && langPack.statusUnmute ? langPack.statusUnmute : '일시 무음 해제';
-    if(status === 'alarm_mute_default') statusName = typeof langPack !== 'undefined' && langPack.statusMuteDefault ? langPack.statusMuteDefault : '일시 무음 설정 (기본 2시간)';
+    if(status === 'alarm_mute_default') statusName = typeof langPack !== 'undefined' && langPack.statusMuteDefault ? langPack.statusMuteDefault : '일시 무음 설정';
 
     const companies = Array.from(checked).map(cb => cb.getAttribute('data-company')).join(', ');
     if (confirm(`[ ${companies} ]\n\n위 항목들의 알람 상태를 '${statusName}'(으)로 변경하시겠습니까?`)) {
