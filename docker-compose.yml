@@ -73,6 +73,7 @@ services:
       MYSQL_DATABASE:      ${DB_NAME:-sitemonitor}
       MYSQL_USER:          ${DB_USER:-sitemonitor}
       MYSQL_PASSWORD:      ${DB_PASS}
+      TZ:                  ${PHP_TIMEZONE:-Asia/Seoul}
     volumes:
       - db_data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d

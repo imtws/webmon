@@ -256,6 +256,22 @@ async def run_alert():
             ])
             await send_telegram(tg_msg, settings)
 
+            def render_template(template: str, row: dict, elapsed: float) -> str:
+                replacements = {
+                    "{company}": str(row.get("company", "")),
+                    "{url}": str(row.get("url", "")),
+                    "{keyword}": str(row.get("contents", "")),
+                    "{comment}": str(row.get("comment", "") or "별도 권장 처리 내용 없음"),
+                    "{time}": str(now),
+                    "{engine}": str(row.get("engine_type") or "lynx").upper(),
+                    "{response_time}": f"{elapsed:.3f}",
+                    "{web_url}": str(web_url)
+                }
+                rendered = template
+                for key, val in replacements.items():
+                    rendered = rendered.replace(key, val)
+                return rendered
+
             # 2. 이메일 발송 (HTML vs Plain)
             if alert_format == "html":
                 default_email_tpl = """<!DOCTYPE html>
@@ -308,22 +324,6 @@ async def run_alert():
 </body>
 </html>"""
                 email_tpl = settings.get("email_template_html") or default_email_tpl
-
-                def render_template(template: str, row: dict, elapsed: float) -> str:
-                    replacements = {
-                        "{company}": str(row.get("company", "")),
-                        "{url}": str(row.get("url", "")),
-                        "{keyword}": str(row.get("contents", "")),
-                        "{comment}": str(row.get("comment", "") or "별도 권장 처리 내용 없음"),
-                        "{time}": str(now),
-                        "{engine}": str(row.get("engine_type") or "lynx").upper(),
-                        "{response_time}": f"{elapsed:.3f}",
-                        "{web_url}": str(web_url)
-                    }
-                    rendered = template
-                    for key, val in replacements.items():
-                        rendered = rendered.replace(key, val)
-                    return rendered
 
                 for item in failed_items:
                     row = item["row"]
