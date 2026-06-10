@@ -408,7 +408,7 @@ function copyCmd(button) {
     const cmd = button.getAttribute('data-cmd');
     if (!cmd) return;
     
-    navigator.clipboard.writeText(cmd).then(() => {
+    const onSuccess = () => {
         const icon = button.querySelector('i');
         if (icon) {
             const originalClass = icon.className;
@@ -418,13 +418,55 @@ function copyCmd(button) {
             }, 1000);
         }
         
-        // 브라우저 언어 설정에 맞게 복사 완료 메시지 출력
         const isKo = document.documentElement.lang === 'ko';
         const msg = isKo ? '클립보드에 복사되었습니다.' : 'Copied to clipboard!';
         showToast(msg);
-    }).catch(err => {
-        console.error('Failed to copy command:', err);
-    });
+    };
+
+    // HTTPS 보안 컨텍스트 환경 대응
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cmd)
+            .then(onSuccess)
+            .catch(err => {
+                console.warn('Modern clipboard API failed, trying fallback...', err);
+                fallbackCopy(cmd, onSuccess);
+            });
+    } else {
+        // 일반 HTTP 및 사설 IP 접속 환경을 위한 폴백 복사 대응
+        fallbackCopy(cmd, onSuccess);
+    }
+}
+
+function fallbackCopy(text, callback) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.width = '2em';
+    textArea.style.height = '2em';
+    textArea.style.padding = '0';
+    textArea.style.border = 'none';
+    textArea.style.outline = 'none';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            callback();
+        } else {
+            console.error('Fallback copy failed');
+        }
+    } catch (err) {
+        console.error('Fallback copy error:', err);
+    }
+    
+    document.body.removeChild(textArea);
 }
 
 function showToast(message) {
