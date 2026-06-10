@@ -232,9 +232,15 @@ function setCookie(name, value, days) {
     document.cookie = name + "=" + (value || "")  + expires + "; path=/";
 }
 
-function toggleViewMode(mode) {
+function toggleViewMode(mode, expandNo = null) {
     setCookie('webmon_view', mode, 365);
-    location.reload(); 
+    const url = new URL(window.location.href);
+    if (expandNo) {
+        url.searchParams.set('expand', expandNo);
+    } else {
+        url.searchParams.delete('expand');
+    }
+    window.location.href = url.href;
 }
 
 function toggleTheme(theme) {

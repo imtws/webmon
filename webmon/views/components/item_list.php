@@ -43,6 +43,20 @@
                 <button type="button" onclick="loadChart(<?=$row['no']?>, '7d')" class="px-3 py-1 text-xs font-bold text-gray-700 bg-white border-t border-b border-gray-200 hover:bg-gray-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:hover:bg-slate-600">7D</button>
                 <button type="button" onclick="loadChart(<?=$row['no']?>, '30d')" class="px-3 py-1 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-r-md hover:bg-gray-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:hover:bg-slate-600">30D</button>
             </div>
+            
+            <!-- 보기 옵션 체크박스 추가 -->
+            <div class="flex items-center gap-3 ml-3 text-[11px] font-bold text-[var(--text-sub)] border-l border-[var(--border-color)] pl-3">
+                <span><?= $current_lang == 'KO' ? '보기 옵션:' : 'Show:' ?></span>
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                    <input type="checkbox" id="show-time-<?=$row['no']?>" checked onchange="updateChartVisibility(<?=$row['no']?>)" class="w-3.5 h-3.5 accent-[#18aee7] rounded cursor-pointer">
+                    <span><?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?></span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                    <input type="checkbox" id="show-rate-<?=$row['no']?>" checked onchange="updateChartVisibility(<?=$row['no']?>)" class="w-3.5 h-3.5 accent-green-500 rounded cursor-pointer">
+                    <span><?= $current_lang == 'KO' ? '성공 여부' : 'Success Status' ?></span>
+                </label>
+            </div>
+
             <div class="flex items-center gap-1.5 text-xs text-[var(--text-sub)] font-bold ml-2">
                 <span><?= $current_lang == 'KO' ? '직접 선택:' : 'Custom:' ?></span>
                 <input type="text" id="chart-start-<?=$row['no']?>" placeholder="YYYY-MM-DD HH:MM:SS" class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-1 text-[10px] text-[var(--text-main)] outline-none focus:border-[#18aee7] w-[135px]">

@@ -828,6 +828,7 @@ if (($current_view ?? 'card') === 'log') {
                 });
                 const responseTimes = data.map(item => item.response_time);
                 const results = data.map(item => item.result);
+                const resultsPercentage = results.map(r => r > 0 ? 100 : 0);
 
                 // 통계 연산
                 if (responseTimes.length > 0) {
@@ -854,21 +855,41 @@ if (($current_view ?? 'card') === 'log') {
                 const textColor = isDark ? '#94a3b8' : '#64748b';
                 const gridColor = isDark ? '#334155' : '#e2e8f0';
 
+                const showTime = document.getElementById('show-time-' + no) ? document.getElementById('show-time-' + no).checked : true;
+                const showRate = document.getElementById('show-rate-' + no) ? document.getElementById('show-rate-' + no).checked : true;
+
                 charts[no] = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
-                        datasets: [{
-                            label: 'Response Time (s)',
-                            data: responseTimes,
-                            borderColor: '#18aee7',
-                            backgroundColor: 'rgba(24, 174, 231, 0.08)',
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: labels.length > 50 ? 0 : 1,
-                            pointHoverRadius: 4
-                        }]
+                        datasets: [
+                            {
+                                label: 'Response Time (s)',
+                                data: responseTimes,
+                                borderColor: '#18aee7',
+                                backgroundColor: 'rgba(24, 174, 231, 0.08)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: labels.length > 50 ? 0 : 1,
+                                pointHoverRadius: 4,
+                                yAxisID: 'y',
+                                hidden: !showTime
+                            },
+                            {
+                                label: 'Success Status (%)',
+                                data: resultsPercentage,
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.1,
+                                pointRadius: labels.length > 50 ? 0 : 1,
+                                pointHoverRadius: 4,
+                                yAxisID: 'y1',
+                                hidden: !showRate
+                            }
+                        ]
                     },
                     options: {
                         responsive: true,
@@ -886,11 +907,40 @@ if (($current_view ?? 'card') === 'log') {
                                 }
                             },
                             y: {
+                                type: 'linear',
+                                display: showTime,
+                                position: 'left',
                                 beginAtZero: true,
                                 grid: { color: gridColor },
                                 ticks: {
                                     color: textColor,
                                     font: { size: 9 }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Response Time (s)',
+                                    color: textColor,
+                                    font: { size: 9, weight: 'bold' }
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: showRate,
+                                position: 'right',
+                                min: 0,
+                                max: 100,
+                                grid: { drawOnChartArea: false },
+                                ticks: {
+                                    color: textColor,
+                                    font: { size: 9 },
+                                    stepSize: 50,
+                                    callback: function(value) { return value + '%'; }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Success (%)',
+                                    color: textColor,
+                                    font: { size: 9, weight: 'bold' }
                                 }
                             }
                         }
@@ -900,6 +950,22 @@ if (($current_view ?? 'card') === 'log') {
             } catch (err) {
                 console.error('Failed to load chart data:', err);
             }
+        }
+
+        function updateChartVisibility(no) {
+            const chart = charts[no];
+            if (!chart) return;
+            
+            const showTime = document.getElementById('show-time-' + no) ? document.getElementById('show-time-' + no).checked : true;
+            const showRate = document.getElementById('show-rate-' + no) ? document.getElementById('show-rate-' + no).checked : true;
+            
+            chart.setDatasetVisibility(0, showTime);
+            chart.setDatasetVisibility(1, showRate);
+            
+            chart.options.scales.y.display = showTime;
+            chart.options.scales.y1.display = showRate;
+            
+            chart.update();
         }
 
         async function loadCustomChart(no) {
