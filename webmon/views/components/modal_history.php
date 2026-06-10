@@ -77,6 +77,9 @@ if ($history_res) {
                                     } elseif ($action_type === 'delete') {
                                         $badge_class = 'bg-orange-50 text-orange-600 border border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/40';
                                         $action_name = $current_lang == 'KO' ? '삭제' : 'Delete';
+                                    } elseif ($action_type === 'edit') {
+                                        $badge_class = 'bg-green-50 text-green-600 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/40';
+                                        $action_name = $current_lang == 'KO' ? '수정' : 'Edit';
                                     } else {
                                         $badge_class = 'bg-gray-50 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
                                         $action_name = $action_type;
@@ -84,20 +87,24 @@ if ($history_res) {
                                     
                                     // Parse changed fields to Korean / Readable format
                                     $fields_formatted = '';
-                                    if ($action_type === 'bulk_update' && !empty($changed_fields)) {
-                                        $fields_arr = array_map('trim', explode(',', $changed_fields));
-                                        $formatted_arr = [];
-                                        foreach ($fields_arr as $f) {
-                                            if ($f === 'group_name') $formatted_arr[] = $current_lang == 'KO' ? '그룹' : 'Group';
-                                            elseif ($f === 'check') $formatted_arr[] = $current_lang == 'KO' ? '상태' : 'Status';
-                                            elseif ($f === 'engine_type') $formatted_arr[] = $current_lang == 'KO' ? '엔진' : 'Engine';
-                                            elseif ($f === 'retry_count, timeout_sec' || $f === 'retry_count' || $f === 'timeout_sec') $formatted_arr[] = $current_lang == 'KO' ? '체크수/타임아웃' : 'Retry/Timeout';
-                                            elseif ($f === 'ssl_mon, dom_mon' || $f === 'ssl_mon' || $f === 'dom_mon') $formatted_arr[] = $current_lang == 'KO' ? '만료일 모니터링' : 'Expiry Mon';
-                                            elseif ($f === 'email_notification') $formatted_arr[] = $current_lang == 'KO' ? '이메일 알림' : 'Email Alert';
-                                            elseif ($f === 'smtp_server_settings') $formatted_arr[] = $current_lang == 'KO' ? '개별 SMTP' : 'SMTP Config';
-                                            else $formatted_arr[] = $f;
+                                    if (($action_type === 'bulk_update' || $action_type === 'edit') && !empty($changed_fields)) {
+                                        if ($changed_fields === 'individual_edit') {
+                                            $fields_formatted = $current_lang == 'KO' ? '개별 설정 변경' : 'Individual Settings Change';
+                                        } else {
+                                            $fields_arr = array_map('trim', explode(',', $changed_fields));
+                                            $formatted_arr = [];
+                                            foreach ($fields_arr as $f) {
+                                                if ($f === 'group_name') $formatted_arr[] = $current_lang == 'KO' ? '그룹' : 'Group';
+                                                elseif ($f === 'check') $formatted_arr[] = $current_lang == 'KO' ? '상태' : 'Status';
+                                                elseif ($f === 'engine_type') $formatted_arr[] = $current_lang == 'KO' ? '엔진' : 'Engine';
+                                                elseif ($f === 'retry_count, timeout_sec' || $f === 'retry_count' || $f === 'timeout_sec') $formatted_arr[] = $current_lang == 'KO' ? '체크수/타임아웃' : 'Retry/Timeout';
+                                                elseif ($f === 'ssl_mon, dom_mon' || $f === 'ssl_mon' || $f === 'dom_mon') $formatted_arr[] = $current_lang == 'KO' ? '만료일 모니터링' : 'Expiry Mon';
+                                                elseif ($f === 'email_notification') $formatted_arr[] = $current_lang == 'KO' ? '이메일 알림' : 'Email Alert';
+                                                elseif ($f === 'smtp_server_settings') $formatted_arr[] = $current_lang == 'KO' ? '개별 SMTP' : 'SMTP Config';
+                                                else $formatted_arr[] = $f;
+                                            }
+                                            $fields_formatted = implode(', ', $formatted_arr);
                                         }
-                                        $fields_formatted = implode(', ', $formatted_arr);
                                     }
                                     
                                     // Extract companies from snapshot

@@ -23,7 +23,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'rollback_job') {
         if (is_array($snapshot)) {
             $db->query("SET FOREIGN_KEY_CHECKS = 0;");
             
-            if ($action_type === 'bulk_update') {
+            if ($action_type === 'bulk_update' || $action_type === 'edit') {
                 // Restore each item by update
                 foreach ($snapshot as $item) {
                     $no = (int)$item['no'];
@@ -142,6 +142,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     VALUES ('$company', '$group_name', '$url', '$contents', '$check', $ssl_mon, $dom_mon, '$comment', '$sender_email', '$receiver_email', '$email_mode', '$mod_date', 1, 0.0, $retry_count, $timeout_sec, '$engine_type', '$smtp_host', $smtp_port, '$smtp_user', '$smtp_pass', '$smtp_secure')";
         } else {
             $no = (int)$_POST['no'];
+            
+            // Capture snapshot for rollback
+            $res = $db->query("SELECT * FROM monitor_conf WHERE no = $no");
+            if ($res && $row = $res->fetch_assoc()) {
+                $snapshot_json = json_encode([$row], JSON_UNESCAPED_UNICODE);
+                $safe_snapshot = $db->real_escape_string($snapshot_json);
+                $db->query("INSERT INTO job_history (action_type, target_count, changed_fields, snapshot) 
+                            VALUES ('edit', 1, 'individual_edit', '$safe_snapshot')");
+            }
+            
             $sql = "UPDATE monitor_conf SET 
                     company='$company', group_name='$group_name', url='$url', contents='$contents', `check`='$check', 
                     ssl_mon=$ssl_mon, dom_mon=$dom_mon, comment='$comment', sender_email='$sender_email', receiver_email='$receiver_email', email_mode='$email_mode', mod_date='$mod_date',
