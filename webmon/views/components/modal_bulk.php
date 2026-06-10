@@ -180,8 +180,8 @@
                     <div>
                         <span class="font-bold block text-sm mb-1"><?= $current_lang == 'KO' ? '일괄 설정 적용 주의사항' : 'Caution for Bulk Application' ?></span>
                         <?= $current_lang == 'KO' 
-                            ? '왼쪽의 체크박스가 선택된 항목만 값 변경이 진행되며, 체크되지 않은 항목은 각 모니터링 대상의 기존 설정값이 유지됩니다. 실행 후에는 이전 상태로 복구할 수 없습니다.' 
-                            : 'Only settings with active checkboxes will be overwritten for the selected targets. Unchecked options will retain their current individual values. This action is irreversible.' 
+                            ? '왼쪽의 체크박스가 선택된 항목만 값 변경이 진행되며, 체크되지 않은 항목은 각 모니터링 대상의 기존 설정값이 유지됩니다. 실행 후 이전 상태로 복구를 원하시면 상단의 \'작업 이력\' 메뉴를 통해 원복할 수 있습니다.' 
+                            : 'Only settings with active checkboxes will be overwritten. Unchecked options will retain their current individual values. If you want to revert to the previous state after execution, you can do so via the \'Job History\' menu at the top.' 
                         ?>
                     </div>
                 </div>
