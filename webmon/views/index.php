@@ -77,7 +77,7 @@ if (($current_view ?? 'card') === 'log') {
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <link rel="stylesheet" href="../assets/css/style.css?v=<?=time()?>">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?=time()?>">
     <script>
         tailwind.config = { darkMode: 'class' };
         const langPack = <?= isset($js_lang) ? $js_lang : '{}' ?>;
@@ -768,7 +768,7 @@ if (($current_view ?? 'card') === 'log') {
     <?php include 'views/components/modal_form.php'; ?>
     <?php include 'views/components/modal_bulk.php'; ?>
 
-    <script src="../assets/js/script.js?v=<?=time()?>"></script>
+    <script src="assets/js/script.js?v=<?=time()?>"></script>
 
     <!-- 📊 아코디언 및 시계열 차트 로직 추가 -->
     <script>
