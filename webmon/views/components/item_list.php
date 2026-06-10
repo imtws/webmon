@@ -52,8 +52,8 @@
                     <span><?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?></span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer select-none">
-                    <input type="checkbox" id="show-rate-<?=$row['no']?>" checked onchange="updateChartVisibility(<?=$row['no']?>)" class="w-3.5 h-3.5 accent-green-500 rounded cursor-pointer">
-                    <span><?= $current_lang == 'KO' ? '성공 여부' : 'Success Status' ?></span>
+                    <input type="checkbox" id="show-rate-<?=$row['no']?>" checked onchange="updateChartVisibility(<?=$row['no']?>)" class="w-3.5 h-3.5 accent-red-500 rounded cursor-pointer">
+                    <span><?= $current_lang == 'KO' ? '장애 시점 표시' : 'Failure Points' ?></span>
                 </label>
             </div>
 
