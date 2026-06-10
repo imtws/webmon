@@ -32,6 +32,22 @@ if ($db->connect_error) {
 
 $db->set_charset('utf8mb4');
 
+// 자동 마이그레이션: job_history 테이블 생성
+$table_check = $db->query("SHOW TABLES LIKE 'job_history'");
+if ($table_check && $table_check->num_rows == 0) {
+    $db->query("CREATE TABLE IF NOT EXISTS `job_history` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `job_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `action_type` VARCHAR(50) NOT NULL,
+        `target_count` INT(11) NOT NULL DEFAULT 0,
+        `changed_fields` TEXT DEFAULT NULL,
+        `snapshot` LONGTEXT NOT NULL,
+        `is_rolled_back` TINYINT(1) NOT NULL DEFAULT 0,
+        `rolled_back_time` DATETIME DEFAULT NULL,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+}
+
 // 자동 마이그레이션: monitor_conf 테이블에 sender_email 컬럼 추가
 $col_check = $db->query("SHOW COLUMNS FROM `monitor_conf` LIKE 'sender_email'");
 if ($col_check && $col_check->num_rows == 0) {

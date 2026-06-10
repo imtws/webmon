@@ -11,8 +11,81 @@ require_once 'classes/Utils.php';
 // ==========================================
 $query_string = $_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '';
 
+if (isset($_GET['action']) && $_GET['action'] == 'rollback_job') {
+    $job_id = (int)$_GET['job_id'];
+    
+    // 1. Fetch job details
+    $job_res = $db->query("SELECT * FROM job_history WHERE id = $job_id AND is_rolled_back = 0");
+    if ($job_res && $job = $job_res->fetch_assoc()) {
+        $action_type = $job['action_type'];
+        $snapshot = json_decode($job['snapshot'], true);
+        
+        if (is_array($snapshot)) {
+            $db->query("SET FOREIGN_KEY_CHECKS = 0;");
+            
+            if ($action_type === 'bulk_update') {
+                // Restore each item by update
+                foreach ($snapshot as $item) {
+                    $no = (int)$item['no'];
+                    $updates = [];
+                    foreach ($item as $key => $val) {
+                        if ($key === 'no') continue;
+                        if ($val === null) {
+                            $updates[] = "`$key` = NULL";
+                        } else {
+                            $safe_val = $db->real_escape_string($val);
+                            $updates[] = "`$key` = '$safe_val'";
+                        }
+                    }
+                    $updates_str = implode(', ', $updates);
+                    $db->query("UPDATE monitor_conf SET $updates_str WHERE no = $no");
+                }
+            } elseif ($action_type === 'bulk_delete' || $action_type === 'delete') {
+                // Re-insert each item
+                foreach ($snapshot as $item) {
+                    $fields = [];
+                    $values = [];
+                    foreach ($item as $key => $val) {
+                        $fields[] = "`$key`";
+                        if ($val === null) {
+                            $values[] = "NULL";
+                        } else {
+                            $safe_val = $db->real_escape_string($val);
+                            $values[] = "'$safe_val'";
+                        }
+                    }
+                    $fields_str = implode(', ', $fields);
+                    $values_str = implode(', ', $values);
+                    $db->query("INSERT INTO monitor_conf ($fields_str) VALUES ($values_str)");
+                }
+            }
+            
+            $db->query("SET FOREIGN_KEY_CHECKS = 1;");
+            
+            // Mark job as rolled back
+            $rolled_back_time = date('Y-m-d H:i:s');
+            $db->query("UPDATE job_history SET is_rolled_back = 1, rolled_back_time = '$rolled_back_time' WHERE id = $job_id");
+            
+            header("Location: website_status.php?msg=rollback_success");
+            exit;
+        }
+    }
+    header("Location: website_status.php?msg=rollback_failed");
+    exit;
+}
+
 if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $no = (int)$_GET['no'];
+    
+    // Capture snapshot for rollback
+    $res = $db->query("SELECT * FROM monitor_conf WHERE no = $no");
+    if ($res && $row = $res->fetch_assoc()) {
+        $snapshot_json = json_encode([$row], JSON_UNESCAPED_UNICODE);
+        $safe_snapshot = $db->real_escape_string($snapshot_json);
+        $db->query("INSERT INTO job_history (action_type, target_count, changed_fields, snapshot) 
+                    VALUES ('delete', 1, '', '$safe_snapshot')");
+    }
+    
     $db->query("DELETE FROM monitor_conf WHERE no = $no");
     
     $redirect_url = "website_status.php";
@@ -89,6 +162,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif ($action === 'bulk_delete' && !empty($_POST['ids'])) {
         $ids = array_map('intval', explode(',', $_POST['ids']));
         $ids_str = implode(',', $ids);
+        
+        // 원복용 사전 스냅샷 캡처
+        $res = $db->query("SELECT * FROM monitor_conf WHERE no IN ($ids_str)");
+        $snapshot_data = [];
+        while ($row = $res->fetch_assoc()) {
+            $snapshot_data[] = $row;
+        }
+        if (!empty($snapshot_data)) {
+            $snapshot_json = json_encode($snapshot_data, JSON_UNESCAPED_UNICODE);
+            $safe_snapshot = $db->real_escape_string($snapshot_json);
+            $target_count = count($snapshot_data);
+            $db->query("INSERT INTO job_history (action_type, target_count, changed_fields, snapshot) 
+                        VALUES ('bulk_delete', $target_count, '', '$safe_snapshot')");
+        }
+        
         $db->query("DELETE FROM monitor_conf WHERE no IN ($ids_str)");
         if (strpos($redirect_url, '?') !== false) {
             $redirect_url .= '&msg=bulk_delete_success';
@@ -125,7 +213,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ids = array_map('intval', explode(',', $_POST['ids']));
         $ids_str = implode(',', $ids);
         
+        // 원복용 사전 스냅샷 캡처
+        $res = $db->query("SELECT * FROM monitor_conf WHERE no IN ($ids_str)");
+        $snapshot_data = [];
+        while ($row = $res->fetch_assoc()) {
+            $snapshot_data[] = $row;
+        }
+        
         $updates = [];
+        $changed_fields_list = [];
         
         // 1. 그룹 설정 변경
         if (isset($_POST['chk_group'])) {
@@ -135,18 +231,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($final_group)) $final_group = '기본 그룹';
             $group_name = $db->real_escape_string($final_group);
             $updates[] = "group_name = '$group_name'";
+            $changed_fields_list[] = "group_name";
         }
         
         // 2. 알람 상태 변경
         if (isset($_POST['chk_check'])) {
             $check = $db->real_escape_string($_POST['check']);
             $updates[] = "`check` = '$check'";
+            $changed_fields_list[] = "check";
         }
         
         // 3. 실행 엔진 변경
         if (isset($_POST['chk_engine'])) {
             $engine_type = $db->real_escape_string($_POST['engine_type'] ?? 'lynx');
             $updates[] = "engine_type = '$engine_type'";
+            $changed_fields_list[] = "engine_type";
         }
         
         // 4. 체크 횟수 및 타임아웃 변경
@@ -155,6 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $timeout_sec = (int)($_POST['timeout_sec'] ?? 2);
             $updates[] = "retry_count = $retry_count";
             $updates[] = "timeout_sec = $timeout_sec";
+            $changed_fields_list[] = "retry_count, timeout_sec";
         }
         
         // 5. 만료일 모니터링 변경
@@ -163,6 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $dom_mon = (int)$_POST['dom_mon'];
             $updates[] = "ssl_mon = $ssl_mon";
             $updates[] = "dom_mon = $dom_mon";
+            $changed_fields_list[] = "ssl_mon, dom_mon";
         }
         
         // 6. 이메일 알림 설정 변경
@@ -173,6 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updates[] = "email_mode = '$email_mode'";
             $updates[] = "sender_email = '$sender_email'";
             $updates[] = "receiver_email = '$receiver_email'";
+            $changed_fields_list[] = "email_notification";
         }
         
         // 7. 개별 SMTP 서버 설정 변경
@@ -188,9 +290,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updates[] = "smtp_user = '$smtp_user'";
             $updates[] = "smtp_pass = '$smtp_pass'";
             $updates[] = "smtp_secure = '$smtp_secure'";
+            $changed_fields_list[] = "smtp_server_settings";
         }
         
         if (!empty($updates)) {
+            // 이력 데이터베이스 기록
+            if (!empty($snapshot_data)) {
+                $snapshot_json = json_encode($snapshot_data, JSON_UNESCAPED_UNICODE);
+                $safe_snapshot = $db->real_escape_string($snapshot_json);
+                $changed_fields_str = implode(', ', $changed_fields_list);
+                $safe_changed = $db->real_escape_string($changed_fields_str);
+                $target_count = count($snapshot_data);
+                $db->query("INSERT INTO job_history (action_type, target_count, changed_fields, snapshot) 
+                            VALUES ('bulk_update', $target_count, '$safe_changed', '$safe_snapshot')");
+            }
+            
             $mod_date = date('Y-m-d H:i:s');
             $updates[] = "mod_date = '$mod_date'";
             $updates_str = implode(', ', $updates);

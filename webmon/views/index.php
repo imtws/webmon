@@ -110,6 +110,9 @@ if (($current_view ?? 'card') === 'log') {
                 <div class="flex justify-between items-center">
                     <h1 onclick="location.href='website_status.php'" class="text-2xl text-[#18aee7] font-black cursor-pointer"><?= $t['logo'] ?></h1>
                     <div class="flex items-center gap-3">
+                        <button type="button" onclick="openHistoryModal()" class="unified-ui px-4 bg-amber-50 dark:bg-amber-955/20 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-800/40 hover:bg-amber-100 transition-colors">
+                            <i class="fas fa-history mr-1.5 text-xs"></i><?= $current_lang == 'KO' ? '작업 이력' : 'Job History' ?>
+                        </button>
                         <button type="button" onclick="openBulkModal()" class="unified-ui px-4 bg-blue-50 dark:bg-slate-800 text-[#18aee7] border border-blue-200 dark:border-slate-600 hover:bg-blue-100 transition-colors">
                             <i class="fas fa-sliders-h mr-1.5 text-xs"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
                         </button>
@@ -767,6 +770,7 @@ if (($current_view ?? 'card') === 'log') {
 
     <?php include 'views/components/modal_form.php'; ?>
     <?php include 'views/components/modal_bulk.php'; ?>
+    <?php include 'views/components/modal_history.php'; ?>
 
     <script src="assets/js/script.js?v=<?=time()?>"></script>
 
@@ -1121,6 +1125,12 @@ if (($current_view ?? 'card') === 'log') {
                         break;
                     case 'schedule_success':
                         msgText = isKo ? '알람 무음 스케줄이 성공적으로 저장되었습니다.' : 'Mute schedule saved successfully.';
+                        break;
+                    case 'rollback_success':
+                        msgText = isKo ? '작업이 성공적으로 원복되었습니다.' : 'Job rolled back successfully.';
+                        break;
+                    case 'rollback_failed':
+                        msgText = isKo ? '작업 원복에 실패했습니다.' : 'Failed to roll back job.';
                         break;
                 }
                 
