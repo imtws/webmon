@@ -20,6 +20,7 @@ function triggerSearch() {
     url.searchParams.set('filter_status', fs);
     url.searchParams.set('filter_engine', fe);
     url.searchParams.set('sort', so);
+    url.searchParams.delete('filter_no'); // 새로운 검색 시 개별 필터 해제
     window.location.href = url.href;
 }
 
@@ -32,6 +33,7 @@ function filterByGroup(groupName) {
 function applyType(type) {
     const url = new URL(window.location.href);
     url.searchParams.set('type', type);
+    url.searchParams.delete('filter_no'); // 타입 변경 시 개별 필터 해제
     window.location.href = url.href;
 }
 
@@ -202,7 +204,9 @@ function openBulkModal() {
         return;
     }
     
-    const ids = Array.from(checked).map(cb => cb.value).join(',');
+    // 카드 뷰와 리스트 뷰 중복 체크박스 ID 고유값만 추출
+    const uniqueIds = Array.from(new Set(Array.from(checked).map(cb => cb.value)));
+    const ids = uniqueIds.join(',');
     
     const idsField = document.getElementById('bulkModalIds');
     if (idsField) idsField.value = ids;
@@ -213,17 +217,10 @@ function openBulkModal() {
     const countSpan = document.getElementById('bulkModalCount');
     if (countSpan) {
         const isKo = document.documentElement.lang === 'ko';
-        countSpan.innerText = isKo ? `${checked.length}개 선택됨` : `${checked.length} selected`;
+        countSpan.innerText = isKo ? `${uniqueIds.length}개 선택됨` : `${uniqueIds.length} selected`;
     }
     
-    const form = document.getElementById('bulkModalForm');
-    if (form) {
-        form.reset();
-        document.querySelectorAll('#bulkModalForm input[type="checkbox"]').forEach(chk => {
-            chk.checked = false;
-            chk.dispatchEvent(new Event('change'));
-        });
-    }
+    resetBulkModalForm();
     
     const modal = document.getElementById('bulkModal');
     if (modal) {
@@ -240,6 +237,34 @@ function openBulkModal() {
             }, 10);
         }
     }
+}
+
+function resetBulkModalForm() {
+    const form = document.getElementById('bulkModalForm');
+    if (!form) return;
+    form.reset();
+    
+    const fieldsToDisable = [
+        { chk: 'chkGroup', inputs: ['bulkGroupSelect', 'bulkGroupNew'] },
+        { chk: 'chkCheck', inputs: ['bulkCheck'] },
+        { chk: 'chkEngine', inputs: ['bulkEngineLynx', 'bulkEngineCurl'] },
+        { chk: 'chkLimits', inputs: ['bulkRetry', 'bulkTimeout'] },
+        { chk: 'chkExpiry', inputs: ['bulkSsl', 'bulkDom'] },
+        { chk: 'chkEmail', inputs: ['bulkEmailMode', 'bulkSenderEmail', 'bulkReceiverEmail'] },
+        { chk: 'chkSmtp', inputs: ['bulkSmtpHost', 'bulkSmtpPort', 'bulkSmtpSecure', 'bulkSmtpUser', 'bulkSmtpPass'] }
+    ];
+    
+    fieldsToDisable.forEach(item => {
+        const chk = document.getElementById(item.chk);
+        if (chk) chk.checked = false;
+        item.inputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) input.disabled = true;
+        });
+    });
+    
+    const smtpContainer = document.getElementById('bulkSmtpContainer');
+    if (smtpContainer) smtpContainer.classList.add('hidden');
 }
 
 function closeBulkModal() {
@@ -343,8 +368,10 @@ function toggleViewMode(mode, expandNo = null) {
     const url = new URL(window.location.href);
     if (expandNo) {
         url.searchParams.set('expand', expandNo);
+        url.searchParams.set('filter_no', expandNo); // 리스트 뷰 진입 시 해당 번호만 보여주도록 필터링
     } else {
         url.searchParams.delete('expand');
+        url.searchParams.delete('filter_no');
     }
     window.location.href = url.href;
 }

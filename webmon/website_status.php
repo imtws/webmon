@@ -217,8 +217,13 @@ $filter_status = $_GET['filter_status'] ?? 'all';
 $sort = $_GET['sort'] ?? 'latest';
 
 $where = ["1=1"];
-if ($type == 'success') $where[] = "`check` = 'alarm' AND value > 0";
-elseif ($type == 'failure') $where[] = "value = 0 AND `check` != 'disable'";
+$filter_no = isset($_GET['filter_no']) ? (int)$_GET['filter_no'] : 0;
+if ($filter_no > 0) {
+    $where[] = "no = $filter_no";
+} else {
+    if ($type == 'success') $where[] = "`check` = 'alarm' AND value > 0";
+    elseif ($type == 'failure') $where[] = "value = 0 AND `check` != 'disable'";
+}
 
 if (!empty($search_company)) {
     $safe_comp = $db->real_escape_string($search_company);

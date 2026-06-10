@@ -159,7 +159,13 @@ if (($current_view ?? 'card') === 'log') {
                 </div>
 
                 <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-2 pl-4 flex items-center gap-2 shadow-sm">
-                    <?php if ($current_view !== 'log'): ?>
+                    <?php if (isset($_GET['filter_no']) && (int)$_GET['filter_no'] > 0): ?>
+                    <div class="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-[#18aee7] border border-blue-100 dark:border-blue-800 rounded-lg text-xs font-bold whitespace-nowrap">
+                        <span><i class="fas fa-info-circle mr-1"></i><?= $current_lang == 'KO' ? '개별 항목 보기 중' : 'Single Item View' ?></span>
+                        <a href="website_status.php" class="ml-2 hover:underline text-red-500 font-extrabold cursor-pointer">✕ <?= $current_lang == 'KO' ? '해제' : 'Clear' ?></a>
+                    </div>
+                    <div class="search-divider"></div>
+                    <?php elseif ($current_view !== 'log'): ?>
                     <div class="flex items-center gap-2 px-2">
                         <input type="checkbox" id="selectAll" class="w-4 h-4 rounded accent-[#18aee7] cursor-pointer">
                         <label for="selectAll" class="text-[11px] font-black text-[var(--text-sub)] cursor-pointer ml-1 whitespace-nowrap"><?= $t['select_all'] ?></label>
