@@ -867,10 +867,10 @@ if (($current_view ?? 'card') === 'log') {
                     ptRadii = results.map(r => r > 0 ? (labelsLength > 50 ? 0 : 1.5) : 5);
                     ptHoverRadii = results.map(r => r > 0 ? 4 : 7);
                 } else {
-                    ptColors = '#18aee7';
-                    ptBorderColors = '#18aee7';
-                    ptRadii = labelsLength > 50 ? 0 : 1.5;
-                    ptHoverRadii = 4;
+                    ptColors = results.map(() => '#18aee7');
+                    ptBorderColors = results.map(() => '#18aee7');
+                    ptRadii = results.map(() => labelsLength > 50 ? 0 : 1.5);
+                    ptHoverRadii = results.map(() => 4);
                 }
 
                 charts[no] = new Chart(ctx, {
@@ -969,10 +969,10 @@ if (($current_view ?? 'card') === 'log') {
                 dataset.pointRadius = results.map(r => r > 0 ? (labelsLength > 50 ? 0 : 1.5) : 5);
                 dataset.pointHoverRadius = results.map(r => r > 0 ? 4 : 7);
             } else {
-                dataset.pointBackgroundColor = '#18aee7';
-                dataset.pointBorderColor = '#18aee7';
-                dataset.pointRadius = labelsLength > 50 ? 0 : 1.5;
-                dataset.pointHoverRadius = 4;
+                dataset.pointBackgroundColor = results.map(() => '#18aee7');
+                dataset.pointBorderColor = results.map(() => '#18aee7');
+                dataset.pointRadius = results.map(() => labelsLength > 50 ? 0 : 1.5);
+                dataset.pointHoverRadius = results.map(() => 4);
             }
             
             chart.update();
