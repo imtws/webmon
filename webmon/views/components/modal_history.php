@@ -11,10 +11,73 @@ if ($history_res) {
         $history_list[] = $row;
     }
 }
+
+// 헬퍼 함수: 필드 포맷팅
+if (!function_exists('formatHistoryValue')) {
+    function formatHistoryValue($key, $val, $isKo) {
+        if ($val === null || $val === '') return '-';
+        if ($key === 'check') {
+            if ($val === 'alarm') return $isKo ? '활성화' : 'Active';
+            if ($val === 'no alarm') return $isKo ? '무음' : 'Muted';
+            if ($val === 'disable') return $isKo ? '비활성화' : 'Disabled';
+        }
+        if ($key === 'email_mode') {
+            if ($val === 'none') return $isKo ? '발송 안함' : 'None';
+            if ($val === 'direct') return $isKo ? '기본 설정 발송' : 'Global SMTP';
+            if ($val === 'smtp') return $isKo ? '개별 SMTP 발송' : 'Individual SMTP';
+        }
+        if ($key === 'ssl_mon' || $key === 'dom_mon') {
+            if ($val == 1) return $isKo ? '모니터링 활성' : 'Active';
+            return $isKo ? '비활성' : 'Disabled';
+        }
+        if ($key === 'engine_type') {
+            return strtoupper($val);
+        }
+        return htmlspecialchars($val);
+    }
+}
+
+// 헬퍼 함수: 비교 렌더링
+if (!function_exists('renderFieldDiff')) {
+    function renderFieldDiff($key, $label, $beforeVal, $afterVal, $isKo) {
+        $fmtBefore = formatHistoryValue($key, $beforeVal, $isKo);
+        $fmtAfter = formatHistoryValue($key, $afterVal, $isKo);
+        
+        if ($beforeVal !== $afterVal) {
+            return "
+            <div class='flex flex-col gap-1 p-2 rounded-lg bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/30 dark:border-amber-500/20'>
+                <span class='text-[10px] text-amber-600 dark:text-amber-400 font-bold'>$label</span>
+                <div class='flex items-center gap-1.5 flex-wrap text-[11px]'>
+                    <span class='text-red-500 line-through font-medium'>$fmtBefore</span>
+                    <i class='fas fa-arrow-right text-slate-400 text-[9px]'></i>
+                    <span class='text-green-600 dark:text-green-400 font-bold'>$fmtAfter</span>
+                </div>
+            </div>";
+        } else {
+            return "
+            <div class='flex flex-col gap-1 p-2 rounded-lg bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800/40'>
+                <span class='text-[10px] text-[var(--text-sub)] font-medium'>$label</span>
+                <span class='font-bold text-[var(--text-main)] text-[11px]'>$fmtBefore</span>
+            </div>";
+        }
+    }
+}
+
+// 헬퍼 함수: 단일 렌더링 (삭제된 경우 등)
+if (!function_exists('renderFieldStatic')) {
+    function renderFieldStatic($key, $label, $val, $isKo) {
+        $fmtVal = formatHistoryValue($key, $val, $isKo);
+        return "
+        <div class='flex flex-col gap-1 p-2 rounded-lg bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800/40'>
+            <span class='text-[10px] text-[var(--text-sub)] font-medium'>$label</span>
+            <span class='font-bold text-[var(--text-main)] text-[11px]'>$fmtVal</span>
+        </div>";
+    }
+}
 ?>
 
 <div id="historyModal" class="hidden fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="modal-content flex flex-col w-full max-w-[750px] bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-[var(--border-color)] max-h-[85vh] overflow-hidden">
+    <div class="modal-content flex flex-col w-full max-w-5xl bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-[var(--border-color)] max-h-[85vh] overflow-hidden">
         
         <!-- Header -->
         <div class="px-8 py-5 border-b border-[var(--border-color)] flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
@@ -42,20 +105,20 @@ if ($history_res) {
                 <div class="space-y-4">
                     <p class="text-xs text-[var(--text-sub)] mb-2">
                         <?= $current_lang == 'KO' 
-                            ? '※ 최근 50개의 일괄 수정, 일괄 삭제, 개별 삭제 이력이 표시됩니다. 원복 시 삭제되거나 변경된 설정이 이전 상태로 그대로 복구됩니다.' 
-                            : '※ Shows the last 50 bulk updates, bulk deletes, and individual deletes. Rollback restores settings to their exact previous state.' ?>
+                            ? '※ 최근 50개의 이력이 표시됩니다. 원복 시 삭제되거나 수정된 설정이 이전 스냅샷 상태로 즉시 복구됩니다.' 
+                            : '※ Shows the last 50 changes. Rollback instantly restores settings to their exact previous state.' ?>
                     </p>
                     
-                    <div class="overflow-hidden border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]">
+                    <div class="overflow-hidden border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] shadow-xs">
                         <table class="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-[var(--border-color)] text-[var(--text-sub)] font-extrabold">
-                                    <th class="p-3 w-[60px] text-center">ID</th>
-                                    <th class="p-3 w-[130px]"><?= $current_lang == 'KO' ? '실행 시각' : 'Time' ?></th>
-                                    <th class="p-3 w-[95px]"><?= $current_lang == 'KO' ? '작업 유형' : 'Action' ?></th>
-                                    <th class="p-3 w-[65px] text-center"><?= $current_lang == 'KO' ? '대상수' : 'Targets' ?></th>
-                                    <th class="p-3"><?= $current_lang == 'KO' ? '상세 내역' : 'Details' ?></th>
-                                    <th class="p-3 w-[120px] text-center"><?= $current_lang == 'KO' ? '관리' : 'Manage' ?></th>
+                                    <th class="p-4 w-[60px] text-center">ID</th>
+                                    <th class="p-4 w-[130px]"><?= $current_lang == 'KO' ? '실행 시각' : 'Time' ?></th>
+                                    <th class="p-4 w-[95px]"><?= $current_lang == 'KO' ? '작업 유형' : 'Action' ?></th>
+                                    <th class="p-4 w-[65px] text-center"><?= $current_lang == 'KO' ? '대상수' : 'Targets' ?></th>
+                                    <th class="p-4"><?= $current_lang == 'KO' ? '대상 설정 변경 내역 요약' : 'Targets Summary' ?></th>
+                                    <th class="p-4 w-[130px] text-center"><?= $current_lang == 'KO' ? '관리' : 'Manage' ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -89,7 +152,7 @@ if ($history_res) {
                                     $fields_formatted = '';
                                     if (($action_type === 'bulk_update' || $action_type === 'edit') && !empty($changed_fields)) {
                                         if ($changed_fields === 'individual_edit') {
-                                            $fields_formatted = $current_lang == 'KO' ? '개별 설정 변경' : 'Individual Settings Change';
+                                            $fields_formatted = $current_lang == 'KO' ? '개별 수정' : 'Individual Settings';
                                         } else {
                                             $fields_arr = array_map('trim', explode(',', $changed_fields));
                                             $formatted_arr = [];
@@ -118,31 +181,31 @@ if ($history_res) {
                                         }
                                     }
                                     $companies_str = implode(', ', $companies);
-                                    $companies_truncated = mb_strlen($companies_str) > 25 ? mb_substr($companies_str, 0, 25) . '...' : $companies_str;
+                                    $companies_truncated = mb_strlen($companies_str) > 40 ? mb_substr($companies_str, 0, 40) . '...' : $companies_str;
                                 ?>
                                     <tr class="border-b border-[var(--border-color)] hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                        <td class="p-3 font-bold text-center text-[var(--text-sub)]"><?= $row['id'] ?></td>
-                                        <td class="p-3 text-[var(--text-sub)]"><?= date('Y-m-d H:i:s', strtotime($row['job_time'])) ?></td>
-                                        <td class="p-3">
-                                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-extrabold uppercase <?= $badge_class ?>">
+                                        <td class="p-4 font-bold text-center text-[var(--text-sub)]"><?= $row['id'] ?></td>
+                                        <td class="p-4 text-[var(--text-sub)]"><?= date('Y-m-d H:i:s', strtotime($row['job_time'])) ?></td>
+                                        <td class="p-4">
+                                            <span class="inline-block px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase <?= $badge_class ?>">
                                                 <?= $action_name ?>
                                             </span>
                                         </td>
-                                        <td class="p-3 font-bold text-center"><?= $target_count ?></td>
-                                        <td class="p-3">
+                                        <td class="p-4 font-bold text-center"><?= $target_count ?></td>
+                                        <td class="p-4">
                                             <div class="flex flex-col gap-0.5">
                                                 <span class="font-bold text-[var(--text-main)]"><?= htmlspecialchars($companies_truncated) ?></span>
                                                 <?php if (!empty($fields_formatted)): ?>
-                                                    <span class="text-[10px] text-blue-500 font-medium">
+                                                    <span class="text-[10px] text-blue-500 dark:text-blue-400 font-medium">
                                                         <i class="fas fa-edit mr-1"></i><?= $current_lang == 'KO' ? '변경 항목' : 'Modified' ?>: <?= htmlspecialchars($fields_formatted) ?>
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
-                                        <td class="p-3 text-center">
+                                        <td class="p-4 text-center">
                                             <div class="flex items-center justify-center gap-2">
-                                                <button type="button" onclick="toggleJobDetail(<?= $row['id'] ?>)" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[var(--text-sub)] hover:text-[var(--text-main)] rounded transition-colors text-[10px] font-bold">
-                                                    <i class="fas fa-chevron-down mr-1 transition-transform" id="detail-arrow-<?= $row['id'] ?>"></i><?= $current_lang == 'KO' ? '상세' : 'Info' ?>
+                                                <button type="button" onclick="toggleJobDetail(<?= $row['id'] ?>)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[var(--text-sub)] hover:text-[var(--text-main)] rounded transition-colors text-[10px] font-bold">
+                                                    <i class="fas fa-chevron-down mr-1 transition-transform" id="detail-arrow-<?= $row['id'] ?>"></i><?= $current_lang == 'KO' ? '상세 비교' : 'Details' ?>
                                                 </button>
                                                 <?php if ($is_rolled): ?>
                                                     <span class="text-[10px] text-green-500 font-bold border border-green-200 bg-green-50/50 dark:border-green-800/30 dark:bg-green-950/20 px-2 py-1 rounded cursor-not-allowed select-none" title="<?= $row['rolled_back_time'] ?>">
@@ -157,38 +220,93 @@ if ($history_res) {
                                         </td>
                                     </tr>
                                     
-                                    <!-- Toggleable Details Panel -->
-                                    <tr id="job-detail-<?= $row['id'] ?>" class="hidden bg-slate-50/50 dark:bg-slate-800/10 border-b border-[var(--border-color)]">
-                                        <td colspan="6" class="p-4 pl-12 pr-8 text-[11px] text-[var(--text-sub)]">
-                                            <div class="space-y-3">
-                                                <h4 class="font-extrabold text-[var(--text-main)] flex items-center gap-1.5 border-b border-[var(--border-color)] pb-1.5">
-                                                    <i class="fas fa-list-ul text-[#18aee7]"></i>
-                                                    <span><?= $current_lang == 'KO' ? '작업 대상 및 이전 설정 상세' : 'Target Item Snapshots Before Change' ?></span>
-                                                </h4>
+                                    <!-- Toggleable Details Panel (Before -> After Comparison) -->
+                                    <tr id="job-detail-<?= $row['id'] ?>" class="hidden bg-slate-50/70 dark:bg-slate-800/20 border-b border-[var(--border-color)]">
+                                        <td colspan="6" class="p-6 pl-12 pr-6">
+                                            <div class="space-y-4">
+                                                <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2">
+                                                    <h4 class="font-extrabold text-[var(--text-main)] text-xs flex items-center gap-1.5">
+                                                        <i class="fas fa-exchange-alt text-[#18aee7]"></i>
+                                                        <span><?= $current_lang == 'KO' ? '설정 상태 비교 내역' : 'Configuration Diff Settings' ?></span>
+                                                    </h4>
+                                                    <span class="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded font-bold">
+                                                        <?= $current_lang == 'KO' ? '주황색: 변경됨 (이전 ➔ 현재)' : 'Orange: Changed (Before ➔ Current)' ?>
+                                                    </span>
+                                                </div>
                                                 
-                                                <div class="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto style-scrollbar pr-2">
-                                                    <?php if (is_array($snapshot)): foreach ($snapshot as $item): ?>
-                                                        <div class="p-2.5 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] flex justify-between items-center shadow-xs">
-                                                            <div class="flex flex-col gap-0.5">
-                                                                <span class="font-bold text-[var(--text-main)] text-[12px]"><?= htmlspecialchars($item['company'] ?? '') ?></span>
-                                                                <span class="text-blue-500 dark:text-blue-400 font-mono"><?= htmlspecialchars($item['url'] ?? '') ?></span>
+                                                <div class="space-y-4 max-h-[350px] overflow-y-auto style-scrollbar pr-2">
+                                                    <?php 
+                                                    if (is_array($snapshot)): 
+                                                        foreach ($snapshot as $item): 
+                                                            $no = (int)($item['no'] ?? 0);
+                                                            
+                                                            // DB에서 현재 최신 값 가져오기
+                                                            $current_item = null;
+                                                            if ($no > 0) {
+                                                                $cur_res = $db->query("SELECT * FROM monitor_conf WHERE no = $no");
+                                                                if ($cur_res && $cur_res->num_rows > 0) {
+                                                                    $current_item = $cur_res->fetch_assoc();
+                                                                }
+                                                            }
+                                                            
+                                                            $is_deleted_now = !$current_item;
+                                                    ?>
+                                                        <div class="p-4 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-xs flex flex-col gap-3">
+                                                            <!-- Item Header -->
+                                                            <div class="flex justify-between items-start gap-4">
+                                                                <div class="flex flex-col gap-0.5">
+                                                                    <span class="font-black text-[var(--text-main)] text-[13px]">
+                                                                        <?= htmlspecialchars($item['company'] ?? '') ?>
+                                                                    </span>
+                                                                    <span class="text-blue-500 dark:text-blue-400 font-mono text-[11px] hover:underline">
+                                                                        <a href="<?= htmlspecialchars($item['url'] ?? '#') ?>" target="_blank"><?= htmlspecialchars($item['url'] ?? '') ?></a>
+                                                                    </span>
+                                                                </div>
+                                                                <?php if ($is_deleted_now): ?>
+                                                                    <span class="text-[9px] bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                                                                        <i class="fas fa-trash-alt"></i><?= $current_lang == 'KO' ? '현재 삭제됨' : 'Deleted Now' ?>
+                                                                    </span>
+                                                                <?php endif; ?>
                                                             </div>
-                                                            <div class="flex flex-wrap gap-2 justify-end text-[10px] text-[var(--text-sub)]">
-                                                                <span class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                                                    <?= $current_lang == 'KO' ? '그룹' : 'Group' ?>: <b><?= htmlspecialchars($item['group_name'] ?? '-') ?></b>
-                                                                </span>
-                                                                <span class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                                                    <?= $current_lang == 'KO' ? '상태' : 'Status' ?>: <b><?= htmlspecialchars($item['check'] ?? '-') ?></b>
-                                                                </span>
-                                                                <span class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                                                    <?= $current_lang == 'KO' ? '엔진' : 'Engine' ?>: <b><?= htmlspecialchars($item['engine_type'] ?? 'lynx') ?></b>
-                                                                </span>
-                                                                <span class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                                                    <?= $current_lang == 'KO' ? '타임아웃' : 'Timeout' ?>: <b><?= htmlspecialchars($item['timeout_sec'] ?? '2') ?>s</b>
-                                                                </span>
+                                                            
+                                                            <!-- Settings Grid -->
+                                                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+                                                                <?php 
+                                                                $fields_to_render = [
+                                                                    'group_name' => $current_lang == 'KO' ? '그룹명' : 'Group',
+                                                                    'check' => $current_lang == 'KO' ? '알람 상태' : 'Alarm Status',
+                                                                    'engine_type' => $current_lang == 'KO' ? '실행 엔진' : 'Engine',
+                                                                    'timeout_sec' => $current_lang == 'KO' ? '타임아웃(초)' : 'Timeout (s)',
+                                                                    'retry_count' => $current_lang == 'KO' ? '재시도 횟수' : 'Retry Count',
+                                                                    'ssl_mon' => $current_lang == 'KO' ? 'SSL 모니터링' : 'SSL Monitor',
+                                                                    'dom_mon' => $current_lang == 'KO' ? '도메인 모니터링' : 'Domain Monitor',
+                                                                    'email_mode' => $current_lang == 'KO' ? '메일 발송 방식' : 'Email Mode',
+                                                                    'sender_email' => $current_lang == 'KO' ? '발송자 이메일' : 'Sender Email',
+                                                                    'receiver_email' => $current_lang == 'KO' ? '수신자 이메일' : 'Receiver Email',
+                                                                    'smtp_host' => $current_lang == 'KO' ? 'SMTP 호스트' : 'SMTP Host',
+                                                                    'smtp_port' => $current_lang == 'KO' ? 'SMTP 포트' : 'SMTP Port',
+                                                                    'smtp_secure' => $current_lang == 'KO' ? 'SMTP 보안' : 'SMTP Secure',
+                                                                ];
+                                                                
+                                                                foreach ($fields_to_render as $key => $label) {
+                                                                    $before_val = $item[$key] ?? null;
+                                                                    
+                                                                    if ($is_deleted_now) {
+                                                                        // 이미 삭제된 항목이면 이전 설정값들만 표시
+                                                                        echo renderFieldStatic($key, $label, $before_val, $current_lang === 'KO');
+                                                                    } else {
+                                                                        // 수정되었거나 살아있다면 Before ➔ After 비교
+                                                                        $after_val = $current_item[$key] ?? null;
+                                                                        echo renderFieldDiff($key, $label, $before_val, $after_val, $current_lang === 'KO');
+                                                                    }
+                                                                }
+                                                                ?>
                                                             </div>
                                                         </div>
-                                                    <?php endforeach; endif; ?>
+                                                    <?php 
+                                                        endforeach; 
+                                                    endif; 
+                                                    ?>
                                                 </div>
                                             </div>
                                         </td>
@@ -231,6 +349,7 @@ function confirmRollback(jobId, count, actionType) {
     if (actionType === 'bulk_update') actionLabel = isKo ? '일괄 수정' : 'Bulk Edit';
     else if (actionType === 'bulk_delete') actionLabel = isKo ? '일괄 삭제' : 'Bulk Delete';
     else if (actionType === 'delete') actionLabel = isKo ? '삭제' : 'Delete';
+    else if (actionType === 'edit') actionLabel = isKo ? '수정' : 'Edit';
 
     const msg = isKo 
         ? `[작업 유형: ${actionLabel} (대상 수: ${count}개)]\n\n해당 작업을 정말로 원복하시겠습니까?\n이전의 설정 상태로 그대로 복구됩니다.`
