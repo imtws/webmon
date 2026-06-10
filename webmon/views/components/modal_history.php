@@ -118,7 +118,7 @@ if (!function_exists('renderFieldStatic')) {
                                     <th class="p-4 w-[95px]"><?= $current_lang == 'KO' ? '작업 유형' : 'Action' ?></th>
                                     <th class="p-4 w-[65px] text-center"><?= $current_lang == 'KO' ? '대상수' : 'Targets' ?></th>
                                     <th class="p-4"><?= $current_lang == 'KO' ? '대상 설정 변경 내역 요약' : 'Targets Summary' ?></th>
-                                    <th class="p-4 w-[130px] text-center"><?= $current_lang == 'KO' ? '관리' : 'Manage' ?></th>
+                                    <th class="p-4 w-[165px] text-center"><?= $current_lang == 'KO' ? '관리' : 'Manage' ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -203,17 +203,17 @@ if (!function_exists('renderFieldStatic')) {
                                             </div>
                                         </td>
                                         <td class="p-4 text-center">
-                                            <div class="flex items-center justify-center gap-2">
-                                                <button type="button" onclick="toggleJobDetail(<?= $row['id'] ?>)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[var(--text-sub)] hover:text-[var(--text-main)] rounded transition-colors text-[10px] font-bold">
-                                                    <i class="fas fa-chevron-down mr-1 transition-transform" id="detail-arrow-<?= $row['id'] ?>"></i><?= $current_lang == 'KO' ? '상세 비교' : 'Details' ?>
+                                            <div class="flex items-center justify-center gap-1.5 flex-nowrap">
+                                                <button type="button" onclick="toggleJobDetail(<?= $row['id'] ?>)" class="whitespace-nowrap px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[var(--text-sub)] hover:text-[var(--text-main)] rounded-lg transition-colors text-[10px] font-bold flex items-center gap-1">
+                                                    <i class="fas fa-chevron-down text-[8px] transition-transform" id="detail-arrow-<?= $row['id'] ?>"></i><span><?= $current_lang == 'KO' ? '상세 비교' : 'Details' ?></span>
                                                 </button>
                                                 <?php if ($is_rolled): ?>
-                                                    <span class="text-[10px] text-green-500 font-bold border border-green-200 bg-green-50/50 dark:border-green-800/30 dark:bg-green-950/20 px-2 py-1 rounded cursor-not-allowed select-none" title="<?= $row['rolled_back_time'] ?>">
-                                                        <i class="fas fa-undo mr-1"></i><?= $current_lang == 'KO' ? '원복됨' : 'Rolled Back' ?>
+                                                    <span class="whitespace-nowrap text-[10px] text-green-500 font-bold border border-green-200 bg-green-50/50 dark:border-green-800/30 dark:bg-green-950/20 px-2.5 py-1.5 rounded-lg cursor-not-allowed select-none flex items-center gap-1" title="<?= $row['rolled_back_time'] ?>">
+                                                        <i class="fas fa-undo text-[8px]"></i><span><?= $current_lang == 'KO' ? '원복됨' : 'Rolled Back' ?></span>
                                                     </span>
                                                 <?php else: ?>
-                                                    <button type="button" onclick="confirmRollback(<?= $row['id'] ?>, <?= $target_count ?>, '<?= $action_type ?>')" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded transition-colors text-[10px] font-black shadow-sm flex items-center gap-1">
-                                                        <i class="fas fa-history text-[8px]"></i><?= $current_lang == 'KO' ? '원복' : 'Rollback' ?>
+                                                    <button type="button" onclick="confirmRollback(<?= $row['id'] ?>, <?= $target_count ?>, '<?= $action_type ?>')" class="whitespace-nowrap px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-[10px] font-black shadow-sm flex items-center gap-1">
+                                                        <i class="fas fa-history text-[8px]"></i><span><?= $current_lang == 'KO' ? '원복' : 'Rollback' ?></span>
                                                     </button>
                                                 <?php endif; ?>
                                             </div>
