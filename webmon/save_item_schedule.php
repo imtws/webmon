@@ -17,6 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-header("Location: website_status.php?settings_saved=1");
+header("Location: website_status.php?msg=schedule_success");
 exit;
 ?>

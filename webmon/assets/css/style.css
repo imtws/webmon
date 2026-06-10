@@ -218,3 +218,55 @@ span.flatpickr-weekday,
 .flatpickr-time .numInputWrapper span.arrowDown:after {
     border-top-color: var(--text-main) !important;
 }
+
+/* 스크롤 시 툴팁을 즉시 감춰 지저분하게 겹치는 현상 방지 */
+body.is-scrolling .cmd-tooltip {
+    display: none !important;
+}
+
+/* 토스트 알림 (Toast Notification) 스타일 */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    background: #1e293b; /* Slate 800 */
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 다크모드 시 밝은 배경의 토스트로 가시성 극대화 */
+.dark .toast {
+    background: #ffffff;
+    color: #1e293b;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.hide {
+    opacity: 0;
+    transform: translateY(-20px);
+}

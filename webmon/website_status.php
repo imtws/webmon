@@ -16,9 +16,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $db->query("DELETE FROM monitor_conf WHERE no = $no");
     
     $redirect_url = "website_status.php";
+    $query_parts = [];
     if (!empty($_GET['current_query'])) {
-        $redirect_url .= "?" . $_GET['current_query'];
+        $query_parts[] = $_GET['current_query'];
     }
+    $query_parts[] = "msg=delete_success";
+    $redirect_url .= "?" . implode('&', $query_parts);
     header("Location: " . $redirect_url); 
     exit;
 }
@@ -75,12 +78,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         $db->query($sql);
+        $msg_param = ($action === 'add') ? 'msg=add_success' : 'msg=edit_success';
+        if (strpos($redirect_url, '?') !== false) {
+            $redirect_url .= '&' . $msg_param;
+        } else {
+            $redirect_url .= '?' . $msg_param;
+        }
         header("Location: " . $redirect_url); exit;
     }
     elseif ($action === 'bulk_delete' && !empty($_POST['ids'])) {
         $ids = array_map('intval', explode(',', $_POST['ids']));
         $ids_str = implode(',', $ids);
         $db->query("DELETE FROM monitor_conf WHERE no IN ($ids_str)");
+        if (strpos($redirect_url, '?') !== false) {
+            $redirect_url .= '&msg=bulk_delete_success';
+        } else {
+            $redirect_url .= '?msg=bulk_delete_success';
+        }
         header("Location: " . $redirect_url); exit;
     }
     elseif ($action === 'bulk_status' && !empty($_POST['ids'])) {
@@ -99,6 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->query("UPDATE monitor_conf SET sched_enabled = 1, mute_until = DATE_ADD(NOW(), INTERVAL $def_hours HOUR) WHERE no IN ($ids_str)");
         } else {
             $db->query("UPDATE monitor_conf SET `check`='$status' WHERE no IN ($ids_str)");
+        }
+        if (strpos($redirect_url, '?') !== false) {
+            $redirect_url .= '&msg=bulk_status_success';
+        } else {
+            $redirect_url .= '?msg=bulk_status_success';
         }
         header("Location: " . $redirect_url); exit;
     }

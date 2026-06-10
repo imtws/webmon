@@ -225,6 +225,25 @@ if (($current_view ?? 'card') === 'log') {
                         <option value="ssl" <?= $sort=='ssl'?'selected':'' ?>><?= $t['sort_ssl'] ?></option>
                         <option value="dom" <?= $sort=='dom'?'selected':'' ?>><?= $t['sort_dom'] ?></option>
                     </select>
+
+                    <?php if ($current_view === 'log'): ?>
+                    <div class="search-divider"></div>
+                    <div class="flex items-center gap-2 pr-2">
+                        <!-- 수동 새로고침 버튼 -->
+                        <button onclick="refreshLogs()" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg-color)] border border-[var(--border-color)] hover:border-[#18aee7] hover:text-[#18aee7] transition-all shadow-sm" title="<?= $current_lang == 'KO' ? '로그 새로고침' : 'Refresh Logs' ?>">
+                            <i class="fas fa-sync-alt text-xs text-[var(--text-sub)] hover:text-[#18aee7]"></i>
+                        </button>
+                        
+                        <!-- 자동 새로고침 토글 스위치 -->
+                        <div class="flex items-center gap-1.5 ml-1">
+                            <label class="relative inline-flex items-center cursor-pointer" title="<?= $current_lang == 'KO' ? '10초 간격 자동 새로고침' : 'Auto Refresh every 10s' ?>">
+                                <input type="checkbox" id="autoRefreshToggle" class="sr-only peer" onchange="toggleAutoRefresh(this.checked)">
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
+                            </label>
+                            <span class="text-[10px] font-bold text-[var(--text-sub)] whitespace-nowrap select-none">AUTO</span>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -278,8 +297,8 @@ if (($current_view ?? 'card') === 'log') {
                             $result_text = $log_row['result'] > 0 ? $t['v_success'] : $t['v_fail'];
                             $result_icon = $log_row['result'] > 0 ? 'fa-check-circle' : 'fa-exclamation-circle';
                         ?>
-                            <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all overflow-hidden text-[13px]">
-                                <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?>"></div>
+                            <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px]">
+                                <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?> rounded-l-xl"></div>
                                 <!-- 시각 -->
                                 <div class="w-48 text-[var(--text-sub)] font-mono">
                                     <?= htmlspecialchars($log_row['log_time']) ?>
@@ -299,13 +318,18 @@ if (($current_view ?? 'card') === 'log') {
                                             <?= htmlspecialchars($log_row['req_url']) ?>
                                         </a>
                                         <?php if (!empty($log_row['cmd'])): ?>
-                                            <div class="relative group mt-0.5">
-                                                <div class="bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 font-mono rounded px-2 py-1 select-all truncate border border-slate-200 dark:border-slate-700 cursor-help" title="<?= htmlspecialchars($log_row['cmd']) ?>">
-                                                    <i class="fas fa-terminal text-[8px] mr-1 text-slate-400"></i><?= htmlspecialchars($log_row['cmd']) ?>
+                                            <div class="flex items-center gap-1.5 mt-0.5">
+                                                <div class="relative group flex-1 min-w-0">
+                                                    <div class="bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 font-mono rounded px-2 py-1 select-all truncate border border-slate-200 dark:border-slate-700 cursor-help" title="<?= htmlspecialchars($log_row['cmd']) ?>">
+                                                        <i class="fas fa-terminal text-[8px] mr-1 text-slate-400"></i><?= htmlspecialchars($log_row['cmd']) ?>
+                                                    </div>
+                                                    <div class="absolute bottom-full left-0 z-[120] mb-2 w-max max-w-lg hidden group-hover:block bg-slate-900 text-white text-[10px] rounded p-2 shadow-lg font-mono break-all border border-slate-700 cmd-tooltip">
+                                                        <?= htmlspecialchars($log_row['cmd']) ?>
+                                                    </div>
                                                 </div>
-                                                <div class="absolute bottom-full left-0 z-50 mb-2 w-max max-w-lg hidden group-hover:block bg-slate-900 text-white text-[10px] rounded p-2 shadow-lg font-mono break-all border border-slate-700">
-                                                    <?= htmlspecialchars($log_row['cmd']) ?>
-                                                </div>
+                                                <button type="button" onclick="copyCmd(this)" data-cmd="<?= htmlspecialchars($log_row['cmd'], ENT_QUOTES, 'UTF-8') ?>" class="flex items-center justify-center p-1.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#18aee7] hover:text-[#18aee7] text-slate-400 transition-all cursor-pointer flex-shrink-0" title="<?= $current_lang == 'KO' ? '명령어 복사' : 'Copy command' ?>">
+                                                    <i class="far fa-copy text-[10px]"></i>
+                                                </button>
                                             </div>
                                         <?php else: ?>
                                             <span class="text-[10px] text-gray-400 italic"><?= $current_lang == 'KO' ? '실행 명령 기록 없음' : 'No execution command logged' ?></span>
@@ -977,8 +1001,11 @@ if (($current_view ?? 'card') === 'log') {
 
         window.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
+            const isKo = document.documentElement.lang === 'ko';
+
             if (urlParams.has('settings_saved')) {
-                alert('<?= $current_lang == "KO" ? "설정이 성공적으로 저장되었습니다." : "Settings saved successfully." ?>');
+                const msg = isKo ? '설정이 성공적으로 저장되었습니다.' : 'Settings saved successfully.';
+                showToast(msg);
                 const newUrl = window.location.pathname + window.location.search.replace(/[?&]settings_saved=1/, '').replace(/^&/, '?').replace(/\?$/, '');
                 window.history.replaceState({}, document.title, newUrl);
             }
@@ -993,6 +1020,39 @@ if (($current_view ?? 'card') === 'log') {
                 alert(msg);
                 const newUrl = window.location.pathname + window.location.search.replace(/[?&]settings_error=[^&]+/, '').replace(/^&/, '?').replace(/\?$/, '');
                 window.history.replaceState({}, document.title, newUrl);
+            }
+
+            if (urlParams.has('msg')) {
+                const msgType = urlParams.get('msg');
+                let msgText = '';
+                
+                switch(msgType) {
+                    case 'add_success':
+                        msgText = isKo ? '새로운 모니터링 항목이 추가되었습니다.' : 'New monitor item added successfully.';
+                        break;
+                    case 'edit_success':
+                        msgText = isKo ? '모니터링 설정이 변경되었습니다.' : 'Monitor settings updated successfully.';
+                        break;
+                    case 'delete_success':
+                        msgText = isKo ? '모니터링 항목이 삭제되었습니다.' : 'Monitor item deleted successfully.';
+                        break;
+                    case 'bulk_delete_success':
+                        msgText = isKo ? '선택한 항목들이 모두 삭제되었습니다.' : 'Selected items deleted successfully.';
+                        break;
+                    case 'bulk_status_success':
+                        msgText = isKo ? '알람 상태가 일괄 업데이트되었습니다.' : 'Alarm status updated successfully.';
+                        break;
+                    case 'schedule_success':
+                        msgText = isKo ? '알람 무음 스케줄이 성공적으로 저장되었습니다.' : 'Mute schedule saved successfully.';
+                        break;
+                }
+                
+                if (msgText) {
+                    showToast(msgText);
+                    const cleanSearch = window.location.search.replace(new RegExp('[?&]msg=' + msgType), '').replace(/^&/, '?').replace(/\?$/, '');
+                    const newUrl = window.location.pathname + cleanSearch;
+                    window.history.replaceState({}, document.title, newUrl);
+                }
             }
 
             // 📅 응답속도 추이 그래프의 시작/종료일 Flatpickr 연동

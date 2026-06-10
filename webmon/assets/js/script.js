@@ -325,3 +325,130 @@ function toggleSortCompany() {
     url.searchParams.set('sort', currentSort === 'comp_asc' ? 'comp_desc' : 'comp_asc');
     window.location.href = url.href;
 }
+
+let autoRefreshTimer = null;
+
+function toggleAutoRefresh(enabled) {
+    if (enabled) {
+        sessionStorage.setItem('webmon_auto_refresh', 'true');
+        startAutoRefresh();
+    } else {
+        sessionStorage.removeItem('webmon_auto_refresh');
+        stopAutoRefresh();
+    }
+}
+
+function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(() => {
+        const searchInput = document.getElementById('searchCompany');
+        if (searchInput && document.activeElement === searchInput) {
+            return;
+        }
+        refreshLogs();
+    }, 10000); // 10 seconds interval
+}
+
+async function refreshLogs() {
+    const refreshBtnIcon = document.querySelector('button[onclick*="refreshLogs"] i');
+    if (refreshBtnIcon) {
+        refreshBtnIcon.classList.add('fa-spin');
+    }
+    
+    try {
+        const url = 'get_logs.php' + window.location.search;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const html = await response.text();
+        
+        const logWrapper = document.querySelector('.view-list.flex.flex-col.gap-3');
+        if (logWrapper) {
+            logWrapper.innerHTML = html;
+        }
+    } catch (err) {
+        console.error('Failed to refresh logs:', err);
+    } finally {
+        if (refreshBtnIcon) {
+            setTimeout(() => {
+                refreshBtnIcon.classList.remove('fa-spin');
+            }, 500);
+        }
+    }
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+    if (autoRefreshToggle) {
+        const saved = sessionStorage.getItem('webmon_auto_refresh') === 'true';
+        autoRefreshToggle.checked = saved;
+        if (saved) {
+            startAutoRefresh();
+        }
+    }
+});
+
+// 스크롤 중 툴팁이 둥둥 떠다니는 현상을 차단하기 위해 스크롤 감지 처리 추가
+let scrollTimeout = null;
+window.addEventListener('scroll', () => {
+    document.body.classList.add('is-scrolling');
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+        document.body.classList.remove('is-scrolling');
+    }, 150);
+}, { passive: true });
+
+function copyCmd(button) {
+    const cmd = button.getAttribute('data-cmd');
+    if (!cmd) return;
+    
+    navigator.clipboard.writeText(cmd).then(() => {
+        const icon = button.querySelector('i');
+        if (icon) {
+            const originalClass = icon.className;
+            icon.className = 'fas fa-check text-green-500 text-[10px]';
+            setTimeout(() => {
+                icon.className = originalClass;
+            }, 1000);
+        }
+        
+        // 브라우저 언어 설정에 맞게 복사 완료 메시지 출력
+        const isKo = document.documentElement.lang === 'ko';
+        const msg = isKo ? '클립보드에 복사되었습니다.' : 'Copied to clipboard!';
+        showToast(msg);
+    }).catch(err => {
+        console.error('Failed to copy command:', err);
+    });
+}
+
+function showToast(message) {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<i class="fas fa-check-circle text-[#18aee7]"></i> <span>${message}</span>`;
+    container.appendChild(toast);
+    
+    // Trigger layout reflow for CSS transition
+    toast.offsetHeight;
+    
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.replace('show', 'hide');
+        toast.addEventListener('transitionend', () => {
+            toast.remove();
+        });
+    }, 2500);
+}
