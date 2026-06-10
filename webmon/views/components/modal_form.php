@@ -136,9 +136,10 @@
                         <input type="number" name="timeout_sec" id="modalTimeout" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)]" value="2" min="1" max="30">
                     </div>
                 </div>
-                <div class="flex justify-end gap-3 mt-8 pb-4">
-                    <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-100 dark:bg-slate-800 rounded-xl text-sm font-bold transition-colors"><?= $t['modal_cancel'] ?? '취소' ?></button>
-                    <button type="submit" class="px-10 py-3 bg-[#18aee7] text-white rounded-xl text-sm font-black shadow-lg hover:shadow-xl transition-all"><?= $t['modal_save'] ?? '저장' ?></button>
+            </div>
+            <div class="flex justify-end gap-3 mt-8 pb-4">
+                <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-100 dark:bg-slate-800 rounded-xl text-sm font-bold transition-colors"><?= $t['modal_cancel'] ?? '취소' ?></button>
+                <button type="submit" class="px-10 py-3 bg-[#18aee7] text-white rounded-xl text-sm font-black shadow-lg hover:shadow-xl transition-all"><?= $t['modal_save'] ?? '저장' ?></button>
                 </div>
         </form>
     </div>
