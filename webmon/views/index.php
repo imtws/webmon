@@ -110,18 +110,9 @@ if (($current_view ?? 'card') === 'log') {
                 <div class="flex justify-between items-center">
                     <h1 onclick="location.href='website_status.php'" class="text-2xl text-[#18aee7] font-black cursor-pointer"><?= $t['logo'] ?></h1>
                     <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <div onclick="toggleBulkDropdown(event)" class="unified-ui cursor-pointer px-4 bg-blue-50 dark:bg-slate-800 text-[#18aee7] border border-blue-200 dark:border-slate-600 hover:bg-blue-100 transition-colors">
-                                <?= $t['btn_status'] ?> <i class="fas fa-chevron-down ml-2 text-[10px]"></i>
-                            </div>
-                            <div id="bulkStatusDropdown" class="custom-dropdown-card hidden absolute top-full right-0 mt-2 w-56 bg-[var(--card-bg)] shadow-xl rounded-xl z-50 border border-[var(--border-color)] overflow-hidden">
-                                <div onclick="confirmBulkStatusUpdate('alarm')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-green-500 border-b border-[var(--border-color)]"><?= $t['status_alarm'] ?></div>
-                                <div onclick="confirmBulkStatusUpdate('no alarm')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-orange-500 border-b border-[var(--border-color)]"><?= $t['status_noalarm'] ?></div>
-                                <div onclick="confirmBulkStatusUpdate('disable')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-gray-500 border-b border-[var(--border-color)]"><?= $t['status_disable'] ?></div>
-                                <div onclick="confirmBulkStatusUpdate('alarm_unmute')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-blue-500 border-b border-[var(--border-color)]"><?= $current_lang == 'KO' ? '일시 무음 해제 (활성화)' : 'Disable Mute (Unmute)' ?></div>
-                                <div onclick="confirmBulkStatusUpdate('alarm_mute_default')" class="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-purple-500"><?= $current_lang == 'KO' ? '일시 무음 설정 (기본 ' . ($settings['def_mute_hours'] ?? 2) . '시간)' : 'Mute Alarm (Default ' . ($settings['def_mute_hours'] ?? 2) . 'h)' ?></div>
-                            </div>
-                        </div>
+                        <button onclick="openBulkModal()" class="unified-ui px-4 bg-blue-50 dark:bg-slate-800 text-[#18aee7] border border-blue-200 dark:border-slate-600 hover:bg-blue-100 transition-colors">
+                            <i class="fas fa-sliders-h mr-1.5 text-xs"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
+                        </button>
                         <button onclick="confirmBulkDeleteSubmit()" class="unified-ui px-4 bg-red-50 dark:bg-rose-900/20 text-red-500 border border-red-200 dark:border-rose-800 hover:bg-red-100"><?= $t['btn_del'] ?></button>
                         <button onclick="openModal('add')" class="unified-ui px-6 bg-[#18aee7] text-white hover:bg-[#159bd0] shadow-md"><?= $t['btn_add'] ?></button>
                         
@@ -769,6 +760,7 @@ if (($current_view ?? 'card') === 'log') {
     </div>
 
     <?php include 'views/components/modal_form.php'; ?>
+    <?php include 'views/components/modal_bulk.php'; ?>
 
     <script src="../assets/js/script.js?v=<?=time()?>"></script>
 
@@ -1117,6 +1109,9 @@ if (($current_view ?? 'card') === 'log') {
                         break;
                     case 'bulk_status_success':
                         msgText = isKo ? '알람 상태가 일괄 업데이트되었습니다.' : 'Alarm status updated successfully.';
+                        break;
+                    case 'bulk_edit_success':
+                        msgText = isKo ? '선택한 항목들의 설정이 일괄 변경되었습니다.' : 'Selected items settings updated in bulk successfully.';
                         break;
                     case 'schedule_success':
                         msgText = isKo ? '알람 무음 스케줄이 성공적으로 저장되었습니다.' : 'Mute schedule saved successfully.';

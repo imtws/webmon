@@ -195,6 +195,112 @@ function closeModal() {
     }
 }
 
+function openBulkModal() {
+    const checked = document.querySelectorAll('.item-checkbox:checked');
+    if (checked.length === 0) {
+        alert(typeof langPack !== 'undefined' && langPack.selStatus ? langPack.selStatus : '변경할 항목을 선택해주세요.');
+        return;
+    }
+    
+    const ids = Array.from(checked).map(cb => cb.value).join(',');
+    
+    const idsField = document.getElementById('bulkModalIds');
+    if (idsField) idsField.value = ids;
+    
+    const queryField = document.getElementById('bulkModalCurrentQuery');
+    if (queryField) queryField.value = window.location.search.replace('?', '');
+    
+    const countSpan = document.getElementById('bulkModalCount');
+    if (countSpan) {
+        const isKo = document.documentElement.lang === 'ko';
+        countSpan.innerText = isKo ? `${checked.length}개 선택됨` : `${checked.length} selected`;
+    }
+    
+    const form = document.getElementById('bulkModalForm');
+    if (form) {
+        form.reset();
+        document.querySelectorAll('#bulkModalForm input[type="checkbox"]').forEach(chk => {
+            chk.checked = false;
+            chk.dispatchEvent(new Event('change'));
+        });
+    }
+    
+    const modal = document.getElementById('bulkModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.style.transform = 'scale(0.95)';
+            modalContent.style.opacity = '0';
+            setTimeout(() => {
+                modalContent.style.transition = 'all 0.2s ease-out';
+                modalContent.style.transform = 'scale(1)';
+                modalContent.style.opacity = '1';
+            }, 10);
+        }
+    }
+}
+
+function closeBulkModal() {
+    const modal = document.getElementById('bulkModal');
+    if (modal) {
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.style.transform = 'scale(0.95)';
+            modalContent.style.opacity = '0';
+        }
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 200);
+    }
+}
+
+function toggleBulkField(chkId, inputIds) {
+    const chk = document.getElementById(chkId);
+    if (!chk) return;
+    
+    inputIds.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.disabled = !chk.checked;
+        }
+    });
+}
+
+function toggleBulkGroupNewInput() {
+    const sel = document.getElementById('bulkGroupSelect');
+    const input = document.getElementById('bulkGroupNew');
+    if (sel && input) {
+        if (sel.value === '_NEW_' && !sel.disabled) {
+            input.classList.remove('hidden');
+            input.required = true;
+            input.focus();
+        } else {
+            input.classList.add('hidden');
+            input.required = false;
+        }
+    }
+}
+
+function toggleBulkSmtpVisibility() {
+    const chkEmail = document.getElementById('chkEmail');
+    const emailMode = document.getElementById('bulkEmailMode');
+    const smtpContainer = document.getElementById('bulkSmtpContainer');
+    
+    if (chkEmail && chkEmail.checked && emailMode && emailMode.value === 'smtp') {
+        smtpContainer.classList.remove('hidden');
+    } else {
+        smtpContainer.classList.add('hidden');
+        const chkSmtp = document.getElementById('chkSmtp');
+        if (chkSmtp) {
+            chkSmtp.checked = false;
+            chkSmtp.dispatchEvent(new Event('change'));
+        }
+    }
+}
+
 function toggleGroupNewInput() {
     const sel = document.getElementById('modalGroupSelect');
     const input = document.getElementById('modalGroupNew');

@@ -121,6 +121,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         header("Location: " . $redirect_url); exit;
     }
+    elseif ($action === 'bulk_update' && !empty($_POST['ids'])) {
+        $ids = array_map('intval', explode(',', $_POST['ids']));
+        $ids_str = implode(',', $ids);
+        
+        $updates = [];
+        
+        // 1. 그룹 설정 변경
+        if (isset($_POST['chk_group'])) {
+            $group_select = $_POST['group_select'] ?? '';
+            $group_name_new = trim($_POST['group_name_new'] ?? '');
+            $final_group = ($group_select === '_NEW_' && $group_name_new !== '') ? $group_name_new : $group_select;
+            if (empty($final_group)) $final_group = '기본 그룹';
+            $group_name = $db->real_escape_string($final_group);
+            $updates[] = "group_name = '$group_name'";
+        }
+        
+        // 2. 알람 상태 변경
+        if (isset($_POST['chk_check'])) {
+            $check = $db->real_escape_string($_POST['check']);
+            $updates[] = "`check` = '$check'";
+        }
+        
+        // 3. 실행 엔진 변경
+        if (isset($_POST['chk_engine'])) {
+            $engine_type = $db->real_escape_string($_POST['engine_type'] ?? 'lynx');
+            $updates[] = "engine_type = '$engine_type'";
+        }
+        
+        // 4. 체크 횟수 및 타임아웃 변경
+        if (isset($_POST['chk_limits'])) {
+            $retry_count = (int)($_POST['retry_count'] ?? 1);
+            $timeout_sec = (int)($_POST['timeout_sec'] ?? 2);
+            $updates[] = "retry_count = $retry_count";
+            $updates[] = "timeout_sec = $timeout_sec";
+        }
+        
+        // 5. 만료일 모니터링 변경
+        if (isset($_POST['chk_expiry'])) {
+            $ssl_mon = (int)$_POST['ssl_mon'];
+            $dom_mon = (int)$_POST['dom_mon'];
+            $updates[] = "ssl_mon = $ssl_mon";
+            $updates[] = "dom_mon = $dom_mon";
+        }
+        
+        // 6. 이메일 알림 설정 변경
+        if (isset($_POST['chk_email'])) {
+            $email_mode = $db->real_escape_string($_POST['email_mode'] ?? 'none');
+            $sender_email = $db->real_escape_string($_POST['sender_email'] ?? '');
+            $receiver_email = $db->real_escape_string($_POST['receiver_email'] ?? '');
+            $updates[] = "email_mode = '$email_mode'";
+            $updates[] = "sender_email = '$sender_email'";
+            $updates[] = "receiver_email = '$receiver_email'";
+        }
+        
+        // 7. 개별 SMTP 서버 설정 변경
+        if (isset($_POST['chk_smtp'])) {
+            $smtp_host = $db->real_escape_string($_POST['smtp_host'] ?? '');
+            $smtp_port = (int)($_POST['smtp_port'] ?? 25);
+            $smtp_user = $db->real_escape_string($_POST['smtp_user'] ?? '');
+            $smtp_pass = $db->real_escape_string($_POST['smtp_pass'] ?? '');
+            $smtp_secure = $db->real_escape_string($_POST['smtp_secure'] ?? 'none');
+            
+            $updates[] = "smtp_host = '$smtp_host'";
+            $updates[] = "smtp_port = $smtp_port";
+            $updates[] = "smtp_user = '$smtp_user'";
+            $updates[] = "smtp_pass = '$smtp_pass'";
+            $updates[] = "smtp_secure = '$smtp_secure'";
+        }
+        
+        if (!empty($updates)) {
+            $mod_date = date('Y-m-d H:i:s');
+            $updates[] = "mod_date = '$mod_date'";
+            $updates_str = implode(', ', $updates);
+            $db->query("UPDATE monitor_conf SET $updates_str WHERE no IN ($ids_str)");
+        }
+        
+        $msg_param = 'msg=bulk_edit_success';
+        if (strpos($redirect_url, '?') !== false) {
+            $redirect_url .= '&' . $msg_param;
+        } else {
+            $redirect_url .= '?' . $msg_param;
+        }
+        header("Location: " . $redirect_url); exit;
+    }
 }
 
 // ==========================================
