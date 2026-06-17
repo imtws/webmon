@@ -11,6 +11,139 @@ require_once 'classes/Utils.php';
 // ==========================================
 $query_string = $_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '';
 
+if (isset($_GET['action']) && $_GET['action'] == 'diagnose') {
+    header('Content-Type: application/json; charset=utf-8');
+    $no = (int)$_GET['no'];
+    
+    $res = $db->query("SELECT * FROM monitor_conf WHERE no = $no");
+    if (!$res || !$row = $res->fetch_assoc()) {
+        echo json_encode(['success' => false, 'message' => '대상 모니터링 정보를 찾을 수 없습니다.']);
+        exit;
+    }
+    
+    $url = $row['url'];
+    $keyword = $row['contents'];
+    $engine = $row['engine_type'] ?: 'lynx';
+    $timeout = max(1, (int)($row['timeout_sec'] ?: 2));
+    
+    // 1. 웹사이트 진단 (HTTP Check)
+    $ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) WebMon/2.1";
+    $cmd = "";
+    if ($engine === 'curl') {
+        $cmd = "timeout {$timeout} curl -k -s -L -A " . escapeshellarg($ua) . " --connect-timeout {$timeout} " . escapeshellarg($url);
+    } else {
+        $cmd = "env FORCE_SSL_PROMPT=yes timeout {$timeout} lynx -source -useragent=" . escapeshellarg($ua) . " -nolist -force_secure -connect_timeout={$timeout} " . escapeshellarg($url);
+    }
+    
+    $t_start = microtime(true);
+    $body = shell_exec($cmd);
+    $elapsed = round(microtime(true) - $t_start, 3);
+    
+    // 만료 안내 페이지 판단
+    $expired_keywords = [
+        "도메인 만료 안내", "사용기간이 만료", "서비스가 만료", "만료된 도메인", "존재하지 않는 도메인",
+        "domain is expired", "domain expired", "expired.gabia.com", "gabia.com/expired",
+        "parking.cafe24.com", "hosting.cafe24.com/expired", "whois.co.kr/expired",
+        "가비아 도메인 만료", "호스팅 만료"
+    ];
+    
+    $is_expired_page = false;
+    if ($body) {
+        foreach ($expired_keywords as $k) {
+            if (mb_strpos($body, $k) !== false) {
+                $is_expired_page = true;
+                break;
+            }
+        }
+    }
+    
+    $val = 0;
+    $reason = "";
+    if ($is_expired_page) {
+        $val = 0;
+        $reason = "도메인 만료 안내 페이지 감지";
+        $cmd = "[만료 페이지 감지] " . $cmd;
+    } else {
+        $val = (mb_strpos($body, $keyword) !== false) ? 1 : 0;
+        if ($val === 0) {
+            $reason = "[{$keyword}] 컨텐츠 감지 불가";
+        }
+    }
+    
+    // 2. 도메인 만료 정보 갱신 (dom_mon = 1 인 경우 WHOIS 조회)
+    $new_dom_expiry = $row['dom_expiry'];
+    if ($row['dom_mon'] == 1) {
+        // 도메인 호스트 파싱
+        if (preg_match('/https?:\/\/([^\/:]+)/i', $url, $m)) {
+            $host = $m[1];
+            // 2단계 TLD 처리 및 도메인 정제
+            $kr_tlds = ["go", "or", "re", "ac", "ne", "ms", "hs", "sc", "co", "pe",
+                        "seoul", "busan", "daegu", "incheon", "gwangju", "daejeon",
+                        "ulsan", "gyeonggi", "gangwon", "chungbuk", "chungnam",
+                        "jeonbuk", "jeonnam", "gyeongbuk", "gyeongnam", "jeju"];
+            $host = preg_replace('/^(www\d*|m)\./i', '', $host);
+            $parts = explode('.', $host);
+            $n = count($parts);
+            if ($n >= 3 && $parts[$n-1] === 'kr' && in_array($parts[$n-2], $kr_tlds)) {
+                $domain = implode('.', array_slice($parts, -3));
+            } else {
+                $domain = implode('.', array_slice($parts, -2));
+            }
+            
+            // WHOIS 조회
+            $whois_out = shell_exec("timeout 10 whois " . escapeshellarg($domain));
+            if ($whois_out) {
+                // 만료일 정규식 파싱
+                if (preg_match('/(?:사용 종료일|Expiration Date|Registry Expiry Date|Expires on|Expiry date)\s*[:\s]*([\d.\-\s\/T]{10,})/i', $whois_out, $exp_m)) {
+                    $raw_date = trim($exp_m[1]);
+                    $raw_date = preg_replace('/[\s.]+/', '-', $raw_date);
+                    $raw_date = rtrim($raw_date, '-');
+                    $raw_date = preg_replace('/T.*$/', '', $raw_date);
+                    $date_parsed = date('Y-m-d', strtotime(substr($raw_date, 0, 10)));
+                    if ($date_parsed && $date_parsed !== '1970-01-01') {
+                        $new_dom_expiry = $date_parsed;
+                    }
+                }
+            }
+        }
+    }
+    
+    // 만약 도메인이 만료일이 지난 경우 강제 실패 처리 (정탐 보장)
+    $today = date('Y-m-d');
+    if ($row['dom_mon'] == 1 && $new_dom_expiry && $new_dom_expiry < $today) {
+        $val = 0;
+        $reason = "도메인 만료일 경과 (만료일: {$new_dom_expiry})";
+        $cmd = "[도메인 만료] " . $cmd;
+    }
+    
+    // 3. DB 업데이트
+    $sql_val = $val;
+    $sql_elapsed = (float)$elapsed;
+    $sql_expiry_val = $new_dom_expiry ? "'$new_dom_expiry'" : "NULL";
+    
+    $db->query("UPDATE monitor_conf 
+                SET `value` = $sql_val, 
+                    response_time = $sql_elapsed, 
+                    dom_expiry = $sql_expiry_val, 
+                    mod_date = NOW() 
+                WHERE no = $no");
+                
+    // monitor_log 기록
+    $safe_url = $db->real_escape_string($url);
+    $safe_cmd = $db->real_escape_string($cmd);
+    $db->query("INSERT INTO monitor_log (monitor_conf_no, req_url, response_time, result, cmd) 
+                VALUES ($no, '$safe_url', $sql_elapsed, $sql_val, '$safe_cmd')");
+                
+    echo json_encode([
+        'success' => true,
+        'value' => $val,
+        'response_time' => $elapsed,
+        'dom_expiry' => $new_dom_expiry,
+        'reason' => $reason
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 if (isset($_GET['action']) && $_GET['action'] == 'rollback_job') {
     $job_id = (int)$_GET['job_id'];
     

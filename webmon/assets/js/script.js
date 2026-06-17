@@ -738,3 +738,37 @@ function showToast(message) {
         });
     }, 2500);
 }
+
+/**
+ * 개별 아이템 즉시 재진단 및 만료일 동기화
+ */
+async function diagnoseItem(no, button) {
+    if (button.classList.contains('fa-spin')) return;
+    
+    button.classList.add('fa-spin');
+    
+    try {
+        const response = await fetch(`website_status.php?action=diagnose&no=${no}`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        
+        if (data.success) {
+            const isKo = document.documentElement.lang === 'ko';
+            const msg = isKo ? '재진단 및 만료일 동기화 완료!' : 'Diagnosis & Sync Completed!';
+            showToast(msg);
+            
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            alert(data.message || '진단 중 에러가 발생했습니다.');
+        }
+    } catch (err) {
+        console.error('Failed to diagnose item:', err);
+        alert('진단 요청 실패: ' + err.message);
+    } finally {
+        setTimeout(() => {
+            button.classList.remove('fa-spin');
+        }, 1000);
+    }
+}

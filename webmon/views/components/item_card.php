@@ -20,6 +20,7 @@
             ?>
             <i class="fas fa-bell cursor-pointer <?= $bell_color ?>" title="<?= $bell_title ?>" onclick='openScheduleModal(event, <?= json_encode($row) ?>)'></i>
             <i class="fas fa-chart-line cursor-pointer hover:text-[#18aee7]" title="<?= $current_lang == 'KO' ? '응답 추이 그래프 보기' : 'View Response Trend Graph' ?>" onclick="toggleViewMode('list', <?=$row['no']?>)"></i>
+            <i class="fas fa-sync-alt cursor-pointer hover:text-[#18aee7] diagnose-btn" title="<?= $current_lang == 'KO' ? '즉시 재진단 및 만료일 동기화' : 'Diagnose & Sync Now' ?>" onclick="diagnoseItem(<?=$row['no']?>, this)"></i>
             <i class="fas fa-cog cursor-pointer hover:text-[#18aee7]" onclick='openModal("edit", <?= json_encode($row) ?>)'></i>
             <i class="fas fa-trash cursor-pointer hover:text-red-500" onclick="confirmDelete('<?=htmlspecialchars($row['company'])?>', <?=$row['no']?>)"></i>
         </div>
