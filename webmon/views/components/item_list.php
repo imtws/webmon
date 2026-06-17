@@ -3,7 +3,21 @@
     <div class="flex-1">
         <span class="group-badge clickable" onclick="filterByGroup('<?=$group_name_display?>')"><?= $group_name_display ?></span>
     </div>
-    <div class="flex-[1.2] font-black truncate pr-2"><?= htmlspecialchars($row['company']) ?></div>
+    <?php
+    $ssl_res = getExpiryColorAndText($row['ssl_expiry'], $row['ssl_mon']);
+    $dom_res = getExpiryColorAndText($row['dom_expiry'], $row['dom_mon']);
+    ?>
+    <div class="flex-[1.2] font-black pr-2 min-w-0 flex flex-col justify-center">
+        <div class="truncate text-[var(--text-main)]" title="<?= htmlspecialchars($row['company']) ?>"><?= htmlspecialchars($row['company']) ?></div>
+        <div class="flex gap-2 text-[9px] mt-0.5 font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap">
+            <?php if ($row['ssl_mon'] == 1 && $row['ssl_expiry']): ?>
+                <span class="<?= $ssl_res['class'] ?>" title="SSL 만료일: <?= $row['ssl_expiry'] ?>">SSL<?= $ssl_res['dday'] ?></span>
+            <?php endif; ?>
+            <?php if ($row['dom_mon'] == 1 && $row['dom_expiry']): ?>
+                <span class="<?= $dom_res['class'] ?>" title="도메인 만료일: <?= $row['dom_expiry'] ?>">DOM<?= $dom_res['dday'] ?></span>
+            <?php endif; ?>
+        </div>
+    </div>
     <div class="flex-[2.5] pl-4 min-w-0 pr-2">
         <a href="<?= htmlspecialchars($row['url']) ?>" target="_blank" class="block truncate text-[#18aee7] font-bold hover:underline" title="<?= htmlspecialchars($row['url']) ?>">
             <?= htmlspecialchars($row['url']) ?>

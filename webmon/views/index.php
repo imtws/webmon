@@ -2,6 +2,31 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
+// 만료일 기준 D-Day 및 색상 클래스 계산 헬퍼 함수
+function getExpiryColorAndText($date, $monEnabled) {
+    if (!$monEnabled || empty($date)) {
+        return ['class' => '', 'dday' => ''];
+    }
+    
+    $today = new DateTime(date('Y-m-d'));
+    $expiry = new DateTime($date);
+    $interval = $today->diff($expiry);
+    $days = (int)$interval->format('%r%a'); // 남은 일수
+    
+    if ($days < 0) {
+        // 이미 만료됨
+        return ['class' => 'text-red-500 dark:text-red-400 font-extrabold animate-pulse', 'dday' => ' (만료됨)'];
+    } elseif ($days <= 14) {
+        // 14일 이하 (붉은색)
+        return ['class' => 'text-red-500 dark:text-red-400 font-extrabold', 'dday' => " (D-{$days})"];
+    } elseif ($days <= 30) {
+        // 30일 이하 (주황색)
+        return ['class' => 'text-amber-500 dark:text-amber-400 font-extrabold', 'dday' => " (D-{$days})"];
+    }
+    
+    return ['class' => 'text-[var(--text-main)]', 'dday' => " (D-{$days})"];
+}
+
 // 로그 뷰일 때 DB 데이터 쿼리
 if (($current_view ?? 'card') === 'log') {
     $log_max_lines = isset($settings['log_max_lines']) ? (int)$settings['log_max_lines'] : 500;
@@ -12,6 +37,12 @@ if (($current_view ?? 'card') === 'log') {
         $log_where[] = "c.`check` = 'alarm' AND l.result > 0";
     } elseif ($type == 'failure') {
         $log_where[] = "l.result = 0 AND c.`check` != 'disable'";
+    } elseif ($type == 'expiring') {
+        $log_where[] = "c.`check` != 'disable' AND (
+            (c.ssl_mon = 1 AND c.ssl_expiry IS NOT NULL AND c.ssl_expiry <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+            OR
+            (c.dom_mon = 1 AND c.dom_expiry IS NOT NULL AND c.dom_expiry <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+        )";
     }
 
     if (!empty($search_company)) {
@@ -153,6 +184,10 @@ if (($current_view ?? 'card') === 'log') {
                         <div onclick="applyType('failure')" class="stat-box px-5 py-3 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] flex items-center gap-3 cursor-pointer <?= $type=='failure'?'border-red-500 bg-red-50/50':'' ?>">
                             <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
                             <div><span class="text-[10px] font-bold text-red-500 block">FAILURE</span><span class="text-xl font-black text-red-500"><?= $stat_fail ?></span></div>
+                        </div>
+                        <div onclick="applyType('expiring')" class="stat-box px-5 py-3 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] flex items-center gap-3 cursor-pointer <?= $type=='expiring'?'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20':'' ?>">
+                            <i class="fas fa-hourglass-half text-amber-500 text-xl"></i>
+                            <div><span class="text-[10px] font-bold text-amber-500 block"><?= $t['expiring'] ?></span><span class="text-xl font-black text-amber-500"><?= $stat_expiring ?></span></div>
                         </div>
                     </div>
                     <div class="text-[10px] font-bold text-right text-[var(--text-sub)] opacity-70">

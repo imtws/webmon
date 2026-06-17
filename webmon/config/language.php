@@ -71,6 +71,7 @@ $lang_pack = [
         'msg_err_network' => '네트워크 통신 중 오류가 발생했습니다.',
         'msg_err_nofile' => '로그 파일이 존재하지 않습니다.',
         'msg_err_read' => '로그를 읽어올 수 없습니다.',
+        'expiring' => '만료 임박',
     ],
     'EN' => [
         'logo' => 'WebMon Monitoring',
@@ -138,6 +139,7 @@ $lang_pack = [
         'msg_err_network' => 'Network communication error occurred.',
         'msg_err_nofile' => 'Log file does not exist.',
         'msg_err_read' => 'Failed to read the log.',
+        'expiring' => 'EXPIRING',
     ]
 ];
 

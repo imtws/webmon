@@ -37,14 +37,18 @@
         </p>
     </div>
 
+    <?php
+    $ssl_res = getExpiryColorAndText($row['ssl_expiry'], $row['ssl_mon']);
+    $dom_res = getExpiryColorAndText($row['dom_expiry'], $row['dom_mon']);
+    ?>
     <div class="grid grid-cols-2 gap-2 mb-4 bg-[var(--bg-color)] p-3 rounded-lg border border-[var(--border-color)]">
     <div>
         <span class="text-[9px] font-black text-gray-400 dark:text-gray-500 block"><?= $t['h_ssl'] ?></span>
-        <span class="text-[11px] font-bold <?= (strtotime($row['ssl_expiry']) < strtotime('+7 days') && $row['ssl_expiry']) ? 'text-red-500' : '' ?>"><?= $row['ssl_expiry'] ?: '-' ?></span>
+        <span class="text-[11px] font-bold <?= $ssl_res['class'] ?>"><?= $row['ssl_expiry'] ? $row['ssl_expiry'] . $ssl_res['dday'] : '-' ?></span>
     </div>
     <div>
         <span class="text-[9px] font-black text-gray-400 dark:text-gray-500 block"><?= $t['h_dom'] ?></span>
-        <span class="text-[11px] font-bold"><?= $row['dom_expiry'] ?: '-' ?></span>
+        <span class="text-[11px] font-bold <?= $dom_res['class'] ?>"><?= $row['dom_expiry'] ? $row['dom_expiry'] . $dom_res['dday'] : '-' ?></span>
     </div>
     <div class="col-span-2 border-t border-dashed border-[var(--border-color)] pt-2 mt-1">
         <span class="text-[9px] font-black text-gray-400 dark:text-gray-500 block"><?= $t['h_keyword'] ?></span>

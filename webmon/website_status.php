@@ -490,6 +490,13 @@ if ($filter_no > 0) {
 } else {
     if ($type == 'success') $where[] = "`check` = 'alarm' AND value > 0";
     elseif ($type == 'failure') $where[] = "value = 0 AND `check` != 'disable'";
+    elseif ($type == 'expiring') {
+        $where[] = "`check` != 'disable' AND (
+            (ssl_mon = 1 AND ssl_expiry IS NOT NULL AND ssl_expiry <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+            OR
+            (dom_mon = 1 AND dom_expiry IS NOT NULL AND dom_expiry <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+        )";
+    }
 }
 
 if (!empty($search_company)) {
@@ -560,6 +567,11 @@ if ($sort == 'comp_asc') {
 $stat_total = $db->query("SELECT COUNT(*) as cnt FROM monitor_conf")->fetch_assoc()['cnt'] ?? 0;
 $stat_success = $db->query("SELECT COUNT(*) as cnt FROM monitor_conf WHERE `check` = 'alarm' AND value > 0")->fetch_assoc()['cnt'] ?? 0;
 $stat_fail = $db->query("SELECT COUNT(*) as cnt FROM monitor_conf WHERE value = 0 AND `check` != 'disable'")->fetch_assoc()['cnt'] ?? 0;
+$stat_expiring = $db->query("SELECT COUNT(*) as cnt FROM monitor_conf WHERE `check` != 'disable' AND (
+    (ssl_mon = 1 AND ssl_expiry IS NOT NULL AND ssl_expiry <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+    OR
+    (dom_mon = 1 AND dom_expiry IS NOT NULL AND dom_expiry <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+)")->fetch_assoc()['cnt'] ?? 0;
 $last_run = $db->query("SELECT MAX(mod_date) as last_run FROM monitor_conf")->fetch_assoc()['last_run'] ?? '-';
 $next_run = $last_run !== '-' ? date('Y-m-d H:i:s', strtotime($last_run . ' + 1 minutes')) : '-';
 

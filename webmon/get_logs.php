@@ -28,6 +28,12 @@ if ($type == 'success') {
     $log_where[] = "c.`check` = 'alarm' AND l.result > 0";
 } elseif ($type == 'failure') {
     $log_where[] = "l.result = 0 AND c.`check` != 'disable'";
+} elseif ($type == 'expiring') {
+    $log_where[] = "c.`check` != 'disable' AND (
+        (c.ssl_mon = 1 AND c.ssl_expiry IS NOT NULL AND c.ssl_expiry <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+        OR
+        (c.dom_mon = 1 AND c.dom_expiry IS NOT NULL AND c.dom_expiry <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+    )";
 }
 
 if (!empty($search_company)) {
