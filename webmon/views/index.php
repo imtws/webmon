@@ -156,11 +156,11 @@ if (($current_view ?? 'card') === 'log') {
                     <div class="flex items-center gap-2">
                         <!-- 작업 이력: iOS Tinted Style -->
                         <button type="button" onclick="openHistoryModal()" class="unified-ui px-4 bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-600 dark:text-amber-400 font-bold transition-colors border-none rounded-full">
-                            <i class="fas fa-history mr-1.5 text-[11px]"></i><?= $current_lang == 'KO' ? '작업 이력' : 'Job History' ?>
+                            <i class="fas fa-history mr-1.5 text-[10px]"></i><?= $current_lang == 'KO' ? '작업 이력' : 'Job History' ?>
                         </button>
                         <!-- 선택 일괄 설정: iOS Tinted Style -->
                         <button type="button" onclick="openBulkModal()" class="unified-ui px-4 bg-blue-500/10 dark:bg-blue-500/20 hover:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#007aff] dark:text-[#0a84ff] font-bold transition-colors border-none rounded-full">
-                            <i class="fas fa-sliders-h mr-1.5 text-[11px]"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
+                            <i class="fas fa-sliders-h mr-1.5 text-[10px]"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
                         </button>
                         <!-- 선택 삭제: iOS Destructive Tinted Style -->
                         <button type="button" onclick="confirmBulkDeleteSubmit()" class="unified-ui px-4 bg-red-500/10 dark:bg-red-500/20 hover:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 font-bold transition-colors border-none rounded-full"><?= $t['btn_del'] ?></button>
