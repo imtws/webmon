@@ -21,6 +21,7 @@ import aiomysql
 
 from .db import get_pool, load_system_settings
 from .notify import send_telegram, send_email
+from .asset import _check_whois, to_lookup_domain, extract_host
 
 log = logging.getLogger("webmon.alert")
 
@@ -89,6 +90,7 @@ async def _fetch(row: dict, sem: asyncio.Semaphore) -> dict:
         cmd_str = " ".join(cmd)
         t_start = time.monotonic()
         val = 0
+        reason = None
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -97,14 +99,43 @@ async def _fetch(row: dict, sem: asyncio.Semaphore) -> dict:
             )
             stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout + 2)
             body = stdout.decode("utf-8", errors="replace")
-            val = 1 if keyword in body else 0
+            
+            # 도메인 만료 안내 페이지 키워드 검사
+            expired_keywords = [
+                "도메인 만료 안내",
+                "사용기간이 만료",
+                "서비스가 만료",
+                "만료된 도메인",
+                "존재하지 않는 도메인",
+                "domain is expired",
+                "domain expired",
+                "expired.gabia.com",
+                "gabia.com/expired",
+                "parking.cafe24.com",
+                "hosting.cafe24.com/expired",
+                "whois.co.kr/expired",
+                "가비아 도메인 만료",
+                "호스팅 만료",
+            ]
+            
+            is_expired_page = any(k in body for k in expired_keywords)
+            if is_expired_page:
+                val = 0
+                reason = "도메인 만료 안내 페이지 감지"
+                cmd_str = f"[만료 페이지 감지] {cmd_str}"
+            else:
+                val = 1 if keyword in body else 0
+                if val == 0:
+                    reason = f"[{keyword}] 컨텐츠 감지 불가"
         except asyncio.TimeoutError:
             log.warning(f"[alert] TIMEOUT {url}")
+            reason = "타임아웃 발생"
         except Exception as e:
             log.warning(f"[alert] ERROR {url}: {e}")
+            reason = f"에러 발생: {e}"
 
         elapsed = time.monotonic() - t_start
-        return {"no": no, "val": val, "elapsed": elapsed, "row": row, "cmd_str": cmd_str}
+        return {"no": no, "val": val, "elapsed": elapsed, "row": row, "cmd_str": cmd_str, "reason": reason}
 
 
 # ── DB 결과 저장 및 로그 적재 ──────────────────────────────────────────
@@ -167,8 +198,10 @@ async def run_alert():
                 )
                 targets = await cur.fetchall()
 
-        # 개별 아이템 일시 무음 필터링 (datetime 기반)
+        # 개별 아이템 일시 무음 필터링
         active_targets = []
+        today = datetime.now().date()
+        
         for row in targets:
             if row.get("sched_enabled") == 1:
                 mute_until = row.get("mute_until")
@@ -185,24 +218,121 @@ async def run_alert():
                     except Exception as e:
                         log.error(f"일시 무음 시간 계산 실패 ({row['company']}): {e}")
             active_targets.append(row)
-            
-        targets = active_targets
 
-        if not targets:
+        if not active_targets:
             log.info("[alert] 모니터링 대상 없음 (모두 스케줄 외 또는 무음)")
             return
 
         sem = asyncio.Semaphore(CONCURRENCY)
 
-        # 1차 실행
-        results = await asyncio.gather(*[_fetch(row, sem) for row in targets])
+        # 1차 실행 (모든 대상에 대해 매분 웹 진단 실행)
+        results = await asyncio.gather(*[_fetch(row, sem) for row in active_targets])
+        
+        # 사후 분석 및 실시간 연장 검증 (WHOIS 조회 차단 방지와 정탐 보장을 동시에 처리)
+        for r in results:
+            row = r["row"]
+            # 1) 도메인 만료일이 지난 상황인데 웹 진단이 성공한 경우 -> 실시간 연장 여부 1회 확인
+            if r["val"] == 1 and row.get("dom_mon") == 1:
+                dom_expiry = row.get("dom_expiry")
+                if dom_expiry:
+                    if isinstance(dom_expiry, str):
+                        try:
+                            dom_expiry_date = datetime.strptime(dom_expiry, "%Y-%m-%d").date()
+                        except:
+                            dom_expiry_date = None
+                    else:
+                        dom_expiry_date = dom_expiry
+                    
+                    if dom_expiry_date and dom_expiry_date < today:
+                        # 캐시 등으로 인한 지속적 val=1 유도 시 WHOIS 난발을 막기 위해 30분 쿨타임 적용
+                        should_query = True
+                        cur_mod_date = row.get("mod_date")
+                        if cur_mod_date:
+                            if isinstance(cur_mod_date, str):
+                                try:
+                                    last_mod = datetime.strptime(cur_mod_date, "%Y-%m-%d %H:%M:%S")
+                                except:
+                                    last_mod = None
+                            else:
+                                last_mod = cur_mod_date
+                            
+                            if last_mod and (datetime.now() - last_mod).total_seconds() < 600: # 10분 쿨타임
+                                should_query = False
+                        
+                        if should_query:
+                            # 사용자가 연장했는지 실시간 WHOIS 확인
+                            host = extract_host(row["url"])
+                            if host:
+                                domain = to_lookup_domain(host)
+                                log.info(f"[alert] [{row['company']}] 도메인 만료 상태에서 웹 요청 성공 감지! 실시간 WHOIS 검증 시작 ({domain})")
+                                expiry = await _check_whois(domain)
+                                
+                                # WHOIS 조회를 실행했으므로 일단 mod_date를 갱신하여 쿨타임 작동시킴
+                                async with pool.acquire() as conn:
+                                    async with conn.cursor() as cur:
+                                        await cur.execute(
+                                            "UPDATE monitor_conf SET mod_date=NOW() WHERE no=%s",
+                                            (row["no"],)
+                                        )
+                                
+                                if expiry:
+                                    try:
+                                        new_expiry_date = datetime.strptime(expiry, "%Y-%m-%d").date()
+                                        if new_expiry_date >= today:
+                                            # 도메인 연장 성공적으로 확인됨! DB 업데이트
+                                            async with pool.acquire() as conn:
+                                                async with conn.cursor() as cur:
+                                                    await cur.execute(
+                                                        "UPDATE monitor_conf SET dom_expiry=%s WHERE no=%s",
+                                                        (expiry, row["no"]),
+                                                    )
+                                            log.info(f"[alert] [{row['company']}] 도메인 연장 감지 및 DB 업데이트 완료 ({expiry})")
+                                            r["row"]["dom_expiry"] = expiry
+                                        else:
+                                            # 여전히 만료 상태인 경우, 캐시 등으로 인한 임시 응답 오탐으로 간주하여 실패 처리
+                                            r["val"] = 0
+                                            r["reason"] = f"도메인 만료일 경과 (만료일: {dom_expiry})"
+                                            r["cmd_str"] = f"[도메인 만료 강제 실패] {r['cmd_str']}"
+                                    except Exception as e:
+                                        log.error(f"[alert] 실시간 연장 반영 중 오류: {e}")
+                                else:
+                                    # WHOIS 조회 실패 시에도 일단 오탐 방지를 위해 실패 처리 유지
+                                    r["val"] = 0
+                                    r["reason"] = f"도메인 만료일 경과 (만료일: {dom_expiry})"
+                                    r["cmd_str"] = f"[도메인 만료 강제 실패] {r['cmd_str']}"
+                            else:
+                                r["val"] = 0
+                                r["reason"] = f"도메인 만료일 경과 (만료일: {dom_expiry})"
+                                r["cmd_str"] = f"[도메인 만료 강제 실패] {r['cmd_str']}"
+                        else:
+                            # 쿨타임 진행 중에는 WHOIS 쿼리를 던지지 않고 기존 만료 상태에 기반해 실패 처리
+                            r["val"] = 0
+                            r["reason"] = f"도메인 만료일 경과 (만료일: {dom_expiry})"
+                            r["cmd_str"] = f"[도메인 만료 강제 실패 - 쿨타임 적용중] {r['cmd_str']}"
+            
+            # 2) 웹 진단이 실패했고 도메인 만료일이 지난 경우 -> 원인을 도메인 만료로 라벨링
+            elif r["val"] == 0 and row.get("dom_mon") == 1:
+                dom_expiry = row.get("dom_expiry")
+                if dom_expiry:
+                    if isinstance(dom_expiry, str):
+                        try:
+                            dom_expiry_date = datetime.strptime(dom_expiry, "%Y-%m-%d").date()
+                        except:
+                            dom_expiry_date = None
+                    else:
+                        dom_expiry_date = dom_expiry
+                    
+                    if dom_expiry_date and dom_expiry_date < today:
+                        r["reason"] = f"도메인 만료일 경과 (만료일: {dom_expiry})"
+                        r["cmd_str"] = f"[도메인 만료] {r['cmd_str']}"
+
         await _save_results(pool, results)
         _write_log(results, settings)
 
-        # 재시도 (실패 + retry_count > 1)
+        # 재시도 (실패 + retry_count > 1 + 도메인 만료가 아닌 경우)
         retry_targets = [
             r["row"] for r in results
-            if r["val"] == 0 and int(r["row"].get("retry_count") or 1) > 1
+            if r["val"] == 0 and int(r["row"].get("retry_count") or 1) > 1 and "도메인 만료" not in (r.get("reason") or "")
         ]
         if retry_targets:
             await asyncio.sleep(1)
@@ -234,11 +364,16 @@ async def run_alert():
             telegram_actions = []
             for item in failed_items:
                 row = item["row"]
+                reason = item.get("reason") or f"[{row['contents']}] 컨텐츠 감지 불가"
                 telegram_lines.append(
-                    f"| {row['company']} 업체의 {row['url']} 사이트내에 [{row['contents']}] 컨텐츠 감지 불가!!"
+                    f"| {row['company']} 업체의 {row['url']} 사이트내에 {reason}!!"
                 )
+                
+                comment = row.get('comment') or '별도 권장 처리 내용 없음'
+                if "도메인 만료" in reason:
+                    comment = "도메인 만료가 감지되었습니다. 도메인 등록 대행업체를 통해 도메인 만료 연장을 진행해 주시기 바랍니다."
                 telegram_actions.append(
-                    f"| {row.get('comment') or '별도 권장 처리 내용 없음'}"
+                    f"| {comment}"
                 )
 
             tg_msg = "\n".join([
@@ -256,12 +391,22 @@ async def run_alert():
             ])
             await send_telegram(tg_msg, settings)
 
-            def render_template(template: str, row: dict, elapsed: float) -> str:
+            def render_template(template: str, row: dict, elapsed: float, reason: str = None) -> str:
+                keyword_display = str(row.get("contents", ""))
+                comment_display = str(row.get("comment", "") or "별도 권장 처리 내용 없음")
+                
+                if reason:
+                    if "도메인 만료" in reason:
+                        keyword_display = f"도메인 만료 ({reason})"
+                        comment_display = "도메인 만료가 감지되었습니다. 도메인 등록 대행업체를 통해 도메인 만료 연장을 진행해 주시기 바랍니다."
+                    else:
+                        keyword_display = f"{keyword_display} ({reason})"
+                
                 replacements = {
                     "{company}": str(row.get("company", "")),
                     "{url}": str(row.get("url", "")),
-                    "{keyword}": str(row.get("contents", "")),
-                    "{comment}": str(row.get("comment", "") or "별도 권장 처리 내용 없음"),
+                    "{keyword}": keyword_display,
+                    "{comment}": comment_display,
                     "{time}": str(now),
                     "{engine}": str(row.get("engine_type") or "lynx").upper(),
                     "{response_time}": f"{elapsed:.3f}",
@@ -328,7 +473,8 @@ async def run_alert():
                 for item in failed_items:
                     row = item["row"]
                     elapsed = item["elapsed"]
-                    email_body = render_template(email_tpl, row, elapsed)
+                    reason = item.get("reason")
+                    email_body = render_template(email_tpl, row, elapsed, reason)
                     
                     custom_sender = row.get("sender_email", "") or ""
                     custom_receiver = row.get("receiver_email", "") or ""
@@ -373,7 +519,8 @@ async def run_alert():
                 for item in failed_items:
                     row = item["row"]
                     elapsed = item["elapsed"]
-                    email_body = render_template(email_tpl, row, elapsed)
+                    reason = item.get("reason")
+                    email_body = render_template(email_tpl, row, elapsed, reason)
 
                     custom_sender = row.get("sender_email", "") or ""
                     custom_receiver = row.get("receiver_email", "") or ""

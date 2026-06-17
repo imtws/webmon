@@ -80,16 +80,16 @@ function openModal(type, data = null) {
         modal.classList.remove('hidden');
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
-            modalContent.style.transform = 'scale(0.95)';
+            modalContent.style.transform = 'scale(0.98)';
             modalContent.style.opacity = '0';
             setTimeout(() => {
-                modalContent.style.transition = 'all 0.2s ease-out';
+                modalContent.style.transition = 'all 0.08s ease-out';
                 modalContent.style.transform = 'scale(1)';
                 modalContent.style.opacity = '1';
             }, 10);
         }
     }
-
+    
     if (document.getElementById('modalTitle')) {
         document.getElementById('modalTitle').innerText = type === 'add' ? (typeof langPack !== 'undefined' ? langPack.modalAddTitle : 'Add Monitor') : (typeof langPack !== 'undefined' ? langPack.modalEditTitle : 'Edit Monitor');
     }
@@ -188,12 +188,12 @@ function closeModal() {
     if (modal) {
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
-            modalContent.style.transform = 'scale(0.95)';
+            modalContent.style.transform = 'scale(0.98)';
             modalContent.style.opacity = '0';
         }
         setTimeout(() => {
             modal.classList.add('hidden');
-        }, 200);
+        }, 80);
     }
 }
 
@@ -228,10 +228,10 @@ function openBulkModal() {
         modal.classList.add('flex');
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
-            modalContent.style.transform = 'scale(0.95)';
+            modalContent.style.transform = 'scale(0.98)';
             modalContent.style.opacity = '0';
             setTimeout(() => {
-                modalContent.style.transition = 'all 0.2s ease-out';
+                modalContent.style.transition = 'all 0.08s ease-out';
                 modalContent.style.transform = 'scale(1)';
                 modalContent.style.opacity = '1';
             }, 10);
@@ -256,10 +256,16 @@ function resetBulkModalForm() {
     
     fieldsToDisable.forEach(item => {
         const chk = document.getElementById(item.chk);
-        if (chk) chk.checked = false;
+        if (chk) {
+            chk.checked = false;
+            chk.dispatchEvent(new Event('change'));
+        }
         item.inputs.forEach(inputId => {
             const input = document.getElementById(inputId);
-            if (input) input.disabled = true;
+            if (input) {
+                input.disabled = true;
+                input.required = false;
+            }
         });
     });
     
@@ -272,13 +278,13 @@ function closeBulkModal() {
     if (modal) {
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
-            modalContent.style.transform = 'scale(0.95)';
+            modalContent.style.transform = 'scale(0.98)';
             modalContent.style.opacity = '0';
         }
         setTimeout(() => {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-        }, 200);
+        }, 80);
     }
 }
 
@@ -289,10 +295,10 @@ function openHistoryModal() {
         modal.classList.add('flex');
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
-            modalContent.style.transform = 'scale(0.95)';
+            modalContent.style.transform = 'scale(0.98)';
             modalContent.style.opacity = '0';
             setTimeout(() => {
-                modalContent.style.transition = 'all 0.2s ease-out';
+                modalContent.style.transition = 'all 0.08s ease-out';
                 modalContent.style.transform = 'scale(1)';
                 modalContent.style.opacity = '1';
             }, 10);
@@ -305,13 +311,13 @@ function closeHistoryModal() {
     if (modal) {
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
-            modalContent.style.transform = 'scale(0.95)';
+            modalContent.style.transform = 'scale(0.98)';
             modalContent.style.opacity = '0';
         }
         setTimeout(() => {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-        }, 200);
+        }, 80);
     }
 }
 
@@ -323,6 +329,22 @@ function toggleBulkField(chkId, inputIds) {
         const input = document.getElementById(id);
         if (input) {
             input.disabled = !chk.checked;
+            
+            // 텍스트, 이메일, 숫자, 패스워드 입력창 성격의 필드만 required 지정
+            const isTextInput = (input.tagName === 'INPUT' && ['text', 'number', 'email', 'password'].includes(input.type));
+            if (isTextInput) {
+                if (chk.checked) {
+                    const isEmailAddr = ['bulkSenderEmail', 'bulkReceiverEmail'].includes(id);
+                    if (isEmailAddr) {
+                        const emailMode = document.getElementById('bulkEmailMode');
+                        input.required = (emailMode && emailMode.value !== 'none');
+                    } else {
+                        input.required = true;
+                    }
+                } else {
+                    input.required = false;
+                }
+            }
         }
     });
 }
@@ -346,12 +368,20 @@ function toggleBulkSmtpVisibility() {
     const chkEmail = document.getElementById('chkEmail');
     const emailMode = document.getElementById('bulkEmailMode');
     const smtpContainer = document.getElementById('bulkSmtpContainer');
+    const chkSmtp = document.getElementById('chkSmtp');
+    
+    // 수/발신 이메일 required 연동
+    const sender = document.getElementById('bulkSenderEmail');
+    const receiver = document.getElementById('bulkReceiverEmail');
+    const isEmailActive = chkEmail && chkEmail.checked && emailMode && emailMode.value !== 'none';
+    
+    if (sender) sender.required = isEmailActive;
+    if (receiver) receiver.required = isEmailActive;
     
     if (chkEmail && chkEmail.checked && emailMode && emailMode.value === 'smtp') {
-        smtpContainer.classList.remove('hidden');
+        if (smtpContainer) smtpContainer.classList.remove('hidden');
     } else {
-        smtpContainer.classList.add('hidden');
-        const chkSmtp = document.getElementById('chkSmtp');
+        if (smtpContainer) smtpContainer.classList.add('hidden');
         if (chkSmtp) {
             chkSmtp.checked = false;
             chkSmtp.dispatchEvent(new Event('change'));
@@ -377,8 +407,26 @@ function toggleGroupNewInput() {
 function toggleModalSmtpFields() {
     const emailMode = document.getElementById('modalEmailMode');
     const smtpFields = document.getElementById('modalSmtpFields');
+    
+    // 수/발신 이메일 required 연동
+    const sender = document.getElementById('modalSenderEmail');
+    const receiver = document.getElementById('modalReceiverEmail');
+    const isEmailActive = emailMode && emailMode.value !== 'none';
+    if (sender) sender.required = isEmailActive;
+    if (receiver) receiver.required = isEmailActive;
+    
+    // SMTP 필수 입력란 required 연동
+    const smtpHost = document.getElementById('modalSmtpHost');
+    const smtpPort = document.getElementById('modalSmtpPort');
+    const smtpUser = document.getElementById('modalSmtpUser');
+    const isSmtp = emailMode && emailMode.value === 'smtp';
+    
+    if (smtpHost) smtpHost.required = isSmtp;
+    if (smtpPort) smtpPort.required = isSmtp;
+    if (smtpUser) smtpUser.required = isSmtp;
+    
     if (emailMode && smtpFields) {
-        if (emailMode.value === 'smtp') {
+        if (isSmtp) {
             smtpFields.classList.remove('hidden');
         } else {
             smtpFields.classList.add('hidden');
@@ -517,6 +565,19 @@ function startAutoRefresh() {
         if (searchInput && document.activeElement === searchInput) {
             return;
         }
+        
+        // 사용자가 로그 목록을 호버하고 있거나 활성화된 툴팁이 존재하는 경우 새로고침 스킵
+        const logWrapper = document.querySelector('.view-list.flex.flex-col.gap-3');
+        if (logWrapper) {
+            const isHovered = logWrapper.matches(':hover');
+            const hasVisibleTooltip = Array.from(document.querySelectorAll('.cmd-tooltip')).some(el => {
+                return window.getComputedStyle(el).display !== 'none';
+            });
+            if (isHovered || hasVisibleTooltip) {
+                return;
+            }
+        }
+        
         refreshLogs();
     }, 10000); // 10 seconds interval
 }
@@ -563,6 +624,17 @@ window.addEventListener('DOMContentLoaded', () => {
         if (saved) {
             startAutoRefresh();
         }
+    }
+    
+    // URL에 open_history=1 파라미터가 감지되면 작업 이력 모달 자동 팝업
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('open_history')) {
+        setTimeout(() => {
+            openHistoryModal();
+            // URL을 지저분하지 않게 정리
+            const cleanUrl = window.location.pathname + window.location.search.replace(/[?&]open_history=1/, '').replace(/^&/, '?').replace(/\?$/, '');
+            window.history.replaceState({}, document.title, cleanUrl);
+        }, 300);
     }
 });
 

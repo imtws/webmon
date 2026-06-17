@@ -62,15 +62,23 @@ if (isset($_GET['action']) && $_GET['action'] == 'rollback_job') {
             
             $db->query("SET FOREIGN_KEY_CHECKS = 1;");
             
+            // AUTO_INCREMENT 카운터가 롤백 후 꼬이지 않도록 명시적으로 갱신
+            $max_no_res = $db->query("SELECT MAX(no) as max_no FROM monitor_conf");
+            $max_no = ($max_no_res && $row_m = $max_no_res->fetch_assoc()) ? (int)$row_m['max_no'] : 0;
+            if ($max_no > 0) {
+                $next_auto = $max_no + 1;
+                $db->query("ALTER TABLE monitor_conf AUTO_INCREMENT = $next_auto");
+            }
+            
             // Mark job as rolled back
             $rolled_back_time = date('Y-m-d H:i:s');
             $db->query("UPDATE job_history SET is_rolled_back = 1, rolled_back_time = '$rolled_back_time' WHERE id = $job_id");
             
-            header("Location: website_status.php?msg=rollback_success");
+            header("Location: website_status.php?msg=rollback_success&open_history=1");
             exit;
         }
     }
-    header("Location: website_status.php?msg=rollback_failed");
+    header("Location: website_status.php?msg=rollback_failed&open_history=1");
     exit;
 }
 

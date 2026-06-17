@@ -128,13 +128,9 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        </div>
-                    <div>
-                        <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['modal_timeout'] ?? 'TIMEOUT (SEC)' ?></label>
-                        <input type="number" name="timeout_sec" id="modalTimeout" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)]" value="2" min="1" max="30">
-                    </div>
+                <div>
+                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['modal_timeout'] ?? 'TIMEOUT (SEC)' ?></label>
+                    <input type="number" name="timeout_sec" id="modalTimeout" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)]" value="2" min="1" max="30">
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-8 pb-4">

@@ -147,7 +147,7 @@ async def run_asset():
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute("""
-                    SELECT no, url, ssl_mon, dom_mon, company
+                    SELECT no, url, ssl_mon, dom_mon, company, dom_expiry, mod_date
                     FROM monitor_conf
                     WHERE (ssl_mon = 1 OR dom_mon = 1)
                       AND url NOT REGEXP '[0-9]+\\\\.[0-9]+\\\\.[0-9]+'
@@ -156,6 +156,7 @@ async def run_asset():
 
         domain_cache: dict[str, str | None] = {}
         updated = 0
+        today = datetime.now().date()
 
         for row in rows:
             url  = row["url"]
@@ -174,15 +175,44 @@ async def run_asset():
             # ── WHOIS ──────────────────────────────────────────────
             if row["dom_mon"]:
                 domain = to_lookup_domain(host)
-                if domain in domain_cache:
-                    expiry = domain_cache[domain]
-                else:
-                    expiry = await _check_whois(domain)
-                    domain_cache[domain] = expiry
-                    await asyncio.sleep(1.2)   # rate-limit
+                
+                # WHOIS 조회 스킵 판단 (차단 방지 필터링)
+                should_check = True
+                cur_expiry = row.get("dom_expiry")
+                cur_mod_date = row.get("mod_date")
+                
+                if cur_expiry:
+                    try:
+                        if isinstance(cur_expiry, str):
+                            expiry_date = datetime.strptime(cur_expiry, "%Y-%m-%d").date()
+                        else:
+                            expiry_date = cur_expiry
+                        
+                        days_left = (expiry_date - today).days
+                        
+                        # 만료일이 3일 초과로 남았고, 최근 7일 이내에 진단이 갱신되었다면 WHOIS 조회 건너뜀
+                        if days_left > 3 and cur_mod_date:
+                            if isinstance(cur_mod_date, str):
+                                last_mod = datetime.strptime(cur_mod_date, "%Y-%m-%d %H:%M:%S")
+                            else:
+                                last_mod = cur_mod_date
+                            
+                            if (datetime.now() - last_mod).days < 7:
+                                should_check = False
+                                log.debug(f"[asset] [{row['company']}] WHOIS 조회 스킵 (만료 {days_left}일 남음, 7일 이내 업데이트됨)")
+                    except Exception as e:
+                        log.debug(f"WHOIS 스킵 여부 판단 오류: {e}")
+                
+                if should_check:
+                    if domain in domain_cache:
+                        expiry = domain_cache[domain]
+                    else:
+                        expiry = await _check_whois(domain)
+                        domain_cache[domain] = expiry
+                        await asyncio.sleep(1.5)   # rate-limit 방지 간격 약간 증가 (1.2s -> 1.5s)
 
-                if expiry:
-                    updates["dom_expiry"] = expiry
+                    if expiry:
+                        updates["dom_expiry"] = expiry
 
             # ── DB 저장 ────────────────────────────────────────────
             if updates:

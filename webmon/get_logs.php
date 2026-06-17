@@ -89,7 +89,7 @@ if (isset($log_result) && $log_result->num_rows > 0) {
         $result_text = $log_row['result'] > 0 ? $t['v_success'] : $t['v_fail'];
         $result_icon = $log_row['result'] > 0 ? 'fa-check-circle' : 'fa-exclamation-circle';
         ?>
-        <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px]">
+        <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px] hover:z-[110]">
             <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?> rounded-l-xl"></div>
             <!-- 시각 -->
             <div class="w-48 text-[var(--text-sub)] font-mono">

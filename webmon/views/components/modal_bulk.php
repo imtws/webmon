@@ -15,7 +15,7 @@
             <div class="space-y-4">
                 <!-- 1. 그룹 설정 변경 -->
                 <div class="p-4 rounded-xl border border-[var(--border-color)] bg-slate-50/10 flex gap-3 items-start">
-                    <input type="checkbox" name="chk_group" id="chkGroup" class="mt-1.5 w-4 h-4 rounded accent-[#18aee7] cursor-pointer" onchange="toggleBulkField('chkGroup', ['bulkGroupSelect', 'bulkGroupNew'])">
+                    <input type="checkbox" name="chk_group" id="chkGroup" class="mt-1.5 w-4 h-4 rounded accent-[#18aee7] cursor-pointer" onchange="toggleBulkField('chkGroup', ['bulkGroupSelect', 'bulkGroupNew']); toggleBulkGroupNewInput();">
                     <div class="flex-1">
                         <label for="chkGroup" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer uppercase tracking-wider">
                             <?= $current_lang == 'KO' ? '그룹 변경' : 'Change Group' ?>

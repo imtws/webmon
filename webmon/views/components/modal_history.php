@@ -23,7 +23,7 @@ if (!function_exists('formatHistoryValue')) {
         }
         if ($key === 'email_mode') {
             if ($val === 'none') return $isKo ? '발송 안함' : 'None';
-            if ($val === 'direct') return $isKo ? '기본 설정 발송' : 'Global SMTP';
+            if ($val === 'direct' || $val === 'postfix') return $isKo ? 'Postfix 직접 발송' : 'Direct Postfix';
             if ($val === 'smtp') return $isKo ? '개별 SMTP 발송' : 'Individual SMTP';
         }
         if ($key === 'ssl_mon' || $key === 'dom_mon') {
@@ -32,6 +32,9 @@ if (!function_exists('formatHistoryValue')) {
         }
         if ($key === 'engine_type') {
             return strtoupper($val);
+        }
+        if ($key === 'smtp_pass') {
+            return $val !== '' ? '••••••••' : '-';
         }
         return htmlspecialchars($val);
     }
@@ -45,19 +48,21 @@ if (!function_exists('renderFieldDiff')) {
         
         if ($beforeVal !== $afterVal) {
             return "
-            <div class='flex flex-col gap-1 p-2 rounded-lg bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/30 dark:border-amber-500/20'>
-                <span class='text-[10px] text-amber-600 dark:text-amber-400 font-bold'>$label</span>
-                <div class='flex items-center gap-1.5 flex-wrap text-[11px]'>
-                    <span class='text-red-500 line-through font-medium'>$fmtBefore</span>
+            <div class='flex flex-col gap-1.5 p-2.5 rounded-xl bg-amber-500/15 dark:bg-amber-500/5 border border-amber-500/40 dark:border-amber-500/30 shadow-xs transition-all duration-200 hover:scale-[1.02]'>
+                <span class='text-[10px] text-amber-600 dark:text-amber-400 font-black tracking-wide uppercase flex items-center gap-1'>
+                    <i class='fas fa-exclamation-circle text-[9px]'></i>$label
+                </span>
+                <div class='flex items-center gap-1.5 flex-wrap text-[11px] mt-0.5'>
+                    <span class='text-red-500 line-through font-semibold bg-red-50 dark:bg-red-950/20 px-1 py-0.5 rounded'>$fmtBefore</span>
                     <i class='fas fa-arrow-right text-slate-400 text-[9px]'></i>
-                    <span class='text-green-600 dark:text-green-400 font-bold'>$fmtAfter</span>
+                    <span class='text-green-600 dark:text-green-400 font-black bg-green-50 dark:bg-green-950/20 px-1 py-0.5 rounded'>$fmtAfter</span>
                 </div>
             </div>";
         } else {
             return "
-            <div class='flex flex-col gap-1 p-2 rounded-lg bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800/40'>
-                <span class='text-[10px] text-[var(--text-sub)] font-medium'>$label</span>
-                <span class='font-bold text-[var(--text-main)] text-[11px]'>$fmtBefore</span>
+            <div class='flex flex-col gap-1 p-2.5 rounded-xl bg-slate-100/40 dark:bg-slate-800/20 border border-slate-200/30 dark:border-slate-800/20 opacity-55 hover:opacity-100 transition-opacity duration-200'>
+                <span class='text-[10px] text-[var(--text-sub)] font-semibold'>$label</span>
+                <span class='font-bold text-[var(--text-main)] text-[11px] mt-0.5'>$fmtBefore</span>
             </div>";
         }
     }
@@ -68,9 +73,9 @@ if (!function_exists('renderFieldStatic')) {
     function renderFieldStatic($key, $label, $val, $isKo) {
         $fmtVal = formatHistoryValue($key, $val, $isKo);
         return "
-        <div class='flex flex-col gap-1 p-2 rounded-lg bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800/40'>
-            <span class='text-[10px] text-[var(--text-sub)] font-medium'>$label</span>
-            <span class='font-bold text-[var(--text-main)] text-[11px]'>$fmtVal</span>
+        <div class='flex flex-col gap-1 p-2.5 rounded-xl bg-slate-100/40 dark:bg-slate-800/20 border border-slate-200/30 dark:border-slate-800/20 opacity-75 hover:opacity-100 transition-opacity duration-200'>
+            <span class='text-[10px] text-[var(--text-sub)] font-semibold'>$label</span>
+            <span class='font-bold text-[var(--text-main)] text-[11px] mt-0.5'>$fmtVal</span>
         </div>";
     }
 }
@@ -118,7 +123,7 @@ if (!function_exists('renderFieldStatic')) {
                                     <th class="p-4 w-[95px]"><?= $current_lang == 'KO' ? '작업 유형' : 'Action' ?></th>
                                     <th class="p-4 w-[65px] text-center"><?= $current_lang == 'KO' ? '대상수' : 'Targets' ?></th>
                                     <th class="p-4"><?= $current_lang == 'KO' ? '대상 설정 변경 내역 요약' : 'Targets Summary' ?></th>
-                                    <th class="p-4 w-[165px] text-center"><?= $current_lang == 'KO' ? '관리' : 'Manage' ?></th>
+                                    <th class="p-4 w-[185px] text-center"><?= $current_lang == 'KO' ? '관리' : 'Manage' ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -288,17 +293,27 @@ if (!function_exists('renderFieldStatic')) {
                                                                     'smtp_secure' => $current_lang == 'KO' ? 'SMTP 보안' : 'SMTP Secure',
                                                                 ];
                                                                 
+                                                                $changed_htmls = [];
+                                                                $unchanged_htmls = [];
+                                                                
                                                                 foreach ($fields_to_render as $key => $label) {
                                                                     $before_val = $item[$key] ?? null;
                                                                     
                                                                     if ($is_deleted_now) {
-                                                                        // 이미 삭제된 항목이면 이전 설정값들만 표시
                                                                         echo renderFieldStatic($key, $label, $before_val, $current_lang === 'KO');
                                                                     } else {
-                                                                        // 수정되었거나 살아있다면 Before ➔ After 비교
                                                                         $after_val = $current_item[$key] ?? null;
-                                                                        echo renderFieldDiff($key, $label, $before_val, $after_val, $current_lang === 'KO');
+                                                                        $html = renderFieldDiff($key, $label, $before_val, $after_val, $current_lang === 'KO');
+                                                                        if ($before_val != $after_val) {
+                                                                            $changed_htmls[] = $html;
+                                                                        } else {
+                                                                            $unchanged_htmls[] = $html;
+                                                                        }
                                                                     }
+                                                                }
+                                                                
+                                                                if (!$is_deleted_now) {
+                                                                    echo implode('', $changed_htmls) . implode('', $unchanged_htmls);
                                                                 }
                                                                 ?>
                                                             </div>

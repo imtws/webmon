@@ -95,7 +95,7 @@ if (($current_view ?? 'card') === 'log') {
         };
     </script>
 </head>
-<body class="m-0 p-0 text-[var(--text-main)] transition-colors duration-200">
+<body class="m-0 p-0 text-[var(--text-main)] bg-[var(--bg-color)]">
 
     <?php if ($db_pass === 'your_secure_password_here' || empty($db_pass)): ?>
     <div onclick="openSettingsModal(); switchSettingsTab('sys');" class="w-full bg-gradient-to-r from-red-600 to-orange-500 text-white px-8 py-3 text-center text-sm font-extrabold flex justify-center items-center gap-2 shadow-md cursor-pointer hover:opacity-90 transition-opacity">
@@ -297,7 +297,7 @@ if (($current_view ?? 'card') === 'log') {
                             $result_text = $log_row['result'] > 0 ? $t['v_success'] : $t['v_fail'];
                             $result_icon = $log_row['result'] > 0 ? 'fa-check-circle' : 'fa-exclamation-circle';
                         ?>
-                            <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px]">
+                            <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px] hover:z-[110]">
                                 <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?> rounded-l-xl"></div>
                                 <!-- 시각 -->
                                 <div class="w-48 text-[var(--text-sub)] font-mono">
