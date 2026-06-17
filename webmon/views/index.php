@@ -172,25 +172,35 @@ if (($current_view ?? 'card') === 'log') {
                 </div>
 
                 <div class="flex justify-between items-end px-1">
-                    <div class="flex gap-4">
-                        <div onclick="applyType('total')" class="stat-box px-5 py-3 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] flex items-center gap-3 cursor-pointer <?= $type=='total'?'border-[#18aee7] bg-blue-50/30':'' ?>">
-                            <i class="fas fa-th-list text-[var(--text-sub)] text-xl"></i>
-                            <div><span class="text-[10px] font-bold text-[var(--text-sub)] block">TOTAL</span><span class="text-xl font-black"><?= $stat_total ?></span></div>
+                    <!-- iOS 스타일 Segmented Control -->
+                    <div class="bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md p-1 rounded-2xl flex gap-1 relative w-max max-w-full shadow-inner border border-slate-200/50 dark:border-slate-700/30">
+                        <!-- TOTAL 탭 -->
+                        <div onclick="applyType('total')" class="relative px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='total' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5 scale-[1.02]' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
+                            <i class="fas fa-th-list text-slate-500 dark:text-slate-400 text-xs"></i>
+                            <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">TOTAL</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-900/30 text-[#18aee7]"><?= $stat_total ?></span>
                         </div>
-                        <div onclick="applyType('success')" class="stat-box px-5 py-3 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] flex items-center gap-3 cursor-pointer <?= $type=='success'?'border-green-500 bg-green-50/50':'' ?>">
-                            <i class="fas fa-check-circle text-green-500 text-xl"></i>
-                            <div><span class="text-[10px] font-bold text-green-500 block">SUCCESS</span><span class="text-xl font-black text-green-500"><?= $stat_success ?></span></div>
+                        <!-- SUCCESS 탭 -->
+                        <div onclick="applyType('success')" class="relative px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='success' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5 scale-[1.02]' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
+                            <i class="fas fa-check-circle text-green-500 text-xs"></i>
+                            <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">SUCCESS</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"><?= $stat_success ?></span>
                         </div>
-                        <div onclick="applyType('failure')" class="stat-box px-5 py-3 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] flex items-center gap-3 cursor-pointer <?= $type=='failure'?'border-red-500 bg-red-50/50':'' ?>">
-                            <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
-                            <div><span class="text-[10px] font-bold text-red-500 block">FAILURE</span><span class="text-xl font-black text-red-500"><?= $stat_fail ?></span></div>
+                        <!-- FAILURE 탭 -->
+                        <div onclick="applyType('failure')" class="relative px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='failure' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5 scale-[1.02]' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-xs"></i>
+                            <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">FAILURE</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"><?= $stat_fail ?></span>
                         </div>
-                        <div onclick="applyType('expiring')" class="stat-box px-5 py-3 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] flex items-center gap-3 cursor-pointer <?= $type=='expiring'?'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20':'' ?>">
-                            <i class="fas fa-hourglass-half text-amber-500 text-xl"></i>
-                            <div><span class="text-[10px] font-bold text-amber-500 block"><?= $t['expiring'] ?></span><span class="text-xl font-black text-amber-500"><?= $stat_expiring ?></span></div>
+                        <!-- EXPIRING 탭 -->
+                        <div onclick="applyType('expiring')" class="relative px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='expiring' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5 scale-[1.02]' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
+                            <i class="fas fa-hourglass-half text-amber-500 text-xs"></i>
+                            <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">EXPIRING</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500"><?= $stat_expiring ?></span>
                         </div>
                     </div>
-                    <div class="text-[10px] font-bold text-right text-[var(--text-sub)] opacity-70">
+                    <!-- 실행 정보 -->
+                    <div class="text-[10px] font-bold text-right text-[var(--text-sub)] opacity-70 mb-1">
                         <div><i class="fas fa-microchip"></i> <?= $t['last_run'] ?>: <?= $last_run ?></div>
                         <div><i class="far fa-clock"></i> <?= $t['next_run'] ?>: <?= $next_run ?></div>
                     </div>
