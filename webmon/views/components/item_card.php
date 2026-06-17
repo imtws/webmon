@@ -41,30 +41,47 @@
     $ssl_res = getExpiryColorAndText($row['ssl_expiry'], $row['ssl_mon']);
     $dom_res = getExpiryColorAndText($row['dom_expiry'], $row['dom_mon']);
     ?>
-    <div class="grid grid-cols-2 gap-2 mb-4 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-100/50 dark:border-slate-800/20">
-        <div>
-            <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide flex items-center gap-1">
-                <i class="fas fa-lock text-[8px] opacity-60"></i><?= $t['h_ssl'] ?>
-            </span>
-            <div class="flex items-center flex-wrap">
-                <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><?= $row['ssl_expiry'] ? date('Y-m-d', strtotime($row['ssl_expiry'])) : '-' ?></span>
+    <!-- iOS 설정 그룹 스타일의 인포 목록 -->
+    <div class="space-y-2 mb-4">
+        <!-- SSL 만료일 행 -->
+        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/30">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-blue-500/20">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400"><?= $t['h_ssl'] ?></span>
+            </div>
+            <div class="flex items-center">
+                <span class="text-[11px] font-extrabold text-slate-800 dark:text-slate-100"><?= $row['ssl_expiry'] ? date('Y-m-d', strtotime($row['ssl_expiry'])) : '-' ?></span>
                 <?= $ssl_res['badge'] ?>
             </div>
         </div>
-        <div>
-            <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide flex items-center gap-1">
-                <i class="fas fa-globe text-[8px] opacity-60"></i><?= $t['h_dom'] ?>
-            </span>
-            <div class="flex items-center flex-wrap">
-                <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><?= $row['dom_expiry'] ? date('Y-m-d', strtotime($row['dom_expiry'])) : '-' ?></span>
+        
+        <!-- 도메인 만료일 행 -->
+        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/30">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-indigo-500/20">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400"><?= $t['h_dom'] ?></span>
+            </div>
+            <div class="flex items-center">
+                <span class="text-[11px] font-extrabold text-slate-800 dark:text-slate-100"><?= $row['dom_expiry'] ? date('Y-m-d', strtotime($row['dom_expiry'])) : '-' ?></span>
                 <?= $dom_res['badge'] ?>
             </div>
         </div>
-        <div class="col-span-2 border-t border-dashed border-slate-200 dark:border-slate-700/50 pt-2 mt-1">
-            <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide flex items-center gap-1">
-                <i class="fas fa-search text-[8px] opacity-60"></i><?= $t['h_keyword'] ?>
-            </span>
-            <span class="text-[11px] font-bold text-[var(--text-main)] block truncate" title="<?= htmlspecialchars($row['contents']) ?>"><?= htmlspecialchars($row['contents']) ?></span>
+
+        <!-- 키워드 행 -->
+        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/30">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+                <div class="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-amber-500/20 flex-shrink-0">
+                    <i class="fas fa-search"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex-shrink-0 mr-2"><?= $t['h_keyword'] ?></span>
+            </div>
+            <div class="flex items-center min-w-0">
+                <span class="text-[11px] font-extrabold text-slate-800 dark:text-slate-100 truncate max-w-[130px]" title="<?= htmlspecialchars($row['contents']) ?>"><?= htmlspecialchars($row['contents']) ?></span>
+            </div>
         </div>
     </div>
 
