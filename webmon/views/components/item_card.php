@@ -27,12 +27,12 @@
     </div>
     
     <div class="mb-4">
-        <label class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-tighter">[<?= $t['h_company'] ?>]</label>
-        <h2 class="text-[16px] font-black truncate text-[var(--text-main)]"><?= htmlspecialchars($row['company']) ?></h2>
-        <label class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mt-2 block tracking-tighter">[<?= $t['h_url'] ?>]</label>
-        <p class="text-[12px] text-[#18aee7] font-bold truncate">
-            <a href="<?= htmlspecialchars($row['url']) ?>" target="_blank" class="hover:underline">
-                <?= htmlspecialchars($row['url']) ?>
+        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-1 uppercase"><?= $t['h_company'] ?></span>
+        <h2 class="text-[16px] font-extrabold truncate text-[var(--text-main)] mb-1.5"><?= htmlspecialchars($row['company']) ?></h2>
+        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-1 uppercase"><?= $t['h_url'] ?></span>
+        <p class="text-[12px] text-[#18aee7] font-semibold truncate">
+            <a href="<?= htmlspecialchars($row['url']) ?>" target="_blank" class="hover:underline flex items-center gap-1">
+                <i class="fas fa-link text-[10px] opacity-60"></i><?= htmlspecialchars($row['url']) ?>
             </a>
         </p>
     </div>
@@ -41,32 +41,60 @@
     $ssl_res = getExpiryColorAndText($row['ssl_expiry'], $row['ssl_mon']);
     $dom_res = getExpiryColorAndText($row['dom_expiry'], $row['dom_mon']);
     ?>
-    <div class="grid grid-cols-2 gap-2 mb-4 bg-[var(--bg-color)] p-3 rounded-lg border border-[var(--border-color)]">
-    <div>
-        <span class="text-[9px] font-black text-gray-400 dark:text-gray-500 block"><?= $t['h_ssl'] ?></span>
-        <span class="text-[11px] font-bold <?= $ssl_res['class'] ?>"><?= $row['ssl_expiry'] ? $row['ssl_expiry'] . $ssl_res['dday'] : '-' ?></span>
-    </div>
-    <div>
-        <span class="text-[9px] font-black text-gray-400 dark:text-gray-500 block"><?= $t['h_dom'] ?></span>
-        <span class="text-[11px] font-bold <?= $dom_res['class'] ?>"><?= $row['dom_expiry'] ? $row['dom_expiry'] . $dom_res['dday'] : '-' ?></span>
-    </div>
-    <div class="col-span-2 border-t border-dashed border-[var(--border-color)] pt-2 mt-1">
-        <span class="text-[9px] font-black text-gray-400 dark:text-gray-500 block"><?= $t['h_keyword'] ?></span>
-        <span class="text-[11px] font-bold text-[var(--text-main)] block truncate" title="<?= htmlspecialchars($row['contents']) ?>"><?= htmlspecialchars($row['contents']) ?></span>
-    </div>
-</div>
-
-    <div class="flex justify-between items-center text-[11px] border-t border-[var(--border-color)] pt-3">
-        <div><span class="text-[var(--text-sub)]"><?= $t['h_alarm'] ?>:</span> <span class="<?= $status_class ?> font-black"><?= $check_text ?></span></div>
+    <div class="grid grid-cols-2 gap-2 mb-4 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-100/50 dark:border-slate-800/20">
         <div>
-            <span class="text-[var(--text-sub)]"><?= $t['h_result'] ?>:</span> 
-            <span class="<?= $result_color ?> font-black"><?= $is_disabled ? '-' : $result_text ?></span>
+            <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide flex items-center gap-1">
+                <i class="fas fa-lock text-[8px] opacity-60"></i><?= $t['h_ssl'] ?>
+            </span>
+            <span class="text-[11px] font-black <?= $ssl_res['class'] ?>"><?= $row['ssl_expiry'] ? $row['ssl_expiry'] . $ssl_res['dday'] : '-' ?></span>
+        </div>
+        <div>
+            <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide flex items-center gap-1">
+                <i class="fas fa-globe text-[8px] opacity-60"></i><?= $t['h_dom'] ?>
+            </span>
+            <span class="text-[11px] font-black <?= $dom_res['class'] ?>"><?= $row['dom_expiry'] ? $row['dom_expiry'] . $dom_res['dday'] : '-' ?></span>
+        </div>
+        <div class="col-span-2 border-t border-dashed border-slate-200 dark:border-slate-700/50 pt-2 mt-1">
+            <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide flex items-center gap-1">
+                <i class="fas fa-search text-[8px] opacity-60"></i><?= $t['h_keyword'] ?>
+            </span>
+            <span class="text-[11px] font-bold text-[var(--text-main)] block truncate" title="<?= htmlspecialchars($row['contents']) ?>"><?= htmlspecialchars($row['contents']) ?></span>
+        </div>
+    </div>
+
+    <?php
+    if ($is_disabled) {
+        $status_badge = 'bg-slate-100 dark:bg-slate-800/80 text-slate-500 px-2.5 py-0.5 rounded-full text-[10px] font-black';
+    } elseif ($is_currently_off_schedule) {
+        $status_badge = 'bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 px-2.5 py-0.5 rounded-full text-[10px] font-black';
+    } else {
+        $status_badge = ($row['check'] == 'alarm') 
+            ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 px-2.5 py-0.5 rounded-full text-[10px] font-black' 
+            : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 px-2.5 py-0.5 rounded-full text-[10px] font-black';
+    }
+
+    if ($is_currently_off_schedule) {
+        $result_badge = 'bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 px-2.5 py-0.5 rounded-full text-[10px] font-black';
+    } else {
+        $result_badge = ($row['value'] > 0)
+            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black'
+            : 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full text-[10px] font-black';
+    }
+    ?>
+    <div class="flex justify-between items-center text-[11px] border-t border-slate-100 dark:border-slate-800/40 pt-3">
+        <div class="flex items-center gap-1.5"><span class="text-[var(--text-sub)] font-bold"><?= $t['h_alarm'] ?>:</span> <span class="<?= $status_badge ?>"><?= $check_text ?></span></div>
+        <div class="flex flex-col items-end">
+            <div class="flex items-center gap-1.5">
+                <span class="text-[var(--text-sub)] font-bold"><?= $t['h_result'] ?>:</span> 
+                <span class="<?= $result_badge ?>"><?= $is_disabled ? '-' : $result_text ?></span>
+            </div>
             <?php if (!$is_disabled && $row['value'] == 0 && !empty($row['error_msg'])): ?>
-                <span class="text-[10px] text-red-500 font-bold block mt-1">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
+                <span class="text-[9px] text-red-500 font-bold mt-1 text-right max-w-[140px] truncate" title="<?= htmlspecialchars($row['error_msg']) ?>">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
             <?php endif; ?>
         </div>
     </div>
-    <div class="flex flex-col gap-1 text-[11px] mt-2 pt-2 border-t border-dashed border-[var(--border-color)]">
+    
+    <div class="flex flex-col gap-1 text-[11px] mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-slate-700/50">
         <div class="flex justify-between items-center">
             <div>
                 <span class="text-[var(--text-sub)] uppercase">ENGINE :</span> 

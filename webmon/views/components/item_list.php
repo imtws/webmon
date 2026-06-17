@@ -6,6 +6,24 @@
     <?php
     $ssl_res = getExpiryColorAndText($row['ssl_expiry'], $row['ssl_mon']);
     $dom_res = getExpiryColorAndText($row['dom_expiry'], $row['dom_mon']);
+
+    if ($is_disabled) {
+        $status_badge = 'bg-slate-100 dark:bg-slate-800/80 text-slate-500 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+    } elseif ($is_currently_off_schedule) {
+        $status_badge = 'bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+    } else {
+        $status_badge = ($row['check'] == 'alarm') 
+            ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block' 
+            : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+    }
+
+    if ($is_currently_off_schedule) {
+        $result_badge = 'bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+    } else {
+        $result_badge = ($row['value'] > 0)
+            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block'
+            : 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+    }
     ?>
     <div class="flex-[1.2] font-black pr-2 min-w-0 flex flex-col justify-center">
         <div class="truncate text-[var(--text-main)]" title="<?= htmlspecialchars($row['company']) ?>"><?= htmlspecialchars($row['company']) ?></div>
@@ -24,11 +42,11 @@
         </a>
     </div>
     <div class="flex-1 text-center text-[var(--text-sub)] truncate px-1"><?= htmlspecialchars($row['contents']) ?></div>
-    <div class="flex-1 text-center font-bold <?= $status_class ?>"><?= $check_text ?></div>
-    <div class="flex-1 text-center font-black <?= $result_color ?>">
-        <?= $is_disabled ? '-' : $result_text ?>
+    <div class="flex-1 text-center"><span class="<?= $status_badge ?>"><?= $check_text ?></span></div>
+    <div class="flex-1 text-center min-w-0 flex flex-col items-center justify-center">
+        <span class="<?= $result_badge ?>"><?= $is_disabled ? '-' : $result_text ?></span>
         <?php if (!$is_disabled && $row['value'] == 0 && !empty($row['error_msg'])): ?>
-            <span class="text-[9px] text-red-500 font-bold block mt-0.5 leading-none">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
+            <span class="text-[9px] text-red-500 font-bold block mt-0.5 leading-none max-w-[90px] truncate" title="<?= htmlspecialchars($row['error_msg']) ?>">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
         <?php endif; ?>
     </div>
     <div class="w-28 text-right pr-2 text-[var(--text-sub)] flex justify-end items-center gap-3">

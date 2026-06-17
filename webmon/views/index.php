@@ -206,86 +206,105 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
                 </div>
 
-                <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-2 pl-4 flex items-center gap-2 shadow-sm">
+                <div class="bg-slate-100/40 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/30 rounded-2xl p-2.5 flex flex-wrap items-center gap-3 shadow-sm backdrop-blur-md">
                     <?php if (isset($_GET['filter_no']) && (int)$_GET['filter_no'] > 0): ?>
-                    <div class="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-[#18aee7] border border-blue-100 dark:border-blue-800 rounded-lg text-xs font-bold whitespace-nowrap">
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-[#18aee7] border border-blue-100 dark:border-blue-800 rounded-xl text-xs font-bold whitespace-nowrap shadow-sm">
                         <span><i class="fas fa-info-circle mr-1"></i><?= $current_lang == 'KO' ? '개별 항목 보기 중' : 'Single Item View' ?></span>
                         <a href="website_status.php" class="ml-2 hover:underline text-red-500 font-extrabold cursor-pointer">✕ <?= $current_lang == 'KO' ? '해제' : 'Clear' ?></a>
                     </div>
-                    <div class="search-divider"></div>
                     <?php elseif ($current_view !== 'log'): ?>
-                    <div class="flex items-center gap-2 px-2">
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
                         <input type="checkbox" id="selectAll" class="w-4 h-4 rounded accent-[#18aee7] cursor-pointer">
-                        <label for="selectAll" class="text-[11px] font-black text-[var(--text-sub)] cursor-pointer ml-1 whitespace-nowrap"><?= $t['select_all'] ?></label>
+                        <label for="selectAll" class="text-[11px] font-black text-[var(--text-sub)] cursor-pointer ml-2 whitespace-nowrap"><?= $t['select_all'] ?></label>
                     </div>
-                    <div class="search-divider"></div>
                     <?php endif; ?>
-                    <select id="searchGroup" onchange="triggerSearch()" class="bg-transparent text-sm font-bold outline-none cursor-pointer flex-[0.7] text-[var(--text-main)]">
-                        <option value="all"><?= $t['group_all'] ?></option>
-                        <?php foreach($existing_groups as $g): ?>
-                            <option value="<?=htmlspecialchars($g)?>" <?= $search_group==$g?'selected':'' ?>><?=htmlspecialchars($g)?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="search-divider"></div>
-                    <input type="text" id="searchCompany" value="<?=htmlspecialchars($search_company)?>" class="w-full bg-transparent p-2 text-sm outline-none flex-[1.5] text-[var(--text-main)]" placeholder="<?= $t['search_company_ph'] ?>" onkeypress="if(event.keyCode==13) triggerSearch()">
-                    <button onclick="triggerSearch()" class="px-4 py-2 bg-[var(--bg-color)] border border-[var(--border-color)] hover:bg-[#18aee7] hover:text-white rounded-lg text-sm font-bold transition-colors"><?= $t['search_btn'] ?></button>
-                    <div class="search-divider"></div>
 
-                    <select id="filterStatus" onchange="triggerSearch()" class="bg-transparent text-sm font-bold outline-none cursor-pointer text-[var(--text-main)]">
-                        <option value="all" <?= $filter_status=='all'?'selected':'' ?>><?= $t['filter_all'] ?></option>
-                        <option disabled>──────────</option> 
-                        <option value="alarm" <?= $filter_status=='alarm'?'selected':'' ?>><?= $t['status_alarm'] ?></option>
-                        <option value="no alarm" <?= $filter_status=='no alarm'?'selected':'' ?>><?= $t['status_noalarm'] ?></option>
-                        <?php if ($current_view !== 'log'): ?>
-                        <option value="disable" <?= $filter_status=='disable'?'selected':'' ?>><?= $t['status_disable'] ?></option>
-                        <?php endif; ?>
-                        <option disabled>──────────</option> 
-                        <option value="timeout_custom" <?= $filter_status=='timeout_custom'?'selected':'' ?>><?= $t['filter_timeout_custom'] ?></option>
-                        <option value="timeout_default" <?= $filter_status=='timeout_default'?'selected':'' ?>><?= $t['filter_timeout_default'] ?></option>
-                    </select>
+                    <!-- 그룹 필터 -->
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
+                        <i class="fas fa-folder text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
+                        <select id="searchGroup" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] max-w-[120px]">
+                            <option value="all"><?= $t['group_all'] ?></option>
+                            <?php foreach($existing_groups as $g): ?>
+                                <option value="<?=htmlspecialchars($g)?>" <?= $search_group==$g?'selected':'' ?>><?=htmlspecialchars($g)?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
 
-                    <select id="filterEngine" onchange="triggerSearch()" class="bg-transparent text-sm font-bold outline-none cursor-pointer text-[var(--text-main)]">
-                        <option value="all" <?= (!isset($_GET['filter_engine']) || $_GET['filter_engine'] == 'all') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? '모든 엔진' : 'All Engines' ?></option>
-                        <option value="lynx" <?= (isset($_GET['filter_engine']) && $_GET['filter_engine'] == 'lynx') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'LYNX 엔진' : 'LYNX Engine' ?></option>
-                        <option value="curl" <?= (isset($_GET['filter_engine']) && $_GET['filter_engine'] == 'curl') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'CURL 엔진' : 'CURL Engine' ?></option>
-                    </select>
+                    <!-- 검색 창 -->
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 flex-1 min-w-[180px] shadow-sm">
+                        <i class="fas fa-search text-[10px] text-slate-400 dark:text-slate-500 mr-2.5"></i>
+                        <input type="text" id="searchCompany" value="<?=htmlspecialchars($search_company)?>" class="w-full bg-transparent text-xs outline-none text-[var(--text-main)]" placeholder="<?= $t['search_company_ph'] ?>" onkeypress="if(event.keyCode==13) triggerSearch()">
+                    </div>
+                    <button onclick="triggerSearch()" class="px-5 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl text-xs font-black transition-all shadow-sm shadow-blue-500/10 whitespace-nowrap">
+                        <?= $t['search_btn'] ?>
+                    </button>
 
-                    <div class="search-divider <?= $current_view == 'log' ? 'hidden' : '' ?>"></div>
-                    
-                    <select id="sortOrder" onchange="triggerSearch()" class="bg-transparent text-sm font-bold outline-none cursor-pointer text-[var(--text-main)] pr-2 <?= $current_view == 'log' ? 'hidden' : '' ?>">
-                        <option value="latest" <?= $sort=='latest'?'selected':'' ?>><?= $t['sort_latest'] ?></option>
-                        <option disabled>──────────</option>
-                        <option value="comp_asc" <?= $sort=='comp_asc'?'selected':'' ?>><?= $t['sort_comp_asc'] ?></option>
-                        <option value="comp_desc" <?= $sort=='comp_desc'?'selected':'' ?>><?= $t['sort_comp_desc'] ?></option>
-                        <option disabled>──────────</option>
-                        <option value="retry_desc" <?= $sort=='retry_desc'?'selected':'' ?>><?= $t['sort_retry_desc'] ?? '체크 횟수 내림차순' ?></option>
-                        <option value="retry_asc" <?= $sort=='retry_asc'?'selected':'' ?>><?= $t['sort_retry_asc'] ?? '체크 횟수 오름차순' ?></option>
-                        <option disabled>──────────</option>
-                        <option value="status_desc" <?= $sort=='status_desc'?'selected':'' ?>><?= $t['sort_status_desc'] ?></option>
-                        <option value="status_asc" <?= $sort=='status_asc'?'selected':'' ?>><?= $t['sort_status_asc'] ?></option>
-                        <option disabled>──────────</option>	
-                        <option value="result_succ" <?= $sort=='result_succ'?'selected':'' ?>><?= $t['sort_result_succ'] ?></option>
-                        <option value="result_fail" <?= $sort=='result_fail'?'selected':'' ?>><?= $t['sort_result_fail'] ?></option>
-                        <option disabled>──────────</option>
-                        <option value="ssl" <?= $sort=='ssl'?'selected':'' ?>><?= $t['sort_ssl'] ?></option>
-                        <option value="dom" <?= $sort=='dom'?'selected':'' ?>><?= $t['sort_dom'] ?></option>
-                    </select>
+                    <!-- 상태 필터 -->
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
+                        <i class="fas fa-filter text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
+                        <select id="filterStatus" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)]">
+                            <option value="all" <?= $filter_status=='all'?'selected':'' ?>><?= $t['filter_all'] ?></option>
+                            <option disabled>──────────</option> 
+                            <option value="alarm" <?= $filter_status=='alarm'?'selected':'' ?>><?= $t['status_alarm'] ?></option>
+                            <option value="no alarm" <?= $filter_status=='no alarm'?'selected':'' ?>><?= $t['status_noalarm'] ?></option>
+                            <?php if ($current_view !== 'log'): ?>
+                            <option value="disable" <?= $filter_status=='disable'?'selected':'' ?>><?= $t['status_disable'] ?></option>
+                            <?php endif; ?>
+                            <option disabled>──────────</option> 
+                            <option value="timeout_custom" <?= $filter_status=='timeout_custom'?'selected':'' ?>><?= $t['filter_timeout_custom'] ?></option>
+                            <option value="timeout_default" <?= $filter_status=='timeout_default'?'selected':'' ?>><?= $t['filter_timeout_default'] ?></option>
+                        </select>
+                    </div>
+
+                    <!-- 엔진 필터 -->
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
+                        <i class="fas fa-microchip text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
+                        <select id="filterEngine" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)]">
+                            <option value="all" <?= (!isset($_GET['filter_engine']) || $_GET['filter_engine'] == 'all') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? '모든 엔진' : 'All Engines' ?></option>
+                            <option value="lynx" <?= (isset($_GET['filter_engine']) && $_GET['filter_engine'] == 'lynx') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'LYNX 엔진' : 'LYNX Engine' ?></option>
+                            <option value="curl" <?= (isset($_GET['filter_engine']) && $_GET['filter_engine'] == 'curl') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'CURL 엔진' : 'CURL Engine' ?></option>
+                        </select>
+                    </div>
+
+                    <?php if ($current_view !== 'log'): ?>
+                    <!-- 정렬 필터 -->
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
+                        <i class="fas fa-sort-amount-down text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
+                        <select id="sortOrder" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] pr-1">
+                            <option value="latest" <?= $sort=='latest'?'selected':'' ?>><?= $t['sort_latest'] ?></option>
+                            <option disabled>──────────</option>
+                            <option value="comp_asc" <?= $sort=='comp_asc'?'selected':'' ?>><?= $t['sort_comp_asc'] ?></option>
+                            <option value="comp_desc" <?= $sort=='comp_desc'?'selected':'' ?>><?= $t['sort_comp_desc'] ?></option>
+                            <option disabled>──────────</option>
+                            <option value="retry_desc" <?= $sort=='retry_desc'?'selected':'' ?>><?= $t['sort_retry_desc'] ?? '체크 횟수 내림차순' ?></option>
+                            <option value="retry_asc" <?= $sort=='retry_asc'?'selected':'' ?>><?= $t['sort_retry_asc'] ?? '체크 횟수 오름차순' ?></option>
+                            <option disabled>──────────</option>
+                            <option value="status_desc" <?= $sort=='status_desc'?'selected':'' ?>><?= $t['sort_status_desc'] ?></option>
+                            <option value="status_asc" <?= $sort=='sort_status_asc'?'selected':'' ?>><?= $t['sort_status_asc'] ?></option>
+                            <option disabled>──────────</option>	
+                            <option value="result_succ" <?= $sort=='result_succ'?'selected':'' ?>><?= $t['sort_result_succ'] ?></option>
+                            <option value="result_fail" <?= $sort=='result_fail'?'selected':'' ?>><?= $t['sort_result_fail'] ?></option>
+                            <option disabled>──────────</option>
+                            <option value="ssl" <?= $sort=='ssl'?'selected':'' ?>><?= $t['sort_ssl'] ?></option>
+                            <option value="dom" <?= $sort=='dom'?'selected':'' ?>><?= $t['sort_dom'] ?></option>
+                        </select>
+                    </div>
+                    <?php endif; ?>
 
                     <?php if ($current_view === 'log'): ?>
-                    <div class="search-divider"></div>
-                    <div class="flex items-center gap-2 pr-2">
+                    <div class="flex items-center gap-2">
                         <!-- 수동 새로고침 버튼 -->
-                        <button onclick="refreshLogs()" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg-color)] border border-[var(--border-color)] hover:border-[#18aee7] hover:text-[#18aee7] transition-all shadow-sm" title="<?= $current_lang == 'KO' ? '로그 새로고침' : 'Refresh Logs' ?>">
+                        <button onclick="refreshLogs()" class="flex items-center justify-center w-8.5 h-8.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 hover:border-[#18aee7] hover:text-[#18aee7] transition-all shadow-sm" title="<?= $current_lang == 'KO' ? '로그 새로고침' : 'Refresh Logs' ?>">
                             <i class="fas fa-sync-alt text-xs text-[var(--text-sub)] hover:text-[#18aee7]"></i>
                         </button>
                         
                         <!-- 자동 새로고침 토글 스위치 -->
-                        <div class="flex items-center gap-1.5 ml-1">
+                        <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm gap-2">
                             <label class="relative inline-flex items-center cursor-pointer" title="<?= $current_lang == 'KO' ? '10초 간격 자동 새로고침' : 'Auto Refresh every 10s' ?>">
                                 <input type="checkbox" id="autoRefreshToggle" class="sr-only peer" onchange="toggleAutoRefresh(this.checked)">
-                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
+                                <div class="w-8 h-4.5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
                             </label>
-                            <span class="text-[10px] font-bold text-[var(--text-sub)] whitespace-nowrap select-none">AUTO</span>
+                            <span class="text-[9px] font-black text-[var(--text-sub)] select-none">AUTO</span>
                         </div>
                     </div>
                     <?php endif; ?>
