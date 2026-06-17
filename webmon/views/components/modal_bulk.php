@@ -53,11 +53,11 @@
                         <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[42px] relative overflow-hidden" id="bulkEngineWrapper">
                             <label class="flex-1 cursor-pointer h-full">
                                 <input type="radio" name="engine_type" id="bulkEngineLynx" value="lynx" class="hidden peer" checked disabled>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white peer-disabled:opacity-40 transition-all">LYNX</div>
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg text-[var(--text-sub)] hover:text-[var(--text-main)] peer-checked:bg-[#18aee7] peer-checked:text-white peer-disabled:opacity-40 transition-all">LYNX</div>
                             </label>
                             <label class="flex-1 cursor-pointer h-full">
                                 <input type="radio" name="engine_type" id="bulkEngineCurl" value="curl" class="hidden peer" disabled>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white peer-disabled:opacity-40 transition-all">CURL</div>
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg text-[var(--text-sub)] hover:text-[var(--text-main)] peer-checked:bg-[#18aee7] peer-checked:text-white peer-disabled:opacity-40 transition-all">CURL</div>
                             </label>
                         </div>
                     </div>

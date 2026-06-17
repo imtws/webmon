@@ -92,8 +92,8 @@ body {
 
 /* 다크모드 대응 Select 박스 */
 select {
-    background-color: var(--card-bg) !important;
-    color: var(--text-main) !important;
+    background-color: var(--card-bg);
+    color: var(--text-main);
 }
 
 select option {

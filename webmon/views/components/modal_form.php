@@ -109,11 +109,11 @@
                         <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[46px]">
                             <label class="flex-1 cursor-pointer h-full">
                                 <input type="radio" name="engine_type" value="lynx" class="hidden peer" checked>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all">LYNX</div>
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg text-[var(--text-sub)] hover:text-[var(--text-main)] peer-checked:bg-[#18aee7] peer-checked:text-white transition-all">LYNX</div>
                             </label>
                             <label class="flex-1 cursor-pointer h-full">
                                 <input type="radio" name="engine_type" value="curl" class="hidden peer">
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg peer-checked:bg-[#18aee7] peer-checked:text-white transition-all">CURL</div>
+                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg text-[var(--text-sub)] hover:text-[var(--text-main)] peer-checked:bg-[#18aee7] peer-checked:text-white transition-all">CURL</div>
                             </label>
                         </div>
                     </div>

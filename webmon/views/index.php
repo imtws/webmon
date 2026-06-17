@@ -225,23 +225,23 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
                 </div>
 
-                <div class="bg-slate-100/40 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/30 rounded-2xl p-2.5 flex flex-wrap items-center gap-3 shadow-sm backdrop-blur-md">
+                <div class="bg-slate-100/40 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700 rounded-2xl p-2.5 flex flex-wrap items-center gap-3 shadow-sm backdrop-blur-md">
                     <?php if (isset($_GET['filter_no']) && (int)$_GET['filter_no'] > 0): ?>
                     <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-[#18aee7] border border-blue-100 dark:border-blue-800 rounded-xl text-xs font-bold whitespace-nowrap shadow-sm">
                         <span><i class="fas fa-info-circle mr-1"></i><?= $current_lang == 'KO' ? '개별 항목 보기 중' : 'Single Item View' ?></span>
                         <a href="website_status.php" class="ml-2 hover:underline text-red-500 font-extrabold cursor-pointer">✕ <?= $current_lang == 'KO' ? '해제' : 'Clear' ?></a>
                     </div>
                     <?php elseif ($current_view !== 'log'): ?>
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
                         <input type="checkbox" id="selectAll" class="w-4 h-4 rounded accent-[#18aee7] cursor-pointer">
-                        <label for="selectAll" class="text-[11px] font-black text-[var(--text-sub)] cursor-pointer ml-2 whitespace-nowrap"><?= $t['select_all'] ?></label>
+                        <label for="selectAll" class="text-[11px] font-black text-[var(--text-sub)] dark:text-slate-300 cursor-pointer ml-2 whitespace-nowrap"><?= $t['select_all'] ?></label>
                     </div>
                     <?php endif; ?>
 
                     <!-- 그룹 필터 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
                         <i class="fas fa-folder text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
-                        <select id="searchGroup" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] max-w-[120px]">
+                        <select id="searchGroup" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white max-w-[120px]">
                             <option value="all"><?= $t['group_all'] ?></option>
                             <?php foreach($existing_groups as $g): ?>
                                 <option value="<?=htmlspecialchars($g)?>" <?= $search_group==$g?'selected':'' ?>><?=htmlspecialchars($g)?></option>
@@ -250,18 +250,18 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 검색 창 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 flex-1 min-w-[180px] shadow-sm">
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 flex-1 min-w-[180px] shadow-sm">
                         <i class="fas fa-search text-[10px] text-slate-400 dark:text-slate-500 mr-2.5"></i>
-                        <input type="text" id="searchCompany" value="<?=htmlspecialchars($search_company)?>" class="w-full bg-transparent text-xs outline-none text-[var(--text-main)]" placeholder="<?= $t['search_company_ph'] ?>" onkeypress="if(event.keyCode==13) triggerSearch()">
+                        <input type="text" id="searchCompany" value="<?=htmlspecialchars($search_company)?>" class="w-full bg-transparent text-xs outline-none text-[var(--text-main)] dark:text-white" placeholder="<?= $t['search_company_ph'] ?>" onkeypress="if(event.keyCode==13) triggerSearch()">
                     </div>
                     <button onclick="triggerSearch()" class="px-5 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl text-xs font-black transition-all shadow-sm shadow-blue-500/10 whitespace-nowrap">
                         <?= $t['search_btn'] ?>
                     </button>
 
                     <!-- 상태 필터 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
                         <i class="fas fa-filter text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
-                        <select id="filterStatus" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)]">
+                        <select id="filterStatus" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white">
                             <option value="all" <?= $filter_status=='all'?'selected':'' ?>><?= $t['filter_all'] ?></option>
                             <option disabled>──────────</option> 
                             <option value="alarm" <?= $filter_status=='alarm'?'selected':'' ?>><?= $t['status_alarm'] ?></option>
@@ -276,9 +276,9 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 엔진 필터 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
                         <i class="fas fa-microchip text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
-                        <select id="filterEngine" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)]">
+                        <select id="filterEngine" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white">
                             <option value="all" <?= (!isset($_GET['filter_engine']) || $_GET['filter_engine'] == 'all') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? '모든 엔진' : 'All Engines' ?></option>
                             <option value="lynx" <?= (isset($_GET['filter_engine']) && $_GET['filter_engine'] == 'lynx') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'LYNX 엔진' : 'LYNX Engine' ?></option>
                             <option value="curl" <?= (isset($_GET['filter_engine']) && $_GET['filter_engine'] == 'curl') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? 'CURL 엔진' : 'CURL Engine' ?></option>
@@ -287,9 +287,9 @@ if (($current_view ?? 'card') === 'log') {
 
                     <?php if ($current_view !== 'log'): ?>
                     <!-- 정렬 필터 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm">
+                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
                         <i class="fas fa-sort-amount-down text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
-                        <select id="sortOrder" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] pr-1">
+                        <select id="sortOrder" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white pr-1">
                             <option value="latest" <?= $sort=='latest'?'selected':'' ?>><?= $t['sort_latest'] ?></option>
                             <option disabled>──────────</option>
                             <option value="comp_asc" <?= $sort=='comp_asc'?'selected':'' ?>><?= $t['sort_comp_asc'] ?></option>
@@ -404,10 +404,10 @@ if (($current_view ?? 'card') === 'log') {
                                             <div class="flex items-center gap-1.5 mt-0.5">
                                                 <div class="relative group flex-1 min-w-0">
                                                     <div class="bg-slate-100 dark:bg-slate-800/80 text-[10px] text-slate-600 dark:text-slate-200 font-mono rounded px-2 py-1 select-all truncate border border-slate-200 dark:border-slate-700/60 cursor-help" title="<?= htmlspecialchars($log_row['cmd']) ?>">
-                                                        <i class="fas fa-terminal text-[8px] mr-1 text-slate-400"></i><?= htmlspecialchars($log_row['cmd']) ?>
+                                                        <i class="fas fa-terminal text-[8px] mr-1 text-slate-400"></i><?= Utils::highlightCommand($log_row['cmd']) ?>
                                                     </div>
                                                     <div class="absolute bottom-full left-0 z-[120] mb-2 w-max max-w-lg hidden group-hover:block bg-slate-900 text-white text-[10px] rounded p-2 shadow-lg font-mono break-all border border-slate-700 cmd-tooltip">
-                                                        <?= htmlspecialchars($log_row['cmd']) ?>
+                                                        <?= Utils::highlightCommand($log_row['cmd']) ?>
                                                     </div>
                                                 </div>
                                                 <button type="button" onclick="copyCmd(this)" data-cmd="<?= htmlspecialchars($log_row['cmd'], ENT_QUOTES, 'UTF-8') ?>" class="flex items-center justify-center p-1.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#18aee7] hover:text-[#18aee7] text-slate-400 transition-all cursor-pointer flex-shrink-0" title="<?= $current_lang == 'KO' ? '명령어 복사' : 'Copy command' ?>">
