@@ -75,8 +75,8 @@ if ($filter_engine === 'lynx') {
 
 $log_where_sql = implode(' AND ', $log_where);
 $log_query = "
-    SELECT l.*, c.group_name, c.company, c.url, c.engine_type
-    FROM monitor_log l
+    SELECT STRAIGHT_JOIN l.*, c.group_name, c.company, c.url, c.engine_type
+    FROM monitor_log l FORCE INDEX (PRIMARY)
     INNER JOIN monitor_conf c ON l.monitor_conf_no = c.no
     WHERE $log_where_sql
     ORDER BY l.id DESC
