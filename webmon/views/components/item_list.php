@@ -8,31 +8,41 @@
     $dom_res = getExpiryColorAndText($row['dom_expiry'], $row['dom_mon']);
 
     if ($is_disabled) {
-        $status_badge = 'bg-slate-100 dark:bg-slate-800/80 text-slate-500 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+        $status_badge = 'bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full text-[9px] font-black inline-block';
     } elseif ($is_currently_off_schedule) {
-        $status_badge = 'bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+        $status_badge = 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full text-[9px] font-black inline-block border border-violet-200/50 dark:border-violet-800/30';
     } else {
         $status_badge = ($row['check'] == 'alarm') 
-            ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block' 
-            : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+            ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full text-[9px] font-black inline-block border border-green-200/50 dark:border-green-800/30' 
+            : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-full text-[9px] font-black inline-block border border-orange-200/50 dark:border-orange-800/30';
     }
 
     if ($is_currently_off_schedule) {
-        $result_badge = 'bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+        $result_badge = 'bg-violet-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black inline-block shadow-sm';
     } else {
         $result_badge = ($row['value'] > 0)
-            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block'
-            : 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block';
+            ? 'bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black inline-block shadow-sm shadow-emerald-500/10'
+            : 'bg-red-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black inline-block shadow-sm shadow-red-500/10 animate-pulse';
     }
     ?>
     <div class="flex-[1.2] font-black pr-2 min-w-0 flex flex-col justify-center">
         <div class="truncate text-[var(--text-main)]" title="<?= htmlspecialchars($row['company']) ?>"><?= htmlspecialchars($row['company']) ?></div>
-        <div class="flex gap-2 text-[9px] mt-0.5 font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap">
-            <?php if ($row['ssl_mon'] == 1 && $row['ssl_expiry']): ?>
-                <span class="<?= $ssl_res['class'] ?>" title="SSL 만료일: <?= $row['ssl_expiry'] ?>">SSL<?= $ssl_res['dday'] ?></span>
+        <div class="flex gap-1.5 text-[9px] mt-1 font-bold whitespace-nowrap">
+            <?php if ($row['ssl_mon'] == 1 && $row['ssl_expiry']): 
+                $ssl_badge_class = '';
+                if (strpos($ssl_res['badge'], 'bg-red-500') !== false) $ssl_badge_class = 'bg-red-500 text-white';
+                elseif (strpos($ssl_res['badge'], 'bg-amber-500') !== false) $ssl_badge_class = 'bg-amber-500 text-white shadow-sm shadow-amber-500/10';
+                else $ssl_badge_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
+            ?>
+                <span class="px-1.5 py-0.5 rounded text-[8px] font-black <?= $ssl_badge_class ?>" title="SSL 만료일: <?= $row['ssl_expiry'] ?>">SSL <?= $ssl_res['dday'] ?></span>
             <?php endif; ?>
-            <?php if ($row['dom_mon'] == 1 && $row['dom_expiry']): ?>
-                <span class="<?= $dom_res['class'] ?>" title="도메인 만료일: <?= $row['dom_expiry'] ?>">DOM<?= $dom_res['dday'] ?></span>
+            <?php if ($row['dom_mon'] == 1 && $row['dom_expiry']): 
+                $dom_badge_class = '';
+                if (strpos($dom_res['badge'], 'bg-red-500') !== false) $dom_badge_class = 'bg-red-500 text-white';
+                elseif (strpos($dom_res['badge'], 'bg-amber-500') !== false) $dom_badge_class = 'bg-amber-500 text-white shadow-sm shadow-amber-500/10';
+                else $dom_badge_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
+            ?>
+                <span class="px-1.5 py-0.5 rounded text-[8px] font-black <?= $dom_badge_class ?>" title="도메인 만료일: <?= $row['dom_expiry'] ?>">DOM <?= $dom_res['dday'] ?></span>
             <?php endif; ?>
         </div>
     </div>

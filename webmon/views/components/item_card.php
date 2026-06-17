@@ -46,13 +46,19 @@
             <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide flex items-center gap-1">
                 <i class="fas fa-lock text-[8px] opacity-60"></i><?= $t['h_ssl'] ?>
             </span>
-            <span class="text-[11px] font-black <?= $ssl_res['class'] ?>"><?= $row['ssl_expiry'] ? $row['ssl_expiry'] . $ssl_res['dday'] : '-' ?></span>
+            <div class="flex items-center flex-wrap">
+                <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><?= $row['ssl_expiry'] ? date('Y-m-d', strtotime($row['ssl_expiry'])) : '-' ?></span>
+                <?= $ssl_res['badge'] ?>
+            </div>
         </div>
         <div>
             <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide flex items-center gap-1">
                 <i class="fas fa-globe text-[8px] opacity-60"></i><?= $t['h_dom'] ?>
             </span>
-            <span class="text-[11px] font-black <?= $dom_res['class'] ?>"><?= $row['dom_expiry'] ? $row['dom_expiry'] . $dom_res['dday'] : '-' ?></span>
+            <div class="flex items-center flex-wrap">
+                <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><?= $row['dom_expiry'] ? date('Y-m-d', strtotime($row['dom_expiry'])) : '-' ?></span>
+                <?= $dom_res['badge'] ?>
+            </div>
         </div>
         <div class="col-span-2 border-t border-dashed border-slate-200 dark:border-slate-700/50 pt-2 mt-1">
             <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide flex items-center gap-1">
@@ -66,19 +72,19 @@
     if ($is_disabled) {
         $status_badge = 'bg-slate-100 dark:bg-slate-800/80 text-slate-500 px-2.5 py-0.5 rounded-full text-[10px] font-black';
     } elseif ($is_currently_off_schedule) {
-        $status_badge = 'bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 px-2.5 py-0.5 rounded-full text-[10px] font-black';
+        $status_badge = 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 px-2.5 py-0.5 rounded-full text-[10px] font-black border border-violet-200/50 dark:border-violet-800/30';
     } else {
         $status_badge = ($row['check'] == 'alarm') 
-            ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 px-2.5 py-0.5 rounded-full text-[10px] font-black' 
-            : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 px-2.5 py-0.5 rounded-full text-[10px] font-black';
+            ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2.5 py-0.5 rounded-full text-[10px] font-black border border-green-200/50 dark:border-green-800/30' 
+            : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-2.5 py-0.5 rounded-full text-[10px] font-black border border-orange-200/50 dark:border-orange-800/30';
     }
 
     if ($is_currently_off_schedule) {
-        $result_badge = 'bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 px-2.5 py-0.5 rounded-full text-[10px] font-black';
+        $result_badge = 'bg-violet-500 text-white px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-sm';
     } else {
         $result_badge = ($row['value'] > 0)
-            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black'
-            : 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full text-[10px] font-black';
+            ? 'bg-emerald-500 text-white px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-sm shadow-emerald-500/10'
+            : 'bg-red-500 text-white px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-sm shadow-red-500/10 animate-pulse';
     }
     ?>
     <div class="flex justify-between items-center text-[11px] border-t border-slate-100 dark:border-slate-800/40 pt-3">
