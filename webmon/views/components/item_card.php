@@ -44,7 +44,7 @@
     <!-- iOS 설정 그룹 스타일의 인포 목록 -->
     <div class="space-y-2 mb-4">
         <!-- SSL 만료일 행 -->
-        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/80">
+        <div class="flex items-center justify-between bg-slate-100/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/70">
             <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-blue-500/20">
                     <i class="fas fa-lock"></i>
@@ -58,7 +58,7 @@
         </div>
         
         <!-- 도메인 만료일 행 -->
-        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/80">
+        <div class="flex items-center justify-between bg-slate-100/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/70">
             <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-indigo-500/20">
                     <i class="fas fa-globe"></i>
@@ -72,7 +72,7 @@
         </div>
 
         <!-- 키워드 행 -->
-        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/80">
+        <div class="flex items-center justify-between bg-slate-100/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/70">
             <div class="flex items-center gap-2 min-w-0 flex-1">
                 <div class="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-amber-500/20 flex-shrink-0">
                     <i class="fas fa-search"></i>
@@ -105,7 +105,7 @@
     }
     ?>
     <!-- 하단 상태 및 상세 설정 메타 배지 영역 (iOS Pills Layout) -->
-    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex flex-col gap-2.5">
+    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700/80 flex flex-col gap-2.5">
         <!-- 알람 상태 및 검사 결과 -->
         <div class="flex items-center justify-between text-xs">
             <div class="flex items-center gap-1.5">
