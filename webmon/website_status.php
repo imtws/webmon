@@ -120,9 +120,11 @@ if (isset($_GET['action']) && $_GET['action'] == 'diagnose') {
     $sql_val = $val;
     $sql_elapsed = (float)$elapsed;
     $sql_expiry_val = $new_dom_expiry ? "'$new_dom_expiry'" : "NULL";
+    $safe_reason = $db->real_escape_string($reason);
     
     $db->query("UPDATE monitor_conf 
                 SET `value` = $sql_val, 
+                    error_msg = '$safe_reason',
                     response_time = $sql_elapsed, 
                     dom_expiry = $sql_expiry_val, 
                     mod_date = NOW() 

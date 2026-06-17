@@ -11,7 +11,12 @@
     </div>
     <div class="flex-1 text-center text-[var(--text-sub)] truncate px-1"><?= htmlspecialchars($row['contents']) ?></div>
     <div class="flex-1 text-center font-bold <?= $status_class ?>"><?= $check_text ?></div>
-    <div class="flex-1 text-center font-black <?= $result_color ?>"><?= $is_disabled ? '-' : $result_text ?></div>
+    <div class="flex-1 text-center font-black <?= $result_color ?>">
+        <?= $is_disabled ? '-' : $result_text ?>
+        <?php if (!$is_disabled && $row['value'] == 0 && !empty($row['error_msg'])): ?>
+            <span class="text-[9px] text-red-500 font-bold block mt-0.5 leading-none">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
+        <?php endif; ?>
+    </div>
     <div class="w-28 text-right pr-2 text-[var(--text-sub)] flex justify-end items-center gap-3">
         <?php
         $bell_color = 'hover:text-yellow-500';
@@ -27,7 +32,7 @@
         }
         ?>
         <i class="fas fa-bell cursor-pointer <?= $bell_color ?>" title="<?= $bell_title ?>" onclick='openScheduleModal(event, <?= json_encode($row) ?>)'></i>
-        <i class="fas fa-sync-alt cursor-pointer hover:text-[#18aee7] diagnose-btn" title="<?= $current_lang == 'KO' ? '즉시 재진단 및 만료일 동기화' : 'Diagnose & Sync Now' ?>" onclick="diagnoseItem(<?=$row['no']?>, this)"></i>
+        <i class="fas fa-sync-alt cursor-pointer hover:text-[#18aee7] diagnose-btn" title="<?= $current_lang == 'KO' ? '즉시 재진단 및 만료 정보 갱신' : 'Diagnose & Sync Expiry' ?>" onclick="diagnoseItem(<?=$row['no']?>, this)"></i>
         <i class="fas fa-cog cursor-pointer hover:text-[#18aee7]" onclick='openModal("edit", <?= json_encode($row) ?>)'></i>
         <i class="fas fa-trash cursor-pointer hover:text-red-500" onclick="confirmDelete('<?=htmlspecialchars($row['company'])?>', <?=$row['no']?>)"></i>
         <i class="fas fa-chevron-down cursor-pointer hover:text-[#18aee7] transition-transform duration-200" id="arrow-<?=$row['no']?>" onclick="toggleAccordion(event, <?=$row['no']?>)"></i>

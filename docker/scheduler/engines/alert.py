@@ -142,13 +142,13 @@ async def _fetch(row: dict, sem: asyncio.Semaphore) -> dict:
 
 async def _save_results(pool, results: list[dict]):
     """monitor_conf 업데이트 및 monitor_log 테이블에 시계열 저장."""
-    sql_conf = "UPDATE monitor_conf SET value=%s, response_time=%s, mod_date=NOW() WHERE no=%s"
+    sql_conf = "UPDATE monitor_conf SET value=%s, error_msg=%s, response_time=%s, mod_date=NOW() WHERE no=%s"
     sql_log = "INSERT INTO monitor_log (monitor_conf_no, req_url, response_time, result, cmd) VALUES (%s, %s, %s, %s, %s)"
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.executemany(
                 sql_conf,
-                [(r["val"], round(r["elapsed"], 3), r["no"]) for r in results],
+                [(r["val"], r.get("reason") or "", round(r["elapsed"], 3), r["no"]) for r in results],
             )
             await cur.executemany(
                 sql_log,

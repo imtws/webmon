@@ -20,7 +20,7 @@
             ?>
             <i class="fas fa-bell cursor-pointer <?= $bell_color ?>" title="<?= $bell_title ?>" onclick='openScheduleModal(event, <?= json_encode($row) ?>)'></i>
             <i class="fas fa-chart-line cursor-pointer hover:text-[#18aee7]" title="<?= $current_lang == 'KO' ? '응답 추이 그래프 보기' : 'View Response Trend Graph' ?>" onclick="toggleViewMode('list', <?=$row['no']?>)"></i>
-            <i class="fas fa-sync-alt cursor-pointer hover:text-[#18aee7] diagnose-btn" title="<?= $current_lang == 'KO' ? '즉시 재진단 및 만료일 동기화' : 'Diagnose & Sync Now' ?>" onclick="diagnoseItem(<?=$row['no']?>, this)"></i>
+            <i class="fas fa-sync-alt cursor-pointer hover:text-[#18aee7] diagnose-btn" title="<?= $current_lang == 'KO' ? '즉시 재진단 및 만료 정보 갱신' : 'Diagnose & Sync Expiry' ?>" onclick="diagnoseItem(<?=$row['no']?>, this)"></i>
             <i class="fas fa-cog cursor-pointer hover:text-[#18aee7]" onclick='openModal("edit", <?= json_encode($row) ?>)'></i>
             <i class="fas fa-trash cursor-pointer hover:text-red-500" onclick="confirmDelete('<?=htmlspecialchars($row['company'])?>', <?=$row['no']?>)"></i>
         </div>
@@ -54,7 +54,13 @@
 
     <div class="flex justify-between items-center text-[11px] border-t border-[var(--border-color)] pt-3">
         <div><span class="text-[var(--text-sub)]"><?= $t['h_alarm'] ?>:</span> <span class="<?= $status_class ?> font-black"><?= $check_text ?></span></div>
-        <div><span class="text-[var(--text-sub)]"><?= $t['h_result'] ?>:</span> <span class="<?= $result_color ?> font-black"><?= $is_disabled ? '-' : $result_text ?></span></div>
+        <div>
+            <span class="text-[var(--text-sub)]"><?= $t['h_result'] ?>:</span> 
+            <span class="<?= $result_color ?> font-black"><?= $is_disabled ? '-' : $result_text ?></span>
+            <?php if (!$is_disabled && $row['value'] == 0 && !empty($row['error_msg'])): ?>
+                <span class="text-[10px] text-red-500 font-bold block mt-1">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
+            <?php endif; ?>
+        </div>
     </div>
     <div class="flex flex-col gap-1 text-[11px] mt-2 pt-2 border-t border-dashed border-[var(--border-color)]">
         <div class="flex justify-between items-center">

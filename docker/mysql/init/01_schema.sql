@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS `monitor_conf` (
     `email_mode`    VARCHAR(20)     NOT NULL DEFAULT 'none' COMMENT '이메일 발송 방식',
     `mod_date`      DATETIME        DEFAULT NULL COMMENT '마지막 수정/실행 시각',
     `value`         TINYINT(1)      NOT NULL DEFAULT 1 COMMENT '마지막 체크 결과 (1=성공, 0=실패)',
+    `error_msg`     VARCHAR(255)    NOT NULL DEFAULT '' COMMENT '마지막 실패 사유',
     `response_time` FLOAT           NOT NULL DEFAULT 0.0 COMMENT '응답시간(초)',
     `retry_count`   INT(3)          NOT NULL DEFAULT 1 COMMENT '재시도 횟수',
     `timeout_sec`   INT(3)          NOT NULL DEFAULT 2 COMMENT '타임아웃(초)',
