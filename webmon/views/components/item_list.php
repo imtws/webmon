@@ -26,13 +26,13 @@
     }
     ?>
     <div class="flex-[1.2] font-black pr-2 min-w-0 flex flex-col justify-center">
-        <div class="truncate text-[var(--text-main)]" title="<?= htmlspecialchars($row['company']) ?>"><?= htmlspecialchars($row['company']) ?></div>
+        <div class="truncate text-[var(--text-main)] dark:text-white" title="<?= htmlspecialchars($row['company']) ?>"><?= htmlspecialchars($row['company']) ?></div>
         <div class="flex gap-1.5 text-[9px] mt-1 font-bold whitespace-nowrap">
             <?php if ($row['ssl_mon'] == 1 && $row['ssl_expiry']): 
                 $ssl_badge_class = '';
                 if (strpos($ssl_res['badge'], 'bg-red-500') !== false) $ssl_badge_class = 'bg-red-500 text-white';
                 elseif (strpos($ssl_res['badge'], 'bg-amber-500') !== false) $ssl_badge_class = 'bg-amber-500 text-white shadow-sm shadow-amber-500/10';
-                else $ssl_badge_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
+                else $ssl_badge_class = 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-200';
             ?>
                 <span class="px-1.5 py-0.5 rounded text-[8px] font-black <?= $ssl_badge_class ?>" title="SSL 만료일: <?= $row['ssl_expiry'] ?>">SSL <?= $ssl_res['dday'] ?></span>
             <?php endif; ?>
@@ -40,7 +40,7 @@
                 $dom_badge_class = '';
                 if (strpos($dom_res['badge'], 'bg-red-500') !== false) $dom_badge_class = 'bg-red-500 text-white';
                 elseif (strpos($dom_res['badge'], 'bg-amber-500') !== false) $dom_badge_class = 'bg-amber-500 text-white shadow-sm shadow-amber-500/10';
-                else $dom_badge_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
+                else $dom_badge_class = 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-200';
             ?>
                 <span class="px-1.5 py-0.5 rounded text-[8px] font-black <?= $dom_badge_class ?>" title="도메인 만료일: <?= $row['dom_expiry'] ?>">DOM <?= $dom_res['dday'] ?></span>
             <?php endif; ?>
@@ -51,7 +51,7 @@
             <?= htmlspecialchars($row['url']) ?>
         </a>
     </div>
-    <div class="flex-1 text-center text-[var(--text-sub)] truncate px-1"><?= htmlspecialchars($row['contents']) ?></div>
+    <div class="flex-1 text-center text-[var(--text-sub)] dark:text-slate-100 truncate px-1"><?= htmlspecialchars($row['contents']) ?></div>
     <div class="flex-1 text-center"><span class="<?= $status_badge ?>"><?= $check_text ?></span></div>
     <div class="flex-1 text-center min-w-0 flex flex-col items-center justify-center">
         <span class="<?= $result_badge ?>"><?= $is_disabled ? '-' : $result_text ?></span>

@@ -35,7 +35,7 @@ function getExpiryColorAndText($date, $monEnabled) {
     
     return [
         'class' => 'text-slate-700 dark:text-slate-300 font-bold',
-        'badge' => '<span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md text-[9px] font-bold inline-block ml-1.5">D-' . $days . '</span>',
+        'badge' => '<span class="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-200 px-2 py-0.5 rounded-md text-[9px] font-bold inline-block ml-1.5">D-' . $days . '</span>',
         'dday' => "D-{$days}"
     ];
 }
@@ -153,15 +153,19 @@ if (($current_view ?? 'card') === 'log') {
             <div class="max-w-7xl mx-auto flex flex-col gap-6">
                 <div class="flex justify-between items-center">
                     <h1 onclick="location.href='website_status.php'" class="text-2xl text-[#18aee7] font-black cursor-pointer"><?= $t['logo'] ?></h1>
-                    <div class="flex items-center gap-3">
-                        <button type="button" onclick="openHistoryModal()" class="unified-ui px-4 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors">
-                            <i class="fas fa-history mr-1.5 text-xs"></i><?= $current_lang == 'KO' ? '작업 이력' : 'Job History' ?>
+                    <div class="flex items-center gap-2">
+                        <!-- 작업 이력: iOS Tinted Style -->
+                        <button type="button" onclick="openHistoryModal()" class="unified-ui px-4 bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-600 dark:text-amber-400 font-bold transition-colors border-none rounded-full">
+                            <i class="fas fa-history mr-1.5 text-[11px]"></i><?= $current_lang == 'KO' ? '작업 이력' : 'Job History' ?>
                         </button>
-                        <button type="button" onclick="openBulkModal()" class="unified-ui px-4 bg-blue-50 dark:bg-slate-800 text-[#18aee7] border border-blue-200 dark:border-slate-600 hover:bg-blue-100 transition-colors">
-                            <i class="fas fa-sliders-h mr-1.5 text-xs"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
+                        <!-- 선택 일괄 설정: iOS Tinted Style -->
+                        <button type="button" onclick="openBulkModal()" class="unified-ui px-4 bg-blue-500/10 dark:bg-blue-500/20 hover:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#007aff] dark:text-[#0a84ff] font-bold transition-colors border-none rounded-full">
+                            <i class="fas fa-sliders-h mr-1.5 text-[11px]"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
                         </button>
-                        <button type="button" onclick="confirmBulkDeleteSubmit()" class="unified-ui px-4 bg-red-50 dark:bg-rose-900/20 text-red-500 border border-red-200 dark:border-rose-800 hover:bg-red-100"><?= $t['btn_del'] ?></button>
-                        <button type="button" onclick="openModal('add')" class="unified-ui px-6 bg-[#18aee7] text-white hover:bg-[#159bd0] shadow-md"><?= $t['btn_add'] ?></button>
+                        <!-- 선택 삭제: iOS Destructive Tinted Style -->
+                        <button type="button" onclick="confirmBulkDeleteSubmit()" class="unified-ui px-4 bg-red-500/10 dark:bg-red-500/20 hover:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 font-bold transition-colors border-none rounded-full"><?= $t['btn_del'] ?></button>
+                        <!-- 추가: iOS Filled System Blue Style -->
+                        <button type="button" onclick="openModal('add')" class="unified-ui px-5 bg-[#007aff] dark:bg-[#0a84ff] hover:bg-[#0066d6] dark:hover:bg-[#007aff] text-white font-bold shadow-sm transition-all border-none rounded-full"><?= $t['btn_add'] ?></button>
                         
                         <div class="flex items-center gap-2 ml-2">
                             <div class="switch-container">
@@ -206,11 +210,13 @@ if (($current_view ?? 'card') === 'log') {
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"><?= $stat_fail ?></span>
                         </div>
                         <!-- EXPIRING 탭 -->
+                        <?php if (($current_view ?? 'card') !== 'log'): ?>
                         <div onclick="applyType('expiring')" class="relative px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='expiring' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5 scale-[1.02]' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
                             <i class="fas fa-hourglass-half text-amber-500 text-xs"></i>
                             <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">EXPIRING</span>
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500"><?= $stat_expiring ?></span>
                         </div>
+                        <?php endif; ?>
                     </div>
                     <!-- 실행 정보 -->
                     <div class="text-[10px] font-bold text-right text-[var(--text-sub)] opacity-70 mb-1">
@@ -369,23 +375,23 @@ if (($current_view ?? 'card') === 'log') {
                         <?php while($log_row = $log_result->fetch_assoc()): 
                             $border_color = $log_row['result'] > 0 ? 'bg-[#18aee7]' : 'bg-red-500';
                             $result_badge_class = $log_row['result'] > 0 
-                                ? 'bg-green-50 dark:bg-green-900/20 text-green-500 border border-green-200 dark:border-green-800' 
-                                : 'bg-red-50 dark:bg-rose-900/20 text-red-500 border border-red-200 dark:border-rose-800';
+                                ? 'bg-green-50 dark:bg-green-950/40 text-green-500 dark:text-green-400 border border-green-200/50 dark:border-green-800/50' 
+                                : 'bg-red-50 dark:bg-rose-950/40 text-red-500 dark:text-rose-400 border border-red-200/50 dark:border-rose-800/50';
                             $result_text = $log_row['result'] > 0 ? $t['v_success'] : $t['v_fail'];
                             $result_icon = $log_row['result'] > 0 ? 'fa-check-circle' : 'fa-exclamation-circle';
                         ?>
                             <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px] hover:z-[110]">
                                 <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?> rounded-l-xl"></div>
                                 <!-- 시각 -->
-                                <div class="w-48 text-[var(--text-sub)] font-mono">
+                                <div class="w-48 text-[var(--text-sub)] dark:text-slate-300 font-mono">
                                     <?= htmlspecialchars($log_row['log_time']) ?>
                                 </div>
                                 <!-- 그룹 -->
-                                <div class="w-40 font-semibold text-slate-500 dark:text-slate-400 truncate pr-4">
+                                <div class="w-40 font-semibold text-slate-500 dark:text-slate-300 truncate pr-4">
                                     <?= htmlspecialchars($log_row['group_name'] ?: '기본 그룹') ?>
                                 </div>
                                 <!-- 업체명 -->
-                                <div class="w-48 font-black text-[var(--text-main)] truncate pr-4">
+                                <div class="w-48 font-black text-[var(--text-main)] dark:text-white truncate pr-4">
                                     <?= htmlspecialchars($log_row['company']) ?>
                                 </div>
                                 <!-- URL / 실행 명령어 -->
@@ -397,7 +403,7 @@ if (($current_view ?? 'card') === 'log') {
                                         <?php if (!empty($log_row['cmd'])): ?>
                                             <div class="flex items-center gap-1.5 mt-0.5">
                                                 <div class="relative group flex-1 min-w-0">
-                                                    <div class="bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 font-mono rounded px-2 py-1 select-all truncate border border-slate-200 dark:border-slate-700 cursor-help" title="<?= htmlspecialchars($log_row['cmd']) ?>">
+                                                    <div class="bg-slate-100 dark:bg-slate-800/80 text-[10px] text-slate-600 dark:text-slate-200 font-mono rounded px-2 py-1 select-all truncate border border-slate-200 dark:border-slate-700/60 cursor-help" title="<?= htmlspecialchars($log_row['cmd']) ?>">
                                                         <i class="fas fa-terminal text-[8px] mr-1 text-slate-400"></i><?= htmlspecialchars($log_row['cmd']) ?>
                                                     </div>
                                                     <div class="absolute bottom-full left-0 z-[120] mb-2 w-max max-w-lg hidden group-hover:block bg-slate-900 text-white text-[10px] rounded p-2 shadow-lg font-mono break-all border border-slate-700 cmd-tooltip">
@@ -414,7 +420,7 @@ if (($current_view ?? 'card') === 'log') {
                                     </div>
                                 </div>
                                 <!-- 응답속도 -->
-                                <div class="w-28 text-center font-bold font-mono text-slate-700 dark:text-slate-300">
+                                <div class="w-28 text-center font-bold font-mono text-slate-700 dark:text-slate-200">
                                     <?= number_format($log_row['response_time'], 3) ?>s
                                 </div>
                                 <!-- 결과 -->

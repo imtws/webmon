@@ -44,43 +44,43 @@
     <!-- iOS 설정 그룹 스타일의 인포 목록 -->
     <div class="space-y-2 mb-4">
         <!-- SSL 만료일 행 -->
-        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/30">
+        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/40">
             <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-blue-500/20">
                     <i class="fas fa-lock"></i>
                 </div>
-                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400"><?= $t['h_ssl'] ?></span>
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-300"><?= $t['h_ssl'] ?></span>
             </div>
             <div class="flex items-center">
-                <span class="text-[11px] font-extrabold text-slate-800 dark:text-slate-100"><?= $row['ssl_expiry'] ? date('Y-m-d', strtotime($row['ssl_expiry'])) : '-' ?></span>
+                <span class="text-[11px] font-extrabold text-slate-800 dark:text-white"><?= $row['ssl_expiry'] ? date('Y-m-d', strtotime($row['ssl_expiry'])) : '-' ?></span>
                 <?= $ssl_res['badge'] ?>
             </div>
         </div>
         
         <!-- 도메인 만료일 행 -->
-        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/30">
+        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/40">
             <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-indigo-500/20">
                     <i class="fas fa-globe"></i>
                 </div>
-                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400"><?= $t['h_dom'] ?></span>
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-300"><?= $t['h_dom'] ?></span>
             </div>
             <div class="flex items-center">
-                <span class="text-[11px] font-extrabold text-slate-800 dark:text-slate-100"><?= $row['dom_expiry'] ? date('Y-m-d', strtotime($row['dom_expiry'])) : '-' ?></span>
+                <span class="text-[11px] font-extrabold text-slate-800 dark:text-white"><?= $row['dom_expiry'] ? date('Y-m-d', strtotime($row['dom_expiry'])) : '-' ?></span>
                 <?= $dom_res['badge'] ?>
             </div>
         </div>
 
         <!-- 키워드 행 -->
-        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/30">
+        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/40">
             <div class="flex items-center gap-2 min-w-0 flex-1">
                 <div class="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-amber-500/20 flex-shrink-0">
                     <i class="fas fa-search"></i>
                 </div>
-                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex-shrink-0 mr-2"><?= $t['h_keyword'] ?></span>
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-300 flex-shrink-0 mr-2"><?= $t['h_keyword'] ?></span>
             </div>
             <div class="flex items-center min-w-0">
-                <span class="text-[11px] font-extrabold text-slate-800 dark:text-slate-100 truncate max-w-[130px]" title="<?= htmlspecialchars($row['contents']) ?>"><?= htmlspecialchars($row['contents']) ?></span>
+                <span class="text-[11px] font-extrabold text-slate-800 dark:text-white truncate max-w-[130px]" title="<?= htmlspecialchars($row['contents']) ?>"><?= htmlspecialchars($row['contents']) ?></span>
             </div>
         </div>
     </div>
