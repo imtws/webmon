@@ -4,7 +4,7 @@
             <input type="checkbox" name="chk_ids[]" value="<?=$row['no']?>" data-company="<?=htmlspecialchars($row['company'])?>" class="item-checkbox w-4 h-4 rounded accent-[#18aee7] cursor-pointer">
             <span class="group-badge clickable" onclick="filterByGroup('<?=$group_name_display?>')"># <?= $group_name_display ?></span>
         </div>
-        <div class="flex gap-3 text-[var(--text-sub)] dark:text-slate-400 items-center">
+        <div class="flex gap-3 text-[var(--text-sub)] dark:text-slate-400 items-center opacity-30 group-hover:opacity-100 transition-opacity duration-200">
             <?php
             $bell_color = 'hover:text-yellow-500';
             $bell_title = $current_lang == 'KO' ? '알람 일시 무음 설정' : 'Mute Settings';
@@ -126,24 +126,20 @@
         <!-- 엔진 / 타임아웃 / 재시도 설정 칩 (iOS System Badges Row) -->
         <?php
         $engine_val = strtolower($row['engine_type'] ?? 'lynx');
-        if ($engine_val === 'curl') {
-            $engine_class = 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/40';
-        } else {
-            $engine_class = 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/40';
-        }
+        $engine_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/50';
 
         $timeout_val = $row['timeout_sec'] ?? 2;
         if ($timeout_val > 2) {
-            $timeout_class = 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/40';
+            $timeout_class = 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30';
         } else {
-            $timeout_class = 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/60';
+            $timeout_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/50';
         }
 
         $retry_val = $row['retry_count'] ?? 1;
         if ($retry_val > 1) {
-            $retry_class = 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/40';
+            $retry_class = 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30';
         } else {
-            $retry_class = 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/60';
+            $retry_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/50';
         }
         ?>
         <div class="flex items-center gap-1.5 flex-wrap">

@@ -313,15 +313,15 @@ if (($current_view ?? 'card') === 'log') {
                     <?php if ($current_view === 'log'): ?>
                     <div class="flex items-center gap-2">
                         <!-- 수동 새로고침 버튼 -->
-                        <button onclick="refreshLogs()" class="flex items-center justify-center w-8.5 h-8.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 hover:border-[#18aee7] hover:text-[#18aee7] transition-all shadow-sm" title="<?= $current_lang == 'KO' ? '로그 새로고침' : 'Refresh Logs' ?>">
+                        <button onclick="refreshLogs()" class="flex items-center justify-center w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 hover:border-[#18aee7] hover:text-[#18aee7] transition-all shadow-sm" title="<?= $current_lang == 'KO' ? '로그 새로고침' : 'Refresh Logs' ?>">
                             <i class="fas fa-sync-alt text-xs text-[var(--text-sub)] hover:text-[#18aee7]"></i>
                         </button>
                         
                         <!-- 자동 새로고침 토글 스위치 -->
-                        <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm gap-2">
+                        <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm gap-2 h-9">
                             <label class="relative inline-flex items-center cursor-pointer" title="<?= $current_lang == 'KO' ? '10초 간격 자동 새로고침' : 'Auto Refresh every 10s' ?>">
                                 <input type="checkbox" id="autoRefreshToggle" class="sr-only peer" onchange="toggleAutoRefresh(this.checked)">
-                                <div class="w-8 h-4.5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
                             </label>
                             <span class="text-[9px] font-black text-[var(--text-sub)] select-none">AUTO</span>
                         </div>
@@ -484,11 +484,14 @@ if (($current_view ?? 'card') === 'log') {
                                 $group_name_display = htmlspecialchars($row['group_name'] ?: '기본 그룹');
                         ?>
                         
-                        <div class="monitor-item relative bg-[var(--card-bg)] overflow-hidden transition-all border border-[var(--border-color)] rounded-xl <?= $is_disabled ? 'opacity-60' : '' ?> hover:shadow-md">
+                        <div class="monitor-item group relative bg-[var(--card-bg)] overflow-hidden transition-all border border-[var(--border-color)] rounded-xl <?= $is_disabled ? 'opacity-60' : '' ?> hover:shadow-md">
                             <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?>"></div>
 
-                            <?php include 'views/components/item_card.php'; ?>
-                            <?php include 'views/components/item_list.php'; ?>
+                            <?php if (($current_view ?? 'card') === 'card'): ?>
+                                <?php include 'views/components/item_card.php'; ?>
+                            <?php elseif ($current_view === 'list'): ?>
+                                <?php include 'views/components/item_list.php'; ?>
+                            <?php endif; ?>
                         </div>
                         <?php 
                             endwhile; 
@@ -936,7 +939,7 @@ if (($current_view ?? 'card') === 'log') {
                 // 차트 그리기
                 const ctx = canvas.getContext('2d');
                 const isDark = document.documentElement.classList.contains('dark');
-                const textColor = isDark ? '#94a3b8' : '#64748b';
+                const textColor = isDark ? '#cbd5e1' : '#64748b';
                 const gridColor = isDark ? '#334155' : '#e2e8f0';
 
                 const showTime = document.getElementById('show-time-' + no) ? document.getElementById('show-time-' + no).checked : true;

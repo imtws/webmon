@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS `monitor_log` (
     PRIMARY KEY (`id`),
     INDEX `idx_log_time` (`log_time`),
     INDEX `idx_conf_no` (`monitor_conf_no`),
-    INDEX `idx_log_time_no` (`log_time`, `monitor_conf_no`)
+    INDEX `idx_log_time_no` (`log_time`, `monitor_conf_no`),
+    INDEX `idx_conf_no_log_time` (`monitor_conf_no`, `log_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 샘플 데이터 (선택사항 - 삭제해도 무방)
