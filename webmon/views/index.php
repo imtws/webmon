@@ -154,16 +154,22 @@ if (($current_view ?? 'card') === 'log') {
                 <div class="flex justify-between items-center">
                     <h1 onclick="location.href='website_status.php'" class="text-2xl text-[#18aee7] font-black cursor-pointer"><?= $t['logo'] ?></h1>
                     <div class="flex items-center gap-2">
+                        <!-- 일괄 작업 컨트롤 바: 체크 시에만 표시 (iOS Contextual Action Bar) -->
+                        <div id="batchActionBar" class="flex items-center gap-2 transition-all duration-300 opacity-0 -translate-x-2 pointer-events-none hidden">
+                            <span class="text-[11px] font-black text-slate-500 dark:text-slate-400 mr-1"><span id="batchCount" class="text-[#18aee7]">0</span>개 선택됨</span>
+                            <!-- 선택 일괄 설정: iOS Tinted Style -->
+                            <button type="button" onclick="openBulkModal()" class="unified-ui px-4 bg-blue-500/10 dark:bg-blue-500/20 hover:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#007aff] dark:text-[#0a84ff] font-bold transition-colors border-none rounded-xl">
+                                <i class="fas fa-sliders-h mr-1.5 text-[10px]"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
+                            </button>
+                            <!-- 선택 삭제: iOS Destructive Tinted Style -->
+                            <button type="button" onclick="confirmBulkDeleteSubmit()" class="unified-ui px-4 bg-red-500/10 dark:bg-red-500/20 hover:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 font-bold transition-colors border-none rounded-xl"><?= $t['btn_del'] ?></button>
+                            <div class="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></div>
+                        </div>
+
                         <!-- 작업 이력: iOS Tinted Style -->
                         <button type="button" onclick="openHistoryModal()" class="unified-ui px-4 bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-600 dark:text-amber-400 font-bold transition-colors border-none rounded-xl">
                             <i class="fas fa-history mr-1.5 text-[10px]"></i><?= $current_lang == 'KO' ? '작업 이력' : 'Job History' ?>
                         </button>
-                        <!-- 선택 일괄 설정: iOS Tinted Style -->
-                        <button type="button" onclick="openBulkModal()" class="unified-ui px-4 bg-blue-500/10 dark:bg-blue-500/20 hover:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#007aff] dark:text-[#0a84ff] font-bold transition-colors border-none rounded-xl">
-                            <i class="fas fa-sliders-h mr-1.5 text-[10px]"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
-                        </button>
-                        <!-- 선택 삭제: iOS Destructive Tinted Style -->
-                        <button type="button" onclick="confirmBulkDeleteSubmit()" class="unified-ui px-4 bg-red-500/10 dark:bg-red-500/20 hover:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 font-bold transition-colors border-none rounded-xl"><?= $t['btn_del'] ?></button>
                         <!-- 추가: iOS Filled System Blue Style -->
                         <button type="button" onclick="openModal('add')" class="unified-ui px-5 bg-[#007aff] dark:bg-[#0a84ff] hover:bg-[#0066d6] dark:hover:bg-[#007aff] text-white font-bold shadow-sm transition-all border-none rounded-xl"><?= $t['btn_add'] ?></button>
                         

@@ -44,6 +44,7 @@ if (selectAllBtn) {
         document.querySelectorAll('.item-checkbox').forEach(cb => {
             cb.checked = e.target.checked;
         });
+        updateBatchActionBar();
     });
 }
 
@@ -616,6 +617,32 @@ function stopAutoRefresh() {
     }
 }
 
+function updateBatchActionBar() {
+    const checked = document.querySelectorAll('.item-checkbox:checked');
+    const bar = document.getElementById('batchActionBar');
+    const countSpan = document.getElementById('batchCount');
+    if (!bar || !countSpan) return;
+
+    const count = checked.length;
+    countSpan.innerText = count;
+
+    if (count > 0) {
+        bar.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            bar.classList.remove('opacity-0', '-translate-x-2', 'pointer-events-none');
+            bar.classList.add('opacity-100', 'translate-x-0', 'pointer-events-auto');
+        });
+    } else {
+        bar.classList.remove('opacity-100', 'translate-x-0', 'pointer-events-auto');
+        bar.classList.add('opacity-0', '-translate-x-2', 'pointer-events-none');
+        setTimeout(() => {
+            if (document.querySelectorAll('.item-checkbox:checked').length === 0) {
+                bar.classList.add('hidden');
+            }
+        }, 300);
+    }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     const autoRefreshToggle = document.getElementById('autoRefreshToggle');
     if (autoRefreshToggle) {
@@ -625,6 +652,12 @@ window.addEventListener('DOMContentLoaded', () => {
             startAutoRefresh();
         }
     }
+    
+    // 개별 체크박스 리스너 등록
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBatchActionBar);
+    });
+    updateBatchActionBar();
     
     // URL에 open_history=1 파라미터가 감지되면 작업 이력 모달 자동 팝업
     const params = new URLSearchParams(window.location.search);
