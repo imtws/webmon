@@ -103,8 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $def_mute_hours = (int)($_POST['def_mute_hours'] ?? 2);
     if ($def_mute_hours < 0) $def_mute_hours = 0;
 
-    $log_max_lines = (int)($_POST['log_max_lines'] ?? 500);
-    if ($log_max_lines < 1) $log_max_lines = 500;
+    $log_max_lines = (int)($_POST['log_max_lines'] ?? 100);
+    $log_max_lines = min(100, max(20, $log_max_lines));
 
     $log_rotate_mb = (int)($_POST['log_rotate_mb'] ?? 50);
     if ($log_rotate_mb < 1) $log_rotate_mb = 50;

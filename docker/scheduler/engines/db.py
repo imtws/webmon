@@ -6,9 +6,12 @@ aiomysql 기반 비동기 커넥션 풀.
 """
 
 import ast
+import logging
 import os
 import aiomysql
 from contextlib import asynccontextmanager
+
+log = logging.getLogger("webmon.db")
 
 def get_db_config() -> dict:
     config = dict(
@@ -88,8 +91,7 @@ async def load_system_settings() -> dict[str, str]:
                 for key_name, key_value in rows:
                     settings[key_name] = key_value if key_value is not None else ""
     except Exception as e:
-        # DB가 준비 안되었거나 에러 시 빈 dict 반환
-        pass
+        log.error("시스템 설정 로드 실패: %s", e)
     finally:
         pool.close()
         await pool.wait_closed()

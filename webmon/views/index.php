@@ -42,7 +42,8 @@ function getExpiryColorAndText($date, $monEnabled) {
 
 // 로그 뷰일 때 DB 데이터 쿼리
 if (($current_view ?? 'card') === 'log') {
-    $log_max_lines = isset($settings['log_max_lines']) ? (int)$settings['log_max_lines'] : 500;
+    $log_max_lines = min(100, max(20, (int)($settings['log_max_lines'] ?? 100)));
+    $log_before_id = max(0, (int)($_GET['before_log_id'] ?? 0));
     
     // c.로 컬럼이 명확하도록 WHERE문 재생성
     $log_where = ["1=1"];
@@ -96,14 +97,14 @@ if (($current_view ?? 'card') === 'log') {
     }
 
     $log_where_sql = implode(' AND ', $log_where);
+    $log_cursor_sql = $log_before_id > 0 ? " AND l.id < $log_before_id" : '';
     $log_query = "
         SELECT STRAIGHT_JOIN l.*, c.group_name, c.company, c.url, c.engine_type
         FROM monitor_log l FORCE INDEX (PRIMARY)
         INNER JOIN monitor_conf c ON l.monitor_conf_no = c.no
-        WHERE $log_where_sql
+        WHERE $log_where_sql $log_cursor_sql
         ORDER BY l.id DESC
-        LIMIT $log_max_lines
-    ";
+        LIMIT " . ($log_max_lines + 1);
     $log_result = $db->query($log_query);
 }
 ?>
@@ -320,7 +321,7 @@ if (($current_view ?? 'card') === 'log') {
                     <?php if ($current_view === 'log'): ?>
                     <div class="flex items-center gap-2">
                         <!-- 수동 새로고침 버튼 -->
-                        <button onclick="refreshLogs()" class="flex items-center justify-center w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 hover:border-[#18aee7] hover:text-[#18aee7] transition-all shadow-sm" title="<?= $current_lang == 'KO' ? '로그 새로고침' : 'Refresh Logs' ?>">
+                        <button onclick="refreshLogs(true)" class="flex items-center justify-center w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 hover:border-[#18aee7] hover:text-[#18aee7] transition-all shadow-sm" title="<?= $current_lang == 'KO' ? '로그 새로고침' : 'Refresh Logs' ?>">
                             <i class="fas fa-sync-alt text-xs text-[var(--text-sub)] hover:text-[#18aee7]"></i>
                         </button>
                         
@@ -378,8 +379,19 @@ if (($current_view ?? 'card') === 'log') {
             <?php if ($current_view == 'log'): ?>
                 <!-- 실시간 로그뷰 -->
                 <div class="view-list flex flex-col gap-3">
-                    <?php if (isset($log_result) && $log_result->num_rows > 0): ?>
-                        <?php while($log_row = $log_result->fetch_assoc()): 
+                    <?php
+                    $log_rows = [];
+                    $log_has_more = isset($log_result) && $log_result->num_rows > $log_max_lines;
+                    if (isset($log_result)) {
+                        while ($log_row = $log_result->fetch_assoc()) {
+                            if (count($log_rows) >= $log_max_lines) break;
+                            $log_rows[] = $log_row;
+                        }
+                    }
+                    $next_log_cursor = !empty($log_rows) ? (int)end($log_rows)['id'] : 0;
+                    ?>
+                    <?php if (!empty($log_rows)): ?>
+                        <?php foreach($log_rows as $log_row):
                             $border_color = $log_row['result'] > 0 ? 'bg-[#18aee7]' : 'bg-red-500';
                             $result_badge_class = $log_row['result'] > 0 
                                 ? 'bg-green-50 dark:bg-green-950/40 text-green-500 dark:text-green-400 border border-green-200/50 dark:border-green-800/50' 
@@ -387,7 +399,7 @@ if (($current_view ?? 'card') === 'log') {
                             $result_text = $log_row['result'] > 0 ? $t['v_success'] : $t['v_fail'];
                             $result_icon = $log_row['result'] > 0 ? 'fa-check-circle' : 'fa-exclamation-circle';
                         ?>
-                            <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px] hover:z-[110]">
+                            <div class="log-entry relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px] hover:z-[110]">
                                 <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?> rounded-l-xl"></div>
                                 <!-- 시각 -->
                                 <div class="w-48 text-[var(--text-sub)] dark:text-slate-300 font-mono">
@@ -437,7 +449,12 @@ if (($current_view ?? 'card') === 'log') {
                                     </span>
                                 </div>
                             </div>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
+                        <?php if ($log_has_more): ?>
+                            <button type="button" class="load-more-logs" data-cursor="<?= $next_log_cursor ?>">
+                                <?= $current_lang == 'KO' ? '이전 로그 더 보기' : 'Load older logs' ?>
+                            </button>
+                        <?php endif; ?>
                     <?php else: ?>
                         <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-10 text-center text-[var(--text-sub)]">
                             <?= $current_lang == 'KO' ? '조회된 로그가 없습니다.' : 'No logs found.' ?>
@@ -517,13 +534,13 @@ if (($current_view ?? 'card') === 'log') {
     <!-- ⚙️ 환경 설정 모달 ────────────────────────────────────────────── -->
     <div id="settingsModal" class="side-sheet-overlay fixed inset-0 z-[1000] hidden justify-end bg-black/40 backdrop-blur-sm">
         <div class="side-sheet-panel bg-[var(--card-bg)] border-l border-[var(--border-color)] w-full max-w-xl h-full shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-modal="true">
-            <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center">
-                <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-sliders text-[#18aee7]"></i> <?= $current_lang == 'KO' ? '모니터링 프로그램 환경 설정' : 'System Configuration' ?></h3>
+            <div class="sheet-header">
+                <h3 class="sheet-header-title"><i class="fas fa-sliders"></i><span><?= $current_lang == 'KO' ? '모니터링 프로그램 환경 설정' : 'System Configuration' ?></span></h3>
                 <button type="button" class="sheet-close-button" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeSettingsModal()"><i class="fas fa-times"></i></button>
             </div>
 
             <!-- 탭 버튼 헤더 -->
-            <div class="flex border-b border-[var(--border-color)] bg-slate-50 dark:bg-slate-800/50">
+            <div class="settings-tabs flex">
                 <button type="button" onclick="switchSettingsTab('sys')" id="tabBtn-sys" class="flex-1 py-3 text-xs font-bold border-b-2 border-[#18aee7] text-[#18aee7] focus:outline-none">
                     <?= $current_lang == 'KO' ? '시스템 연동 설정' : 'System Config' ?>
                 </button>
@@ -532,13 +549,13 @@ if (($current_view ?? 'card') === 'log') {
                 </button>
             </div>
             
-            <form action="save_settings.php" method="POST" class="flex-1 overflow-y-auto p-6 flex flex-col gap-4 text-sm">
+            <form action="save_settings.php" method="POST" class="sheet-form flex-1 overflow-y-auto p-5 flex flex-col gap-4 text-sm">
                 <!-- 탭 1: 시스템 설정 -->
                 <div id="tabContent-sys" class="flex flex-col gap-4">
                     <!-- 1. 텔레그램 설정 -->
-                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                    <div class="settings-accordion">
                         <button type="button" onclick="toggleSettingsAccordion('tg')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                            <span class="flex items-center gap-2 text-blue-500"><i class="fab fa-telegram text-lg"></i> <?= $current_lang == 'KO' ? '텔레그램 알림 설정' : 'Telegram Alert Settings' ?></span>
+                            <span class="flex items-center gap-2 text-[var(--text-main)]"><i class="fab fa-telegram text-[var(--text-sub)]"></i> <?= $current_lang == 'KO' ? '텔레그램 알림 설정' : 'Telegram Alert Settings' ?></span>
                             <div class="flex items-center gap-3" onclick="event.stopPropagation()">
                                 <label class="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" name="tg_enabled" value="1" class="sr-only peer" <?= ($settings['tg_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
@@ -562,11 +579,18 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 2. SMTP 릴레이 서버 설정 -->
-                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
-                        <button type="button" onclick="toggleSettingsAccordion('smtp')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                            <span class="flex items-center gap-2 text-[#18aee7]"><i class="fas fa-mail-bulk"></i> <?= $current_lang == 'KO' ? '전역 SMTP 릴레이 서버 설정' : 'Global SMTP Relay Settings' ?></span>
-                            <i id="set-arrow-smtp" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
-                        </button>
+                    <div class="settings-accordion">
+                        <div class="settings-accordion-header">
+                            <button type="button" onclick="toggleSettingsAccordion('smtp')" class="settings-accordion-trigger">
+                                <span class="flex items-center gap-2"><i class="fas fa-mail-bulk"></i> <?= $current_lang == 'KO' ? '전역 SMTP 릴레이 서버 설정' : 'Global SMTP Relay Settings' ?></span>
+                                <i id="set-arrow-smtp" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                            </button>
+                            <label class="settings-channel-toggle">
+                                <span><?= $current_lang == 'KO' ? '이메일 알림' : 'Email alerts' ?></span>
+                                <input type="checkbox" name="email_enabled" value="1" class="sr-only peer" aria-label="<?= $current_lang == 'KO' ? '이메일 알림 사용' : 'Enable email alerts' ?>" <?= ($settings['email_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
+                                <span class="settings-toggle-track"><span></span></span>
+                            </label>
+                        </div>
                         <div id="set-body-smtp" class="p-4 border-t border-[var(--border-color)] hidden">
                             <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '모니터링 항목에서 외부 SMTP 발송을 선택할 경우 사용될 메일 서버 계정 정보입니다.' : 'Mail credentials used when SMTP mode is chosen for monitor targets.' ?></p>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -599,7 +623,7 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 3. 알림 발송 포맷 및 템플릿 설정 -->
-                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                    <div class="settings-accordion">
                         <button type="button" onclick="toggleSettingsAccordion('template')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
                             <span class="flex items-center gap-2 text-indigo-500"><i class="fas fa-envelope-open-text"></i> <?= $current_lang == 'KO' ? '알림 발송 포맷 및 템플릿 설정' : 'Alert Format & Template' ?></span>
                             <i id="set-arrow-template" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
@@ -672,7 +696,7 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 4. DB 비밀번호 변경 -->
-                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                    <div class="settings-accordion">
                         <button type="button" onclick="toggleSettingsAccordion('dbpass')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
                             <span class="flex items-center gap-2 text-red-500"><i class="fas fa-key"></i> <?= $current_lang == 'KO' ? 'DB 비밀번호 변경' : 'Change DB Password' ?></span>
                             <i id="set-arrow-dbpass" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
@@ -693,13 +717,13 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 5. 시스템 환경 설정 -->
-                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                    <div class="settings-accordion">
                         <button type="button" onclick="toggleSettingsAccordion('sysenv')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
                             <span class="flex items-center gap-2 text-[var(--text-sub)]"><i class="fas fa-hdd"></i> <?= $current_lang == 'KO' ? '시스템 환경 설정' : 'System Environment' ?></span>
                             <i id="set-arrow-sysenv" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
                         </button>
                         <div id="set-body-sysenv" class="p-4 border-t border-[var(--border-color)] hidden">
-                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '로그 보관 일수, 실시간 로그 최대 조회 라인수, 파일 로그 분할 크기 및 대시보드 주소를 설정합니다.' : 'Set retention days, max lines to display in Log View, log file rotation size, and the dashboard URL.' ?></p>
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? 'DB 실행 이력의 보관 기간과 화면 페이지 크기, 스케줄러 요약 로그의 파일 크기 및 대시보드 주소를 설정합니다.' : 'Configure database log retention and page size, scheduler summary-log file size, and dashboard URL.' ?></p>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '로그 보존 기간 (일)' : 'Log Retention (Days)' ?></label>
@@ -710,11 +734,12 @@ if (($current_view ?? 'card') === 'log') {
                                     <input type="text" name="webmon_url" value="<?= htmlspecialchars($settings['webmon_url'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="http://your-server-ip:8080">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '로그 뷰 최대 라인 수' : 'Log View Max Lines' ?></label>
-                                    <input type="number" name="log_max_lines" min="10" max="5000" value="<?= htmlspecialchars($settings['log_max_lines'] ?? '500') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '로그 페이지당 조회 건수 (20–100)' : 'Rows per log page (20–100)' ?></label>
+                                    <input type="number" name="log_max_lines" min="20" max="100" value="<?= min(100, max(20, (int)($settings['log_max_lines'] ?? 100))) ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '엔진 로그 로테이션 용량 (MB)' : 'Engine Log Rotate MB' ?></label>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '엔진 로그 파일당 크기 (MB)' : 'Engine log file size (MB)' ?></label>
+                                    <p class="mb-1 text-[10px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '최대 4개 백업 파일을 보관합니다.' : 'Keeps up to 4 rotated backups.' ?></p>
                                     <input type="number" name="log_rotate_mb" min="1" max="1000" value="<?= htmlspecialchars($settings['log_rotate_mb'] ?? '50') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
                                 </div>
                             </div>
@@ -725,7 +750,7 @@ if (($current_view ?? 'card') === 'log') {
                 <!-- 탭 2: 신규 등록 기본값 설정 -->
                 <div id="tabContent-def" class="hidden flex flex-col gap-4">
                     <!-- 1. 모니터링 항목 기본값 -->
-                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                    <div class="settings-accordion">
                         <button type="button" onclick="toggleSettingsAccordion('defmon')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
                             <span class="flex items-center gap-2 text-sky-500"><i class="fas fa-sliders-h"></i> <?= $current_lang == 'KO' ? '모니터링 항목 기본값' : 'Default Monitoring Settings' ?></span>
                             <i id="set-arrow-defmon" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
@@ -783,7 +808,7 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 2. 기본 이메일 알림 설정 -->
-                    <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
+                    <div class="settings-accordion">
                         <button type="button" onclick="toggleSettingsAccordion('defmail')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
                             <span class="flex items-center gap-2 text-[var(--text-sub)]"><i class="fas fa-envelope"></i> <?= $current_lang == 'KO' ? '기본 이메일 알림 설정' : 'Default Email Alerts Settings' ?></span>
                             <i id="set-arrow-defmail" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
@@ -811,7 +836,7 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
                 </div>
 
-                <div class="flex justify-end gap-3 mt-4 border-t border-[var(--border-color)] pt-4">
+                <div class="sheet-footer -mx-5 -mb-5 mt-4">
                     <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '설정 저장' : 'Save Settings' ?></button>
                 </div>
             </form>
@@ -824,12 +849,12 @@ if (($current_view ?? 'card') === 'log') {
     <!-- 🔔 개별 모니터링 알람 일시 무음 설정 모달 ────────────────────────────── -->
     <div id="itemScheduleModal" class="side-sheet-overlay fixed inset-0 z-[1000] hidden justify-end bg-black/40 backdrop-blur-sm">
         <div class="side-sheet-panel bg-[var(--card-bg)] border-l border-[var(--border-color)] w-full max-w-md h-full shadow-2xl flex flex-col overflow-y-auto" role="dialog" aria-modal="true">
-            <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-bell-slash text-[#18aee7]"></i> <span id="schedModalTitle">알람 일시 무음 설정</span></h3>
+            <div class="sheet-header">
+                <h3 class="sheet-header-title"><i class="fas fa-bell-slash"></i><span id="schedModalTitle">알람 일시 무음 설정</span></h3>
                 <button type="button" class="sheet-close-button" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeItemScheduleModal()"><i class="fas fa-times"></i></button>
             </div>
             
-            <form action="save_item_schedule.php" method="POST" class="p-6 flex flex-col gap-4 text-sm">
+            <form action="save_item_schedule.php" method="POST" class="sheet-form flex flex-col gap-4 p-5 text-sm">
                 <input type="hidden" name="no" id="schedItemNo" value="">
                 
                 <!-- 무음 활성화 토글 -->
@@ -852,7 +877,7 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
                 </div>
 
-                <div class="flex justify-end gap-3 mt-4 border-t border-[var(--border-color)] pt-4">
+                <div class="sheet-footer -mx-5 -mb-5 mt-4">
                     <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '스케줄 저장' : 'Save Schedule' ?></button>
                 </div>
             </form>
@@ -1236,6 +1261,9 @@ if (($current_view ?? 'card') === 'log') {
                     case 'bulk_edit_success':
                         msgText = isKo ? '선택한 항목들의 설정이 일괄 변경되었습니다.' : 'Selected items settings updated in bulk successfully.';
                         break;
+                    case 'invalid_schedule':
+                        msgText = isKo ? '무음 종료 시각을 현재보다 뒤로 지정해 주세요.' : 'Choose a mute end time in the future.';
+                        break;
                     case 'schedule_success':
                         msgText = isKo ? '알람 무음 스케줄이 성공적으로 저장되었습니다.' : 'Mute schedule saved successfully.';
                         break;
@@ -1248,7 +1276,7 @@ if (($current_view ?? 'card') === 'log') {
                 }
                 
                 if (msgText) {
-                    showToast(msgText);
+                    showToast(msgText, msgType === 'invalid_schedule' ? 'error' : undefined);
                     const cleanSearch = window.location.search.replace(new RegExp('[?&]msg=' + msgType), '').replace(/^&/, '?').replace(/\?$/, '');
                     const newUrl = window.location.pathname + cleanSearch;
                     window.history.replaceState({}, document.title, newUrl);

@@ -21,7 +21,8 @@ $search_group = $_GET['search_group'] ?? 'all';
 $filter_status = $_GET['filter_status'] ?? 'all';
 $filter_engine = $_GET['filter_engine'] ?? 'all';
 
-$log_max_lines = isset($settings['log_max_lines']) ? (int)$settings['log_max_lines'] : 500;
+$log_max_lines = min(100, max(20, (int)($settings['log_max_lines'] ?? 100)));
+$log_before_id = max(0, (int)($_GET['before_log_id'] ?? 0));
 
 $log_where = ["1=1"];
 if ($type == 'success') {
@@ -74,20 +75,29 @@ if ($filter_engine === 'lynx') {
 }
 
 $log_where_sql = implode(' AND ', $log_where);
+$log_cursor_sql = $log_before_id > 0 ? " AND l.id < $log_before_id" : '';
 $log_query = "
     SELECT STRAIGHT_JOIN l.*, c.group_name, c.company, c.url, c.engine_type
     FROM monitor_log l FORCE INDEX (PRIMARY)
     INNER JOIN monitor_conf c ON l.monitor_conf_no = c.no
-    WHERE $log_where_sql
+    WHERE $log_where_sql $log_cursor_sql
     ORDER BY l.id DESC
-    LIMIT $log_max_lines
-";
+    LIMIT " . ($log_max_lines + 1);
 $log_result = $db->query($log_query);
 
 $t = $lang_pack[$current_lang] ?? $lang_pack['KO'];
+$log_rows = [];
+$log_has_more = $log_result && $log_result->num_rows > $log_max_lines;
+if ($log_result) {
+    while ($log_row = $log_result->fetch_assoc()) {
+        if (count($log_rows) >= $log_max_lines) break;
+        $log_rows[] = $log_row;
+    }
+}
+$next_log_cursor = !empty($log_rows) ? (int)end($log_rows)['id'] : 0;
 
-if (isset($log_result) && $log_result->num_rows > 0) {
-    while($log_row = $log_result->fetch_assoc()) {
+if (!empty($log_rows)) {
+    foreach($log_rows as $log_row) {
         $border_color = $log_row['result'] > 0 ? 'bg-[#18aee7]' : 'bg-red-500';
         $result_badge_class = $log_row['result'] > 0 
             ? 'bg-green-50 dark:bg-green-950/40 text-green-500 dark:text-green-400 border border-green-200/50 dark:border-green-800/50' 
@@ -95,7 +105,7 @@ if (isset($log_result) && $log_result->num_rows > 0) {
         $result_text = $log_row['result'] > 0 ? $t['v_success'] : $t['v_fail'];
         $result_icon = $log_row['result'] > 0 ? 'fa-check-circle' : 'fa-exclamation-circle';
         ?>
-        <div class="relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px] hover:z-[110]">
+        <div class="log-entry relative bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl py-3 pr-5 pl-7 flex items-center hover:shadow-md transition-all text-[13px] hover:z-[110]">
             <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?> rounded-l-xl"></div>
             <!-- 시각 -->
             <div class="w-48 text-[var(--text-sub)] dark:text-slate-300 font-mono">
@@ -145,6 +155,13 @@ if (isset($log_result) && $log_result->num_rows > 0) {
                 </span>
             </div>
         </div>
+        <?php
+    }
+    if ($log_has_more) {
+        ?>
+        <button type="button" class="load-more-logs" data-cursor="<?= $next_log_cursor ?>">
+            <?= $current_lang == 'KO' ? '이전 로그 더 보기' : 'Load older logs' ?>
+        </button>
         <?php
     }
 } else {

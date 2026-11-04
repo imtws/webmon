@@ -85,9 +85,9 @@ if (!function_exists('renderFieldStatic')) {
     <div class="side-sheet-panel modal-content flex flex-col w-full max-w-5xl h-full bg-[var(--card-bg)] shadow-2xl border-l border-[var(--border-color)] overflow-hidden" role="dialog" aria-modal="true">
         
         <!-- Header -->
-        <div class="px-6 py-5 border-b border-[var(--border-color)] flex justify-between items-center">
-            <h2 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2">
-                <i class="fas fa-history text-[#18aee7]"></i>
+        <div class="sheet-header">
+            <h2 class="sheet-header-title">
+                <i class="fas fa-history"></i>
                 <span><?= $current_lang == 'KO' ? '작업 이력 및 원복 관리' : 'Job History & Rollback' ?></span>
             </h2>
             <button type="button" onclick="closeHistoryModal()" class="sheet-close-button" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>">
@@ -96,7 +96,7 @@ if (!function_exists('renderFieldStatic')) {
         </div>
         
         <!-- Content Body -->
-        <div class="flex-1 overflow-y-auto p-6 style-scrollbar">
+        <div class="sheet-form flex-1 overflow-y-auto p-5 style-scrollbar">
             <?php if (empty($history_list)): ?>
                 <div class="flex flex-col items-center justify-center py-16 text-center">
                     <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-600 mb-4">
@@ -115,7 +115,7 @@ if (!function_exists('renderFieldStatic')) {
                     </p>
                     
                     <div class="overflow-x-auto border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]">
-                        <table class="w-full min-w-[760px] text-left border-collapse text-xs">
+                        <table class="history-table w-full min-w-[760px] text-left border-collapse text-xs">
                             <thead>
                                 <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-[var(--border-color)] text-[var(--text-sub)] font-extrabold">
                                     <th class="p-4 w-[60px] text-center">ID</th>
@@ -168,6 +168,7 @@ if (!function_exists('renderFieldStatic')) {
                                                 elseif ($f === 'retry_count, timeout_sec' || $f === 'retry_count' || $f === 'timeout_sec') $formatted_arr[] = $current_lang == 'KO' ? '체크수/타임아웃' : 'Retry/Timeout';
                                                 elseif ($f === 'ssl_mon, dom_mon' || $f === 'ssl_mon' || $f === 'dom_mon') $formatted_arr[] = $current_lang == 'KO' ? '만료일 모니터링' : 'Expiry Mon';
                                                 elseif ($f === 'email_notification') $formatted_arr[] = $current_lang == 'KO' ? '이메일 알림' : 'Email Alert';
+                                                elseif ($f === 'mute_schedule') $formatted_arr[] = $current_lang == 'KO' ? '일시 무음 스케줄' : 'Mute Schedule';
                                                 elseif ($f === 'smtp_server_settings') $formatted_arr[] = $current_lang == 'KO' ? '개별 SMTP' : 'SMTP Config';
                                                 else $formatted_arr[] = $f;
                                             }

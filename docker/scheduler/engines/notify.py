@@ -144,6 +144,9 @@ async def send_email(subject: str, body: str, settings: dict = None, sender_emai
     """이메일(SMTP)로 알림을 발송합니다. 비동기 스레드 풀에서 동기 발송 처리합니다."""
     if settings is None:
         settings = await load_system_settings()
+    if settings.get("email_enabled", "0") != "1":
+        log.debug("이메일 알림 전역 비활성화 상태")
+        return False
     return await asyncio.to_thread(
         _send_email_sync,
         subject,
@@ -159,4 +162,3 @@ async def send_email(subject: str, body: str, settings: dict = None, sender_emai
         smtp_secure,
         alert_format
     )
-

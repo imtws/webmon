@@ -375,6 +375,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $updates = [];
         $changed_fields_list = [];
+
+        if (isset($_POST['chk_schedule'])) {
+            $schedule_enabled = $_POST['sched_enabled'] ?? '';
+            if (!in_array($schedule_enabled, ['0', '1'], true)) {
+                header("Location: " . $redirect_url . (strpos($redirect_url, '?') !== false ? '&' : '?') . 'msg=invalid_schedule');
+                exit;
+            }
+
+            if ($schedule_enabled === '1') {
+                $mute_until_input = trim($_POST['mute_until'] ?? '');
+                $mute_until_date = DateTime::createFromFormat('Y-m-d\TH:i', $mute_until_input);
+                $date_errors = DateTime::getLastErrors();
+                if (!$mute_until_date || ($date_errors && ($date_errors['warning_count'] || $date_errors['error_count'])) ||
+                    $mute_until_date->format('Y-m-d\TH:i') !== $mute_until_input || $mute_until_date <= new DateTime()) {
+                    header("Location: " . $redirect_url . (strpos($redirect_url, '?') !== false ? '&' : '?') . 'msg=invalid_schedule');
+                    exit;
+                }
+                $mute_until_sql = "'" . $db->real_escape_string($mute_until_date->format('Y-m-d H:i:s')) . "'";
+            } else {
+                $mute_until_sql = 'NULL';
+            }
+
+            $updates[] = "sched_enabled = " . (int)$schedule_enabled;
+            $updates[] = "mute_until = $mute_until_sql";
+            $changed_fields_list[] = 'mute_schedule';
+        }
         
         // 1. 그룹 설정 변경
         if (isset($_POST['chk_group'])) {

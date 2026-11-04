@@ -13,6 +13,7 @@ PHP alert_engine.php 의 Python asyncio 변환본.
 
 import asyncio
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 import time
 from datetime import datetime
@@ -161,22 +162,32 @@ async def _save_results(pool, results: list[dict]):
 def _write_log(results: list[dict], settings: dict = None):
     log_path = "/app/logs/alert_engine.log"
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    rotate_mb = 50
     try:
-        rotate_mb = 50
         if settings:
             try:
-                rotate_mb = int(settings.get("log_rotate_mb", 50))
-            except Exception:
+                rotate_mb = max(1, int(settings.get("log_rotate_mb", 50)))
+            except (TypeError, ValueError):
                 rotate_mb = 50
-        if os.path.exists(log_path) and os.path.getsize(log_path) >= rotate_mb * 1024 * 1024:
-            os.rename(log_path, log_path + ".old")
-        with open(log_path, "a") as f:
+        handler = RotatingFileHandler(
+            log_path,
+            maxBytes=rotate_mb * 1024 * 1024,
+            backupCount=4,
+            encoding="utf-8",
+        )
+        try:
             for r in results:
                 status = "OK" if r["val"] else "FAIL"
-                f.write(
+                message = (
                     f"[{datetime.now():%Y-%m-%d %H:%M:%S}] [{status}] "
-                    f"{r['row']['url']} ({r['elapsed']:.3f}s)\n"
+                    f"{r['row']['url']} ({r['elapsed']:.3f}s)"
                 )
+                record = logging.LogRecord(
+                    "webmon.engine", logging.INFO, log_path, 0, message, (), None
+                )
+                handler.emit(record)
+        finally:
+            handler.close()
     except Exception as e:
         log.warning(f"로그 파일 기록 실패: {e}")
 
@@ -553,4 +564,3 @@ async def run_alert():
 
     elapsed = time.monotonic() - t0
     log.info(f"[alert] 완료 ({elapsed:.1f}s, {len(targets)}개 대상)")
-

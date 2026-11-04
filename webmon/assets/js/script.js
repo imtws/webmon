@@ -168,11 +168,26 @@ function initializeFilterDropdowns() {
 }
 
 document.addEventListener('click', event => {
+    const loadMoreLogsButton = event.target.closest('.load-more-logs');
+    if (loadMoreLogsButton) {
+        loadOlderLogs(loadMoreLogsButton);
+        return;
+    }
+
     if (!event.target.closest('.filter-select-control')) closeFilterDropdowns();
     if (!event.target.closest('.monitor-actions')) {
         document.querySelectorAll('.monitor-actions[open]').forEach(menu => {
             menu.open = false;
         });
+    }
+
+    const item = event.target.closest('.monitor-item');
+    if (!item || event.target.closest('button, a, input, select, textarea, label, summary, details, [role="button"], [onclick], .clickable')) return;
+
+    const checkbox = item.querySelector('.item-checkbox');
+    if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
     }
 });
 
@@ -505,7 +520,8 @@ function resetBulkModalForm() {
         { chk: 'chkLimits', inputs: ['bulkRetry', 'bulkTimeout'] },
         { chk: 'chkExpiry', inputs: ['bulkSsl', 'bulkDom'] },
         { chk: 'chkEmail', inputs: ['bulkEmailMode', 'bulkSenderEmail', 'bulkReceiverEmail'] },
-        { chk: 'chkSmtp', inputs: ['bulkSmtpHost', 'bulkSmtpPort', 'bulkSmtpSecure', 'bulkSmtpUser', 'bulkSmtpPass'] }
+        { chk: 'chkSmtp', inputs: ['bulkSmtpHost', 'bulkSmtpPort', 'bulkSmtpSecure', 'bulkSmtpUser', 'bulkSmtpPass'] },
+        { chk: 'chkSchedule', inputs: ['bulkScheduleAction', 'bulkMuteUntil'] }
     ];
     
     fieldsToDisable.forEach(item => {
@@ -525,6 +541,7 @@ function resetBulkModalForm() {
     
     const smtpContainer = document.getElementById('bulkSmtpContainer');
     if (smtpContainer) smtpContainer.classList.add('hidden');
+    toggleBulkScheduleFields();
 }
 
 function closeBulkModal() {
@@ -605,6 +622,21 @@ function toggleBulkSmtpVisibility() {
             chkSmtp.dispatchEvent(new Event('change'));
         }
     }
+}
+
+function toggleBulkScheduleFields() {
+    const scheduleCheckbox = document.getElementById('chkSchedule');
+    const enabled = Boolean(scheduleCheckbox && scheduleCheckbox.checked);
+    const action = document.getElementById('bulkScheduleAction');
+    const muteUntil = document.getElementById('bulkMuteUntil');
+    const muteUntilContainer = document.getElementById('bulkMuteUntilContainer');
+    const needsDate = Boolean(enabled && action && action.value === '1');
+
+    if (muteUntil) {
+        muteUntil.disabled = !needsDate;
+        muteUntil.required = needsDate;
+    }
+    if (muteUntilContainer) muteUntilContainer.classList.toggle('hidden', !needsDate);
 }
 
 function toggleGroupNewInput() {
@@ -826,7 +858,10 @@ function startAutoRefresh() {
     }, 10000); // 10 seconds interval
 }
 
-async function refreshLogs() {
+async function refreshLogs(force = false) {
+    const logWrapper = document.querySelector('.view-list.flex.flex-col.gap-3');
+    if (!logWrapper || (logWrapper.dataset.expanded === 'true' && !force)) return;
+
     const refreshBtnIcon = document.querySelector('button[onclick*="refreshLogs"] i');
     if (refreshBtnIcon) {
         refreshBtnIcon.classList.add('fa-spin');
@@ -838,9 +873,9 @@ async function refreshLogs() {
         if (!response.ok) throw new Error('Network response was not ok');
         const html = await response.text();
         
-        const logWrapper = document.querySelector('.view-list.flex.flex-col.gap-3');
         if (logWrapper) {
             logWrapper.innerHTML = html;
+            logWrapper.dataset.expanded = 'false';
         }
     } catch (err) {
         console.error('Failed to refresh logs:', err);
@@ -853,6 +888,29 @@ async function refreshLogs() {
     }
 }
 
+async function loadOlderLogs(button) {
+    const logWrapper = button.closest('.view-list');
+    if (!logWrapper || button.disabled) return;
+
+    button.disabled = true;
+    button.textContent = document.documentElement.lang === 'ko' ? '불러오는 중…' : 'Loading…';
+    try {
+        const url = new URL('get_logs.php', window.location.href);
+        url.search = window.location.search;
+        url.searchParams.set('before_log_id', button.dataset.cursor);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const html = await response.text();
+        button.remove();
+        logWrapper.insertAdjacentHTML('beforeend', html);
+        logWrapper.dataset.expanded = 'true';
+    } catch (error) {
+        console.error('Failed to load older logs:', error);
+        button.disabled = false;
+        button.textContent = document.documentElement.lang === 'ko' ? '다시 시도' : 'Try again';
+    }
+}
+
 function stopAutoRefresh() {
     if (autoRefreshTimer) {
         clearInterval(autoRefreshTimer);
@@ -861,6 +919,11 @@ function stopAutoRefresh() {
 }
 
 function updateBatchActionBar() {
+    document.querySelectorAll('.monitor-item').forEach(item => {
+        const checkbox = item.querySelector('.item-checkbox');
+        item.classList.toggle('is-selected', Boolean(checkbox && checkbox.checked));
+    });
+
     const checked = document.querySelectorAll('.item-checkbox:checked');
     const bar = document.getElementById('batchActionBar');
     const countSpan = document.getElementById('batchCount');
