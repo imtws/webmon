@@ -95,6 +95,25 @@ foreach ($smtp_cols as $col => $def) {
     }
 }
 
+// 자동 마이그레이션: 설정 변경/모니터링/자산 확인 시각 분리
+$monitor_timestamps = [
+    'updated_at' => "DATETIME DEFAULT NULL COMMENT '설정 수정 시각'",
+    'last_checked_at' => "DATETIME DEFAULT NULL COMMENT '마지막 모니터링 실행 시각'",
+    'last_asset_check_at' => "DATETIME DEFAULT NULL COMMENT '마지막 SSL/도메인 정보 확인 시각'",
+    'last_whois_check_at' => "DATETIME DEFAULT NULL COMMENT '마지막 실시간 WHOIS 확인 시각'"
+];
+foreach ($monitor_timestamps as $col => $def) {
+    $db->query("ALTER TABLE `monitor_conf` ADD COLUMN IF NOT EXISTS `$col` $def");
+}
+$db->query("UPDATE monitor_conf SET updated_at = mod_date WHERE updated_at IS NULL AND mod_date IS NOT NULL");
+$db->query("UPDATE monitor_conf SET last_asset_check_at = mod_date WHERE last_asset_check_at IS NULL AND mod_date IS NOT NULL");
+$db->query("UPDATE monitor_conf c
+    SET last_checked_at = (
+        SELECT MAX(l.log_time) FROM monitor_log l WHERE l.monitor_conf_no = c.no
+    )
+    WHERE c.last_checked_at IS NULL
+      AND EXISTS (SELECT 1 FROM monitor_log l WHERE l.monitor_conf_no = c.no)");
+
 // 자동 마이그레이션: system_settings 테이블에 smtp_mode 키 추가
 $key_check = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'smtp_mode'");
 if ($key_check && $key_check->num_rows == 0) {

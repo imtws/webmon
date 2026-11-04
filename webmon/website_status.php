@@ -127,7 +127,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'diagnose') {
                     error_msg = '$safe_reason',
                     response_time = $sql_elapsed, 
                     dom_expiry = $sql_expiry_val, 
-                    mod_date = NOW() 
+                    mod_date = NOW(),
+                    last_checked_at = NOW()
                 WHERE no = $no");
                 
     // monitor_log 기록
@@ -281,8 +282,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mod_date = date('Y-m-d H:i:s');
         
         if ($action === 'add') {
-            $sql = "INSERT INTO monitor_conf (company, group_name, url, contents, `check`, ssl_mon, dom_mon, comment, sender_email, receiver_email, email_mode, mod_date, value, response_time, retry_count, timeout_sec, engine_type, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure) 
-                    VALUES ('$company', '$group_name', '$url', '$contents', '$check', $ssl_mon, $dom_mon, '$comment', '$sender_email', '$receiver_email', '$email_mode', '$mod_date', 1, 0.0, $retry_count, $timeout_sec, '$engine_type', '$smtp_host', $smtp_port, '$smtp_user', '$smtp_pass', '$smtp_secure')";
+            $sql = "INSERT INTO monitor_conf (company, group_name, url, contents, `check`, ssl_mon, dom_mon, comment, sender_email, receiver_email, email_mode, mod_date, updated_at, value, response_time, retry_count, timeout_sec, engine_type, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure)
+                    VALUES ('$company', '$group_name', '$url', '$contents', '$check', $ssl_mon, $dom_mon, '$comment', '$sender_email', '$receiver_email', '$email_mode', '$mod_date', '$mod_date', 1, 0.0, $retry_count, $timeout_sec, '$engine_type', '$smtp_host', $smtp_port, '$smtp_user', '$smtp_pass', '$smtp_secure')";
         } else {
             $no = (int)$_POST['no'];
             
@@ -297,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $sql = "UPDATE monitor_conf SET 
                     company='$company', group_name='$group_name', url='$url', contents='$contents', `check`='$check', 
-                    ssl_mon=$ssl_mon, dom_mon=$dom_mon, comment='$comment', sender_email='$sender_email', receiver_email='$receiver_email', email_mode='$email_mode', mod_date='$mod_date',
+                    ssl_mon=$ssl_mon, dom_mon=$dom_mon, comment='$comment', sender_email='$sender_email', receiver_email='$receiver_email', email_mode='$email_mode', mod_date='$mod_date', updated_at='$mod_date',
                     retry_count=$retry_count, timeout_sec=$timeout_sec, engine_type='$engine_type',
                     smtp_host='$smtp_host', smtp_port=$smtp_port, smtp_user='$smtp_user', smtp_pass='$smtp_pass', smtp_secure='$smtp_secure'
                     WHERE no=$no";
@@ -486,6 +487,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $mod_date = date('Y-m-d H:i:s');
             $updates[] = "mod_date = '$mod_date'";
+            $updates[] = "updated_at = '$mod_date'";
             $updates_str = implode(', ', $updates);
             $db->query("UPDATE monitor_conf SET $updates_str WHERE no IN ($ids_str)");
         }
@@ -598,7 +600,7 @@ $stat_expiring = $db->query("SELECT COUNT(*) as cnt FROM monitor_conf WHERE `che
     OR
     (dom_mon = 1 AND dom_expiry IS NOT NULL AND dom_expiry <= DATE_ADD(NOW(), INTERVAL 30 DAY))
 )")->fetch_assoc()['cnt'] ?? 0;
-$last_run = $db->query("SELECT MAX(mod_date) as last_run FROM monitor_conf")->fetch_assoc()['last_run'] ?? '-';
+$last_run = $db->query("SELECT MAX(last_checked_at) as last_run FROM monitor_conf")->fetch_assoc()['last_run'] ?? '-';
 $next_run = $last_run !== '-' ? date('Y-m-d H:i:s', strtotime($last_run . ' + 1 minutes')) : '-';
 
 $groups_res = $db->query("SELECT DISTINCT group_name FROM monitor_conf WHERE group_name != '' ORDER BY group_name ASC");

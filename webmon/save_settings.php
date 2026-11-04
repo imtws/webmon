@@ -14,6 +14,11 @@ function setCurrentDatabasePassword(mysqli $connection, string $password) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $global_sender_email = trim($_POST['global_sender_email'] ?? '');
+    if ($global_sender_email !== '' && !filter_var($global_sender_email, FILTER_VALIDATE_EMAIL)) {
+        redirectSettingsError('sender_email_invalid');
+    }
+
     // Validate and prepare password changes before changing the database credential.
     $db_pass_old = $_POST['db_pass_old'] ?? '';
     $db_pass_new = $_POST['db_pass_new'] ?? '';
@@ -137,6 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'email_enabled' => $email_enabled,
         'smtp_mode' => $smtp_mode,
         'alert_email' => $alert_email,
+        'global_sender_email' => $global_sender_email,
         'retention_days' => (string)$retention_days,
         'def_email_mode' => $def_email_mode,
         'def_sender_email' => $def_sender_email,

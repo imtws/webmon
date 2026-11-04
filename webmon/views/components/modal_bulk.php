@@ -24,10 +24,13 @@
                         <label for="chkGroup" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer uppercase tracking-wider">
                             <?= $current_lang == 'KO' ? '그룹 변경' : 'Change Group' ?>
                         </label>
-                        <select name="group_select" id="bulkGroupSelect" onchange="toggleBulkGroupNewInput()" class="w-full p-2.5 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7] disabled:opacity-40" disabled>
-                            <?php foreach($existing_groups as $g): ?><option value="<?=htmlspecialchars($g)?>"><?=htmlspecialchars($g)?></option><?php endforeach; ?>
-                            <option value="_NEW_" class="text-[#18aee7] font-bold"><?= $t['group_add_new'] ?></option>
-                        </select>
+                        <div class="filter-control flex w-full items-center">
+                            <i class="fas fa-folder text-[10px] text-slate-400 dark:text-slate-500 mr-2" aria-hidden="true"></i>
+                            <select name="group_select" id="bulkGroupSelect" onchange="toggleBulkGroupNewInput()" disabled>
+                                <?php foreach($existing_groups as $g): ?><option value="<?=htmlspecialchars($g)?>"><?=htmlspecialchars($g)?></option><?php endforeach; ?>
+                                <option value="_NEW_"><?= $t['group_add_new'] ?></option>
+                            </select>
+                        </div>
                         <input type="text" name="group_name_new" id="bulkGroupNew" class="hidden mt-2 w-full p-2.5 border-l-4 border-l-[#18aee7] border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] disabled:opacity-40" placeholder="새 그룹명 입력" disabled>
                     </div>
                 </div>
@@ -39,30 +42,28 @@
                         <label for="chkCheck" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer uppercase tracking-wider">
                             <?= $current_lang == 'KO' ? '알람 상태 변경' : 'Change Alarm Status' ?>
                         </label>
-                        <select name="check" id="bulkCheck" class="w-full p-2.5 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7] disabled:opacity-40" disabled>
-                            <option value="alarm"><?= $t['status_alarm'] ?></option>
-                            <option value="no alarm"><?= $t['status_noalarm'] ?></option>
-                            <option value="disable"><?= $t['status_disable'] ?></option>
-                        </select>
+                        <div class="filter-control flex w-full items-center">
+                            <select name="check" id="bulkCheck" disabled>
+                                <option value="alarm"><?= $t['status_alarm'] ?></option>
+                                <option value="no alarm"><?= $t['status_noalarm'] ?></option>
+                                <option value="disable"><?= $t['status_disable'] ?></option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 3. 모니터링 엔진 변경 -->
                 <div class="bulk-section flex gap-3 items-start">
-                    <input type="checkbox" name="chk_engine" id="chkEngine" class="mt-1.5 w-4 h-4 rounded accent-[#18aee7] cursor-pointer" onchange="toggleBulkField('chkEngine', ['bulkEngineLynx', 'bulkEngineCurl'])">
+                    <input type="checkbox" name="chk_engine" id="chkEngine" class="mt-1.5 w-4 h-4 rounded accent-[#18aee7] cursor-pointer" onchange="toggleBulkField('chkEngine', ['bulkEngineType'])">
                     <div class="flex-1">
                         <label for="chkEngine" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer uppercase tracking-wider">
                             <?= $current_lang == 'KO' ? '실행 엔진 변경' : 'Change Engine Type' ?>
                         </label>
-                        <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[42px] relative overflow-hidden" id="bulkEngineWrapper">
-                            <label class="flex-1 cursor-pointer h-full">
-                                <input type="radio" name="engine_type" id="bulkEngineLynx" value="lynx" class="hidden peer" checked disabled>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg text-[var(--text-sub)] hover:text-[var(--text-main)] peer-checked:bg-[#18aee7] peer-checked:text-white peer-disabled:opacity-40 transition-all">LYNX</div>
-                            </label>
-                            <label class="flex-1 cursor-pointer h-full">
-                                <input type="radio" name="engine_type" id="bulkEngineCurl" value="curl" class="hidden peer" disabled>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg text-[var(--text-sub)] hover:text-[var(--text-main)] peer-checked:bg-[#18aee7] peer-checked:text-white peer-disabled:opacity-40 transition-all">CURL</div>
-                            </label>
+                        <div class="filter-control flex w-full items-center">
+                            <select name="engine_type" id="bulkEngineType" disabled>
+                                <option value="lynx">LYNX</option>
+                                <option value="curl">CURL</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -75,12 +76,14 @@
                             <label for="chkLimits" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer uppercase tracking-wider">
                                 <?= $current_lang == 'KO' ? '체크 횟수 변경' : 'Change Retry Count' ?>
                             </label>
-                            <select name="retry_count" id="bulkRetry" class="w-full p-2.5 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7] disabled:opacity-40" disabled>
-                                <option value="1">1<?= $current_lang == 'KO' ? '회 (기본)' : ' Time' ?></option>
-                                <option value="2">2<?= $current_lang == 'KO' ? '회' : ' Times' ?></option>
-                                <option value="3">3<?= $current_lang == 'KO' ? '회' : ' Times' ?></option>
-                                <option value="5">5<?= $current_lang == 'KO' ? '회' : ' Times' ?></option>
-                            </select>
+                            <div class="filter-control flex w-full items-center">
+                                <select name="retry_count" id="bulkRetry" disabled>
+                                    <option value="1">1<?= $current_lang == 'KO' ? '회 (기본)' : ' Time' ?></option>
+                                    <option value="2">2<?= $current_lang == 'KO' ? '회' : ' Times' ?></option>
+                                    <option value="3">3<?= $current_lang == 'KO' ? '회' : ' Times' ?></option>
+                                    <option value="5">5<?= $current_lang == 'KO' ? '회' : ' Times' ?></option>
+                                </select>
+                            </div>
                         </div>
                         <div>
                             <label for="chkLimits" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer uppercase tracking-wider">
@@ -97,15 +100,15 @@
                     <div class="flex-1 grid grid-cols-2 gap-3">
                         <div>
                             <label for="chkExpiry" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer uppercase tracking-wider">SSL Expiry</label>
-                            <select name="ssl_mon" id="bulkSsl" class="w-full p-2.5 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7] disabled:opacity-40" disabled>
-                                <option value="1">ON</option><option value="0">OFF</option>
-                            </select>
+                            <div class="filter-control flex w-full items-center">
+                                <select name="ssl_mon" id="bulkSsl" disabled><option value="1">ON</option><option value="0">OFF</option></select>
+                            </div>
                         </div>
                         <div>
                             <label for="chkExpiry" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer uppercase tracking-wider">Domain Expiry</label>
-                            <select name="dom_mon" id="bulkDom" class="w-full p-2.5 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7] disabled:opacity-40" disabled>
-                                <option value="1">ON</option><option value="0">OFF</option>
-                            </select> 
+                            <div class="filter-control flex w-full items-center">
+                                <select name="dom_mon" id="bulkDom" disabled><option value="1">ON</option><option value="0">OFF</option></select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -118,11 +121,13 @@
                             <label for="chkEmail" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer uppercase tracking-wider">
                                 <?= $current_lang == 'KO' ? '이메일 알림 설정 변경' : 'Change Email Notification' ?>
                             </label>
-                            <select name="email_mode" id="bulkEmailMode" onchange="toggleBulkSmtpVisibility()" class="w-full p-2.5 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7] disabled:opacity-40" disabled>
-                                <option value="none"><?= $current_lang == 'KO' ? '미발송 (사용 안 함)' : 'Disabled' ?></option>
-                                <option value="postfix"><?= $current_lang == 'KO' ? '로컬 Postfix 직접 발송' : 'Direct Postfix' ?></option>
-                                <option value="smtp"><?= $current_lang == 'KO' ? '외부 SMTP 릴레이 발송 (기본설정 릴레이)' : 'SMTP Relay (System SMTP)' ?></option>
-                            </select>
+                            <div class="filter-control flex w-full items-center">
+                                <select name="email_mode" id="bulkEmailMode" onchange="toggleBulkSmtpVisibility()" disabled>
+                                    <option value="none"><?= $current_lang == 'KO' ? '미발송 (사용 안 함)' : 'Disabled' ?></option>
+                                    <option value="postfix"><?= $current_lang == 'KO' ? '로컬 Postfix 직접 발송' : 'Direct Postfix' ?></option>
+                                    <option value="smtp"><?= $current_lang == 'KO' ? '외부 SMTP 릴레이 발송 (기본설정 릴레이)' : 'SMTP Relay (System SMTP)' ?></option>
+                                </select>
+                            </div>
                         </div>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div>
@@ -159,11 +164,13 @@
                             </div>
                             <div>
                                 <label class="block text-[9px] font-black text-[var(--text-sub)] mb-0.5">Secure Mode</label>
-                                <select name="smtp_secure" id="bulkSmtpSecure" class="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--bg-color)] text-xs text-[var(--text-main)] outline-none focus:border-[#18aee7] disabled:opacity-40" disabled>
-                                    <option value="none">None</option>
-                                    <option value="tls">TLS (587)</option>
-                                    <option value="ssl">SSL (465)</option>
-                                </select>
+                                <div class="filter-control flex w-full items-center">
+                                    <select name="smtp_secure" id="bulkSmtpSecure" disabled>
+                                        <option value="none">None</option>
+                                        <option value="tls">TLS (587)</option>
+                                        <option value="ssl">SSL (465)</option>
+                                    </select>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-[9px] font-black text-[var(--text-sub)] mb-0.5">SMTP Password</label>
@@ -183,10 +190,12 @@
                         <label for="chkSchedule" class="block text-xs font-black text-[var(--text-sub)] mb-1.5 cursor-pointer">
                             <?= $current_lang == 'KO' ? '알람 일시 무음 스케줄 변경' : 'Change temporary mute schedule' ?>
                         </label>
-                        <select name="sched_enabled" id="bulkScheduleAction" class="w-full disabled:opacity-50" disabled onchange="toggleBulkScheduleFields()">
-                            <option value="1"><?= $current_lang == 'KO' ? '지정한 시각까지 무음' : 'Mute until specified time' ?></option>
-                            <option value="0"><?= $current_lang == 'KO' ? '무음 스케줄 해제' : 'Clear mute schedule' ?></option>
-                        </select>
+                        <div class="filter-control flex w-full items-center">
+                            <select name="sched_enabled" id="bulkScheduleAction" disabled onchange="toggleBulkScheduleFields()">
+                                <option value="1"><?= $current_lang == 'KO' ? '지정한 시각까지 무음' : 'Mute until specified time' ?></option>
+                                <option value="0"><?= $current_lang == 'KO' ? '무음 스케줄 해제' : 'Clear mute schedule' ?></option>
+                            </select>
+                        </div>
                         <div id="bulkMuteUntilContainer">
                             <label for="bulkMuteUntil" class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '무음 종료 시각' : 'Mute until' ?></label>
                             <input type="datetime-local" name="mute_until" id="bulkMuteUntil" class="w-full disabled:opacity-50" disabled>

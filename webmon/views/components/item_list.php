@@ -59,7 +59,7 @@
             <span class="text-[9px] text-red-500 font-bold block mt-0.5 leading-none max-w-[90px] truncate" title="<?= htmlspecialchars($row['error_msg']) ?>">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
         <?php endif; ?>
     </div>
-    <div class="w-28 text-right pr-2 text-[var(--text-sub)] flex justify-end items-center gap-3 opacity-30 group-hover:opacity-100 transition-opacity duration-200">
+    <div class="w-36 text-right pr-2 text-[var(--text-sub)] flex justify-end items-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
         <?php
         $bell_color = 'hover:text-yellow-500';
         $bell_title = $current_lang == 'KO' ? '알람 일시 무음 설정' : 'Mute Settings';
@@ -77,7 +77,9 @@
         <i class="fas fa-sync-alt cursor-pointer hover:text-[#18aee7] diagnose-btn" title="<?= $current_lang == 'KO' ? '즉시 재진단 및 만료 정보 갱신' : 'Diagnose & Sync Expiry' ?>" onclick="diagnoseItem(<?=$row['no']?>, this)"></i>
         <i class="fas fa-cog cursor-pointer hover:text-[#18aee7]" onclick='openModal("edit", <?= json_encode($row) ?>)'></i>
         <i class="fas fa-trash cursor-pointer hover:text-red-500" onclick="confirmDelete('<?=htmlspecialchars($row['company'])?>', <?=$row['no']?>)"></i>
-        <i class="fas fa-chevron-down cursor-pointer hover:text-[#18aee7] transition-transform duration-200" id="arrow-<?=$row['no']?>" onclick="toggleAccordion(event, <?=$row['no']?>)"></i>
+        <button type="button" class="chart-toggle-button" id="chart-toggle-<?=$row['no']?>" aria-label="<?= $current_lang == 'KO' ? '응답 시간 그래프 열기' : 'Show response-time chart' ?>" aria-expanded="false" aria-controls="accordion-<?=$row['no']?>" onclick="toggleAccordion(event, <?=$row['no']?>)">
+            <i class="fas fa-chevron-down transition-transform duration-200" id="arrow-<?=$row['no']?>" aria-hidden="true"></i>
+        </button>
     </div>
 </div>
 

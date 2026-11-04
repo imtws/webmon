@@ -24,7 +24,11 @@ CREATE TABLE IF NOT EXISTS `monitor_conf` (
     `sender_email`  VARCHAR(255)    NOT NULL DEFAULT '' COMMENT '발송자 이메일',
     `receiver_email` VARCHAR(255)    NOT NULL DEFAULT '' COMMENT '수신자 이메일',
     `email_mode`    VARCHAR(20)     NOT NULL DEFAULT 'none' COMMENT '이메일 발송 방식',
-    `mod_date`      DATETIME        DEFAULT NULL COMMENT '마지막 수정/실행 시각',
+    `mod_date`      DATETIME        DEFAULT NULL COMMENT 'Legacy modification/execution timestamp',
+    `updated_at`    DATETIME        DEFAULT NULL COMMENT '설정 수정 시각',
+    `last_checked_at` DATETIME      DEFAULT NULL COMMENT '마지막 모니터링 실행 시각',
+    `last_asset_check_at` DATETIME  DEFAULT NULL COMMENT '마지막 SSL/도메인 정보 확인 시각',
+    `last_whois_check_at` DATETIME  DEFAULT NULL COMMENT '마지막 실시간 WHOIS 확인 시각',
     `value`         TINYINT(1)      NOT NULL DEFAULT 1 COMMENT '마지막 체크 결과 (1=성공, 0=실패)',
     `error_msg`     VARCHAR(255)    NOT NULL DEFAULT '' COMMENT '마지막 실패 사유',
     `response_time` FLOAT           NOT NULL DEFAULT 0.0 COMMENT '응답시간(초)',
@@ -84,4 +88,3 @@ INSERT INTO `system_settings` (`key_name`, `key_value`) VALUES
 ('smtp_secure', 'none'),
 ('alert_email', ''),
 ('retention_days', '30');
-

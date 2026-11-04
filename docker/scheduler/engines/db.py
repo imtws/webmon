@@ -52,6 +52,37 @@ async def get_pool(minsize: int = 1, maxsize: int = 10):
         await pool.wait_closed()
 
 
+async def ensure_monitor_timestamp_schema() -> None:
+    """Add and initialize timestamps needed to separate monitor activity types."""
+    columns = {
+        "updated_at": "DATETIME DEFAULT NULL COMMENT '설정 수정 시각'",
+        "last_checked_at": "DATETIME DEFAULT NULL COMMENT '마지막 모니터링 실행 시각'",
+        "last_asset_check_at": "DATETIME DEFAULT NULL COMMENT '마지막 SSL/도메인 정보 확인 시각'",
+        "last_whois_check_at": "DATETIME DEFAULT NULL COMMENT '마지막 실시간 WHOIS 확인 시각'",
+    }
+    async with get_pool() as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                for column, definition in columns.items():
+                    await cur.execute(
+                        f"ALTER TABLE monitor_conf ADD COLUMN IF NOT EXISTS `{column}` {definition}"
+                    )
+                await cur.execute(
+                    "UPDATE monitor_conf SET updated_at=mod_date "
+                    "WHERE updated_at IS NULL AND mod_date IS NOT NULL"
+                )
+                await cur.execute(
+                    "UPDATE monitor_conf SET last_asset_check_at=mod_date "
+                    "WHERE last_asset_check_at IS NULL AND mod_date IS NOT NULL"
+                )
+                await cur.execute(
+                    "UPDATE monitor_conf c SET last_checked_at=("
+                    "SELECT MAX(l.log_time) FROM monitor_log l WHERE l.monitor_conf_no=c.no"
+                    ") WHERE c.last_checked_at IS NULL AND EXISTS ("
+                    "SELECT 1 FROM monitor_log l WHERE l.monitor_conf_no=c.no)"
+                )
+
+
 def load_env() -> dict[str, str]:
     env = {}
     for path in ("/app/.env", "/var/lib/webmon/settings.env"):

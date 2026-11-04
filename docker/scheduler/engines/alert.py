@@ -143,7 +143,7 @@ async def _fetch(row: dict, sem: asyncio.Semaphore) -> dict:
 
 async def _save_results(pool, results: list[dict]):
     """monitor_conf 업데이트 및 monitor_log 테이블에 시계열 저장."""
-    sql_conf = "UPDATE monitor_conf SET value=%s, error_msg=%s, response_time=%s, mod_date=NOW() WHERE no=%s"
+    sql_conf = "UPDATE monitor_conf SET value=%s, error_msg=%s, response_time=%s, last_checked_at=NOW(), mod_date=NOW() WHERE no=%s"
     sql_log = "INSERT INTO monitor_log (monitor_conf_no, req_url, response_time, result, cmd) VALUES (%s, %s, %s, %s, %s)"
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
@@ -257,17 +257,15 @@ async def run_alert():
                     if dom_expiry_date and dom_expiry_date < today:
                         # 캐시 등으로 인한 지속적 val=1 유도 시 WHOIS 난발을 막기 위해 30분 쿨타임 적용
                         should_query = True
-                        cur_mod_date = row.get("mod_date")
-                        if cur_mod_date:
-                            if isinstance(cur_mod_date, str):
+                        last_whois_check = row.get("last_whois_check_at")
+                        if last_whois_check:
+                            if isinstance(last_whois_check, str):
                                 try:
-                                    last_mod = datetime.strptime(cur_mod_date, "%Y-%m-%d %H:%M:%S")
+                                    last_whois_check = datetime.strptime(last_whois_check, "%Y-%m-%d %H:%M:%S")
                                 except:
-                                    last_mod = None
-                            else:
-                                last_mod = cur_mod_date
+                                    last_whois_check = None
                             
-                            if last_mod and (datetime.now() - last_mod).total_seconds() < 600: # 10분 쿨타임
+                            if last_whois_check and (datetime.now() - last_whois_check).total_seconds() < 600:
                                 should_query = False
                         
                         if should_query:
@@ -278,11 +276,11 @@ async def run_alert():
                                 log.info(f"[alert] [{row['company']}] 도메인 만료 상태에서 웹 요청 성공 감지! 실시간 WHOIS 검증 시작 ({domain})")
                                 expiry = await _check_whois(domain)
                                 
-                                # WHOIS 조회를 실행했으므로 일단 mod_date를 갱신하여 쿨타임 작동시킴
+                                # Record the WHOIS check independently from monitoring and config timestamps.
                                 async with pool.acquire() as conn:
                                     async with conn.cursor() as cur:
                                         await cur.execute(
-                                            "UPDATE monitor_conf SET mod_date=NOW() WHERE no=%s",
+                                            "UPDATE monitor_conf SET last_whois_check_at=NOW() WHERE no=%s",
                                             (row["no"],)
                                         )
                                 

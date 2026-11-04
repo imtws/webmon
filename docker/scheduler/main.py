@@ -16,6 +16,7 @@ from apscheduler.triggers.cron import CronTrigger
 from engines.alert  import run_alert
 from engines.asset  import run_asset
 from engines.report import run_report
+from engines.db import ensure_monitor_timestamp_schema
 
 # ── 로깅 설정 ──────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -61,6 +62,7 @@ def job_report():
 
 
 if __name__ == "__main__":
+    asyncio.run(ensure_monitor_timestamp_schema())
     log.info("=" * 55)
     log.info("  WebMon Scheduler 시작")
     log.info(f"  alert  스케줄: {SCHEDULE_ALERT}")

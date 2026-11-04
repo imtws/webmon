@@ -105,11 +105,14 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
 
     # 발송자 지정 우선순위:
     # 1. 개별 모니터링 항목에 설정된 발송자 (sender_email)
-    # 2. SMTP Username에 이메일이 들어있으면 그것을 사용
-    # 3. 그 외 기본값 webmon@localhost
+    # 2. 전역 기본 발송자 주소
+    # 3. SMTP Username에 이메일이 들어있으면 그것을 사용
+    # 4. 그 외 기본값 webmon@localhost
     sender = "webmon@localhost"
     if sender_email and sender_email.strip():
         sender = sender_email.strip()
+    elif settings.get("global_sender_email", "").strip():
+        sender = settings["global_sender_email"].strip()
     elif smtp_user and "@" in smtp_user:
         sender = smtp_user
 

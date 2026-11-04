@@ -147,7 +147,7 @@ async def run_asset():
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute("""
-                    SELECT no, url, ssl_mon, dom_mon, company, dom_expiry, mod_date
+                    SELECT no, url, ssl_mon, dom_mon, company, dom_expiry, last_asset_check_at
                     FROM monitor_conf
                     WHERE (ssl_mon = 1 OR dom_mon = 1)
                       AND url NOT REGEXP '[0-9]+\\\\.[0-9]+\\\\.[0-9]+'
@@ -179,7 +179,7 @@ async def run_asset():
                 # WHOIS 조회 스킵 판단 (차단 방지 필터링)
                 should_check = True
                 cur_expiry = row.get("dom_expiry")
-                cur_mod_date = row.get("mod_date")
+                last_asset_check_at = row.get("last_asset_check_at")
                 
                 if cur_expiry:
                     try:
@@ -191,13 +191,13 @@ async def run_asset():
                         days_left = (expiry_date - today).days
                         
                         # 만료일이 3일 초과로 남았고, 최근 7일 이내에 진단이 갱신되었다면 WHOIS 조회 건너뜀
-                        if days_left > 3 and cur_mod_date:
-                            if isinstance(cur_mod_date, str):
-                                last_mod = datetime.strptime(cur_mod_date, "%Y-%m-%d %H:%M:%S")
+                        if days_left > 3 and last_asset_check_at:
+                            if isinstance(last_asset_check_at, str):
+                                last_asset_check = datetime.strptime(last_asset_check_at, "%Y-%m-%d %H:%M:%S")
                             else:
-                                last_mod = cur_mod_date
+                                last_asset_check = last_asset_check_at
                             
-                            if (datetime.now() - last_mod).days < 7:
+                            if (datetime.now() - last_asset_check).days < 7:
                                 should_check = False
                                 log.debug(f"[asset] [{row['company']}] WHOIS 조회 스킵 (만료 {days_left}일 남음, 7일 이내 업데이트됨)")
                     except Exception as e:
@@ -216,7 +216,7 @@ async def run_asset():
 
             # ── DB 저장 ────────────────────────────────────────────
             if updates:
-                set_clause = ", ".join(f"{k}=%s" for k in updates) + ", mod_date=NOW()"
+                set_clause = ", ".join(f"{k}=%s" for k in updates) + ", last_asset_check_at=NOW(), mod_date=NOW()"
                 async with pool.acquire() as conn:
                     async with conn.cursor() as cur:
                         await cur.execute(
@@ -244,4 +244,3 @@ async def run_asset():
 
     elapsed = time.monotonic() - t0
     log.info(f"[asset] ✅ 완료 ({elapsed:.1f}s, {updated}/{len(rows)}개 업데이트)")
-

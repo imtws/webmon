@@ -578,12 +578,12 @@ if (($current_view ?? 'card') === 'log') {
                         </div>
                     </div>
 
-                    <!-- 2. SMTP 릴레이 서버 설정 -->
+                    <!-- 2. 이메일 발송 설정 -->
                     <div class="settings-accordion">
                         <div class="settings-accordion-header">
-                            <button type="button" onclick="toggleSettingsAccordion('smtp')" class="settings-accordion-trigger">
-                                <span class="flex items-center gap-2"><i class="fas fa-mail-bulk"></i> <?= $current_lang == 'KO' ? '전역 SMTP 릴레이 서버 설정' : 'Global SMTP Relay Settings' ?></span>
-                                <i id="set-arrow-smtp" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                            <button type="button" onclick="toggleSettingsAccordion('email')" class="settings-accordion-trigger">
+                                <span class="flex items-center gap-2"><i class="fas fa-paper-plane"></i> <?= $current_lang == 'KO' ? '이메일 발송 설정' : 'Email Sending Settings' ?></span>
+                                <i id="set-arrow-email" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
                             </button>
                             <label class="settings-channel-toggle">
                                 <span><?= $current_lang == 'KO' ? '이메일 알림' : 'Email alerts' ?></span>
@@ -591,8 +591,25 @@ if (($current_view ?? 'card') === 'log') {
                                 <span class="settings-toggle-track"><span></span></span>
                             </label>
                         </div>
+                        <div id="set-body-email" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '모니터링 항목에 별도 발송자 주소가 없을 때 사용할 기본 발송 주소입니다. 항목별 발송자 주소가 지정되어 있으면 해당 주소가 우선합니다.' : 'Used as the default From address when a monitor item has no sender address. An item-specific address takes precedence.' ?></p>
+                            <div>
+                                <label for="globalSenderEmail" class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 발송 이메일 주소 (From)' : 'Default sender email (From)' ?></label>
+                                <input type="email" name="global_sender_email" id="globalSenderEmail" value="<?= htmlspecialchars($settings['global_sender_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="webmon@example.com">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. SMTP 릴레이 서버 설정 -->
+                    <div class="settings-accordion">
+                        <div class="settings-accordion-header">
+                            <button type="button" onclick="toggleSettingsAccordion('smtp')" class="settings-accordion-trigger">
+                                <span class="flex items-center gap-2"><i class="fas fa-mail-bulk"></i> <?= $current_lang == 'KO' ? '전역 SMTP 릴레이 서버 설정' : 'Global SMTP Relay Settings' ?></span>
+                                <i id="set-arrow-smtp" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                            </button>
+                        </div>
                         <div id="set-body-smtp" class="p-4 border-t border-[var(--border-color)] hidden">
-                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '모니터링 항목에서 외부 SMTP 발송을 선택할 경우 사용될 메일 서버 계정 정보입니다.' : 'Mail credentials used when SMTP mode is chosen for monitor targets.' ?></p>
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '모니터링 항목에서 외부 SMTP 발송을 선택할 경우 사용할 릴레이 서버 접속 정보입니다. 알림 활성화와 발송자 주소는 이메일 발송 설정에서 관리합니다.' : 'Relay server credentials used when SMTP mode is selected for monitor targets. Manage alert enablement and sender address in Email Sending Settings.' ?></p>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Host</label>
@@ -918,17 +935,26 @@ if (($current_view ?? 'card') === 'log') {
             if (event) event.stopPropagation();
             const accordion = document.getElementById('accordion-' + no);
             const arrow = document.getElementById('arrow-' + no);
+            const toggle = document.getElementById('chart-toggle-' + no);
             if (!accordion) return;
 
             if (accordion.classList.contains('hidden')) {
                 accordion.classList.remove('hidden');
                 accordion.classList.add('flex');
                 arrow.style.transform = 'rotate(180deg)';
+                if (toggle) {
+                    toggle.setAttribute('aria-expanded', 'true');
+                    toggle.setAttribute('aria-label', '<?= $current_lang == "KO" ? "응답 시간 그래프 닫기" : "Hide response-time chart" ?>');
+                }
                 loadChart(no, '1d');
             } else {
                 accordion.classList.remove('flex');
                 accordion.classList.add('hidden');
                 arrow.style.transform = 'rotate(0deg)';
+                if (toggle) {
+                    toggle.setAttribute('aria-expanded', 'false');
+                    toggle.setAttribute('aria-label', '<?= $current_lang == "KO" ? "응답 시간 그래프 열기" : "Show response-time chart" ?>');
+                }
             }
         }
 
@@ -1230,6 +1256,8 @@ if (($current_view ?? 'card') === 'log') {
                     msg = '<?= $current_lang == "KO" ? "DB 패스워드 변경에 실패했습니다." : "Failed to change DB password." ?>';
                 } else if (err === 'db_pass_required') {
                     msg = '<?= $current_lang == "KO" ? "이전 비밀번호와 새 비밀번호를 모두 입력해 주세요." : "Enter both the current and new database passwords." ?>';
+                } else if (err === 'sender_email_invalid') {
+                    msg = '<?= $current_lang == "KO" ? "기본 발송 이메일 주소 형식을 확인해 주세요." : "Enter a valid default sender email address." ?>';
                 } else if (err === 'db_pass_storage_failed') {
                     msg = '<?= $current_lang == "KO" ? "새 비밀번호를 안전하게 저장하지 못해 변경을 취소했습니다. 관리자에게 문의해 주세요." : "The password change was cancelled because it could not be stored securely." ?>';
                 }

@@ -94,6 +94,7 @@ function initializeFilterDropdowns() {
             item.dataset.value = option.value;
             item.textContent = option.textContent.trim();
             item.addEventListener('click', () => {
+                if (select.disabled || option.disabled) return;
                 select.value = option.value;
                 select.dispatchEvent(new Event('change', { bubbles: true }));
                 updateSelection();
@@ -164,7 +165,27 @@ function initializeFilterDropdowns() {
         });
         select.addEventListener('change', updateSelection);
         updateSelection();
+        syncFilterDropdown(select);
     });
+}
+
+function syncFilterDropdown(select) {
+    const control = select.closest('.filter-select-control');
+    const trigger = control ? control.querySelector('.filter-select-trigger') : null;
+    if (!control || !trigger) return;
+
+    trigger.disabled = select.disabled;
+    trigger.setAttribute('aria-disabled', String(select.disabled));
+    control.classList.toggle('is-disabled', select.disabled);
+    const selectedOption = select.options[select.selectedIndex];
+    const label = trigger.querySelector('.filter-select-label');
+    if (label) label.textContent = selectedOption ? selectedOption.textContent.trim() : '';
+    control.querySelectorAll('.filter-select-option').forEach(option => {
+        const selected = option.dataset.value === select.value;
+        option.setAttribute('aria-selected', String(selected));
+        option.classList.toggle('is-selected', selected);
+    });
+    if (select.disabled) closeFilterDropdown(control);
 }
 
 document.addEventListener('click', event => {
@@ -516,7 +537,7 @@ function resetBulkModalForm() {
     const fieldsToDisable = [
         { chk: 'chkGroup', inputs: ['bulkGroupSelect', 'bulkGroupNew'] },
         { chk: 'chkCheck', inputs: ['bulkCheck'] },
-        { chk: 'chkEngine', inputs: ['bulkEngineLynx', 'bulkEngineCurl'] },
+        { chk: 'chkEngine', inputs: ['bulkEngineType'] },
         { chk: 'chkLimits', inputs: ['bulkRetry', 'bulkTimeout'] },
         { chk: 'chkExpiry', inputs: ['bulkSsl', 'bulkDom'] },
         { chk: 'chkEmail', inputs: ['bulkEmailMode', 'bulkSenderEmail', 'bulkReceiverEmail'] },
@@ -564,6 +585,7 @@ function toggleBulkField(chkId, inputIds) {
         const input = document.getElementById(id);
         if (input) {
             input.disabled = !chk.checked;
+            if (input.tagName === 'SELECT') syncFilterDropdown(input);
             
             // 텍스트, 이메일, 숫자, 패스워드 입력창 성격의 필드만 required 지정
             const isTextInput = (input.tagName === 'INPUT' && ['text', 'number', 'email', 'password'].includes(input.type));
