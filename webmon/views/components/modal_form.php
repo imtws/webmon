@@ -1,8 +1,11 @@
-<div id="addModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="modal-content flex flex-col w-full max-w-[500px] bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-[var(--border-color)] max-h-[90vh] overflow-hidden">
-        <h2 id="modalTitle" class="text-xl font-black mb-6 text-[var(--text-main)] border-b border-[var(--border-color)] pb-4 p-8"><?= $t['modal_add'] ?></h2>
+<div id="addModal" class="side-sheet-overlay hidden fixed inset-0 z-[1100] justify-end bg-black/40 backdrop-blur-sm">
+    <div class="side-sheet-panel modal-content flex flex-col w-full max-w-xl h-full bg-[var(--card-bg)] shadow-2xl border-l border-[var(--border-color)] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <h2 id="modalTitle" class="text-xl font-bold text-[var(--text-main)] border-b border-[var(--border-color)] px-6 py-5 flex items-center justify-between">
+            <span><?= $t['modal_add'] ?></span>
+            <button type="button" class="text-[var(--text-sub)] hover:text-[var(--text-main)]" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </h2>
         
-        <form id="modalForm" method="POST" class="flex-1 overflow-y-auto p-8 pt-0 style-scrollbar">
+        <form id="modalForm" method="POST" class="flex-1 overflow-y-auto p-6 style-scrollbar">
             <input type="hidden" name="action" id="modalAction" value="add">
             <input type="hidden" name="no" id="modalNo" value="">
             <input type="hidden" name="current_query" id="modalCurrentQuery" value="">
@@ -80,7 +83,7 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-3 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['h_alarm'] ?></label>
                         <select name="check" id="modalCheck" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)]">
@@ -103,7 +106,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mb-4 mt-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 mt-4">
                     <div>
                         <label class="block text-xs font-black text-[var(--text-sub)] mb-2 uppercase tracking-wider"><?= $t['modal_engine'] ?? 'ENGINE' ?></label>
                         <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[46px]">

@@ -9,12 +9,20 @@ $db_pass = getenv('DB_PASS') ?: '';
 $db_name = getenv('DB_NAME') ?: 'sitemonitor';
 $db_port = (int)(getenv('DB_PORT') ?: 3306);
 
-// Check for custom password override
-$custom_pass_file = __DIR__ . '/db_pass_custom.php';
-if (file_exists($custom_pass_file)) {
-    $custom_pass = include $custom_pass_file;
-    if (!empty($custom_pass)) {
-        $db_pass = $custom_pass;
+// Prefer the private runtime volume; keep the old file as a migration fallback.
+$runtime_pass_file = '/var/lib/webmon/db_pass';
+if (is_readable($runtime_pass_file)) {
+    $runtime_pass = file_get_contents($runtime_pass_file);
+    if ($runtime_pass !== false && $runtime_pass !== '') {
+        $db_pass = $runtime_pass;
+    }
+} else {
+    $custom_pass_file = __DIR__ . '/db_pass_custom.php';
+    if (file_exists($custom_pass_file)) {
+        $custom_pass = include $custom_pass_file;
+        if (!empty($custom_pass)) {
+            $db_pass = $custom_pass;
+        }
     }
 }
 

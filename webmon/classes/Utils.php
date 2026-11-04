@@ -22,23 +22,26 @@ class Utils {
     }
 
     public static function readEnv() {
-        $path = '/var/www/html/.env';
-        if (!file_exists($path)) {
-            return [];
-        }
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         $env = [];
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line) || strpos($line, '#') === 0) {
+        foreach (['/var/www/html/.env', '/var/lib/webmon/settings.env'] as $path) {
+            if (!is_readable($path)) {
                 continue;
             }
-            if (strpos($line, '=') !== false) {
+            $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if ($lines === false) {
+                continue;
+            }
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if ($line === '' || strpos($line, '#') === 0 || strpos($line, '=') === false) {
+                    continue;
+                }
                 list($key, $value) = explode('=', $line, 2);
                 $key = trim($key);
                 $value = trim($value);
-                // Strip quotes if any
-                if (preg_match('/^["\'](.*)["\']$/', $value, $matches)) {
+                if (preg_match('/^"(.*)"$/s', $value, $matches)) {
+                    $value = stripcslashes($matches[1]);
+                } elseif (preg_match('/^\'(.*)\'$/s', $value, $matches)) {
                     $value = $matches[1];
                 }
                 $env[$key] = $value;
@@ -48,11 +51,14 @@ class Utils {
     }
 
     public static function writeEnv(array $data) {
-        $path = '/var/www/html/.env';
-        if (!file_exists($path)) {
-            file_put_contents($path, "");
+        $path = '/var/lib/webmon/settings.env';
+        if (!is_dir(dirname($path)) || !is_writable(dirname($path))) {
+            throw new RuntimeException('Runtime settings volume is not writable.');
         }
-        $lines = file($path, FILE_IGNORE_NEW_LINES);
+        $lines = is_file($path) ? file($path, FILE_IGNORE_NEW_LINES) : [];
+        if ($lines === false) {
+            throw new RuntimeException('Runtime settings could not be read.');
+        }
         $newLines = [];
         $writtenKeys = [];
 
@@ -82,12 +88,25 @@ class Utils {
             }
         }
 
-        file_put_contents($path, implode("\n", $newLines) . "\n");
+        $tempPath = tempnam(dirname($path), '.settings-');
+        $contents = implode("\n", $newLines) . "\n";
+        $bytesWritten = $tempPath === false ? false : file_put_contents($tempPath, $contents, LOCK_EX);
+        if ($tempPath === false || $bytesWritten !== strlen($contents)) {
+            if ($tempPath !== false) {
+                unlink($tempPath);
+            }
+            throw new RuntimeException('Runtime settings could not be written.');
+        }
+        chmod($tempPath, 0600);
+        if (!rename($tempPath, $path)) {
+            unlink($tempPath);
+            throw new RuntimeException('Runtime settings could not be saved.');
+        }
     }
 
     private static function escapeEnvValue($value) {
         if (preg_match('/[#\s"\'\\\\]/', $value)) {
-            return '"' . str_replace('"', '\\"', $value) . '"';
+            return '"' . addcslashes($value, "\\\"\n\r\t") . '"';
         }
         return $value;
     }

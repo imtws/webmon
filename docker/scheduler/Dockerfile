@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
 # Python 의존성
 COPY docker/scheduler/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN mkdir -p /var/lib/webmon && chown 33:33 /var/lib/webmon && chmod 700 /var/lib/webmon
 
 # 소스 복사
 COPY docker/scheduler/main.py    /app/main.py

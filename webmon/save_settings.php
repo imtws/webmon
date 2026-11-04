@@ -1,40 +1,75 @@
 <?php
 require_once 'config/database.php';
 
+function redirectSettingsError($error) {
+    header("Location: website_status.php?settings_error=" . rawurlencode($error));
+    exit;
+}
+
+function setCurrentDatabasePassword(mysqli $connection, string $password) {
+    $connection->set_charset('utf8mb4');
+    $connection->query("SET SESSION sql_mode = TRIM(BOTH ',' FROM REPLACE(CONCAT(',', @@SESSION.sql_mode, ','), ',NO_BACKSLASH_ESCAPES,', ','))");
+    $escaped_password = $connection->real_escape_string($password);
+    $connection->query("SET PASSWORD = PASSWORD('$escaped_password')");
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. DB 비밀번호 변경 처리
+    // Validate and prepare password changes before changing the database credential.
     $db_pass_old = $_POST['db_pass_old'] ?? '';
     $db_pass_new = $_POST['db_pass_new'] ?? '';
 
-    if (!empty($db_pass_old) && !empty($db_pass_new)) {
+    if ($db_pass_old !== '' || $db_pass_new !== '') {
+        if ($db_pass_old === '' || $db_pass_new === '') {
+            redirectSettingsError('db_pass_required');
+        }
+
         $db_host = getenv('DB_HOST') ?: 'localhost';
         $db_user = getenv('DB_USER') ?: 'sitemonitor';
         $db_name = getenv('DB_NAME') ?: 'sitemonitor';
         $db_port = (int)(getenv('DB_PORT') ?: 3306);
+        $runtime_dir = '/var/lib/webmon';
+        $runtime_pass_file = $runtime_dir . '/db_pass';
 
-        // 이전 비밀번호가 올바른지 검증 시도
-        $test_conn = @new mysqli($db_host, $db_user, $db_pass_old, $db_name, $db_port);
-        if ($test_conn->connect_error) {
-            header("Location: website_status.php?settings_error=db_pass_incorrect");
-            exit;
+        if (!is_dir($runtime_dir) || !is_writable($runtime_dir)) {
+            redirectSettingsError('db_pass_storage_failed');
         }
 
-        // 비밀번호 변경 쿼리 실행
-        $escaped_pass_new = str_replace("'", "''", $db_pass_new);
-        $sql_alter = "ALTER USER CURRENT_USER() IDENTIFIED BY '$escaped_pass_new'";
-        if ($test_conn->query($sql_alter)) {
-            // 변경 성공 시 config/db_pass_custom.php 파일에 기록
-            $config_content = "<?php\n// DB_PASSWORD_OVERRIDE: " . str_replace(["\r", "\n"], "", $db_pass_new) . "\nreturn " . var_export($db_pass_new, true) . ";\n";
-            file_put_contents(__DIR__ . '/config/db_pass_custom.php', $config_content);
-            
-            // 현재 활성 DB 커넥션도 새 비밀번호로 갱신
-            $db->close();
-            $db = new mysqli($db_host, $db_user, $db_pass_new, $db_name, $db_port);
-            $db->set_charset('utf8mb4');
-        } else {
-            header("Location: website_status.php?settings_error=db_alter_failed");
+        $temp_pass_file = tempnam($runtime_dir, '.db-pass-');
+        $bytes_written = $temp_pass_file === false
+            ? false
+            : file_put_contents($temp_pass_file, $db_pass_new, LOCK_EX);
+        if ($temp_pass_file === false || $bytes_written !== strlen($db_pass_new)) {
+            if ($temp_pass_file !== false) {
+                unlink($temp_pass_file);
+            }
+            redirectSettingsError('db_pass_storage_failed');
+        }
+        chmod($temp_pass_file, 0600);
+
+        try {
+            $test_conn = new mysqli($db_host, $db_user, $db_pass_old, $db_name, $db_port);
+        } catch (mysqli_sql_exception $e) {
+            unlink($temp_pass_file);
+            redirectSettingsError('db_pass_incorrect');
+        }
+
+        try {
+            setCurrentDatabasePassword($test_conn, $db_pass_new);
+        } catch (mysqli_sql_exception $e) {
+            unlink($temp_pass_file);
             $test_conn->close();
-            exit;
+            redirectSettingsError('db_alter_failed');
+        }
+
+        if (!rename($temp_pass_file, $runtime_pass_file)) {
+            try {
+                setCurrentDatabasePassword($test_conn, $db_pass_old);
+            } catch (mysqli_sql_exception $e) {
+                error_log('Database password rollback failed after runtime credential storage error.');
+            }
+            unlink($temp_pass_file);
+            $test_conn->close();
+            redirectSettingsError('db_pass_storage_failed');
         }
         $test_conn->close();
     }
@@ -79,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_template_plain = $_POST['email_template_plain'] ?? '';
     $tg_template_html = $_POST['tg_template_html'] ?? '';
 
-    // 민감 정보는 .env 파일에 저장
+    // Keep credentials outside the database and source tree.
     require_once __DIR__ . '/classes/Utils.php';
     $env_updates = [
         'TG_TOKEN' => $tg_token,

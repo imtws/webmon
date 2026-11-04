@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
 COPY docker/php/php.ini  /usr/local/etc/php/conf.d/webmon.ini
 RUN a2enmod rewrite
 COPY docker/php/apache.conf /etc/apache2/sites-available/000-default.conf
+RUN mkdir -p /var/lib/webmon && chown www-data:www-data /var/lib/webmon && chmod 700 /var/lib/webmon
 
 WORKDIR /var/www/html
 COPY webmon/ .

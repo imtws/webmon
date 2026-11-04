@@ -13,6 +13,7 @@ services:
     volumes:
       - ./webmon:/var/www/html
       - ./.env:/var/www/html/.env
+      - webmon_runtime:/var/lib/webmon
     environment:
       DB_HOST:      ${DB_HOST:-db}
       DB_PORT:      ${DB_PORT:-3306}
@@ -38,6 +39,7 @@ services:
       - scheduler_logs:/app/logs
       - ./webmon/config:/app/config:ro
       - ./.env:/app/.env
+      - webmon_runtime:/var/lib/webmon
     environment:
       # DB
       DB_HOST:         ${DB_HOST:-db}
@@ -104,6 +106,8 @@ volumes:
   db_data:
     driver: local
   scheduler_logs:
+    driver: local
+  webmon_runtime:
     driver: local
 
 networks:

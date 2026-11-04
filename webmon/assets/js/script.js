@@ -65,6 +65,143 @@ window.onclick = function(e) {
     }
 }
 
+function openSideSheet(id) {
+    const overlay = document.getElementById(id);
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+    document.body.classList.add('has-open-sheet');
+    requestAnimationFrame(() => overlay.classList.add('is-open'));
+}
+
+function closeSideSheet(id) {
+    const overlay = document.getElementById(id);
+    if (!overlay) return;
+    overlay.classList.remove('is-open');
+    setTimeout(() => {
+        if (!overlay.classList.contains('is-open')) {
+            overlay.classList.remove('flex');
+            overlay.classList.add('hidden');
+            if (!document.querySelector('.side-sheet-overlay.is-open')) {
+                document.body.classList.remove('has-open-sheet');
+            }
+        }
+    }, 220);
+}
+
+document.querySelectorAll('.side-sheet-overlay').forEach(overlay => {
+    overlay.addEventListener('click', event => {
+        if (event.target === overlay) closeSideSheet(overlay.id);
+    });
+});
+
+const confirmDialogElement = document.getElementById('confirmDialog');
+if (confirmDialogElement) {
+    confirmDialogElement.addEventListener('click', event => {
+        if (event.target === confirmDialogElement) closeConfirmDialog();
+    });
+}
+
+function openConfirmDialog({ title, message, items = [], actionLabel, onConfirm, tone = 'danger' }) {
+    const dialog = document.getElementById('confirmDialog');
+    const isKo = document.documentElement.lang === 'ko';
+    const titleEl = document.getElementById('confirmDialogTitle');
+    const messageEl = document.getElementById('confirmDialogMessage');
+    const targetsEl = document.getElementById('confirmDialogTargets');
+    const expandButton = document.getElementById('confirmDialogExpand');
+    const actionButton = document.getElementById('confirmDialogAction');
+    if (!dialog || !titleEl || !messageEl || !targetsEl || !expandButton || !actionButton) return;
+
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    actionButton.textContent = actionLabel || (isKo ? '확인' : 'Confirm');
+    const isDanger = tone === 'danger';
+    const iconContainer = dialog.querySelector('.confirm-dialog-icon');
+    if (iconContainer) {
+        iconContainer.className = `confirm-dialog-icon mb-4 flex h-10 w-10 items-center justify-center rounded-full ${isDanger ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400' : 'bg-sky-50 text-[#18aee7] dark:bg-sky-950/30'}`;
+        iconContainer.innerHTML = `<i class="fas ${isDanger ? 'fa-exclamation' : 'fa-circle-info'}"></i>`;
+    }
+    actionButton.className = `rounded-xl px-4 py-2.5 text-sm font-semibold text-white ${isDanger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#18aee7] hover:bg-[#159bd0]'}`;
+    targetsEl.replaceChildren();
+    const initialVisibleItems = 20;
+    const renderItems = visibleCount => {
+        targetsEl.replaceChildren();
+        items.slice(0, visibleCount).forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        targetsEl.appendChild(li);
+        });
+    };
+    renderItems(Math.min(items.length, initialVisibleItems));
+    targetsEl.classList.toggle('hidden', items.length === 0);
+    expandButton.classList.toggle('hidden', items.length <= initialVisibleItems);
+    expandButton.dataset.expanded = 'false';
+    expandButton.textContent = isKo ? `전체 ${items.length}개 항목 보기` : `Show all ${items.length} items`;
+    window.pendingConfirmItems = items;
+    dialog.dataset.pendingAction = 'true';
+    window.pendingConfirmAction = onConfirm;
+    dialog.classList.remove('hidden');
+    dialog.classList.add('flex');
+    actionButton.focus();
+}
+
+function toggleConfirmTargets() {
+    const button = document.getElementById('confirmDialogExpand');
+    const targets = document.getElementById('confirmDialogTargets');
+    if (!button || !targets) return;
+    const isKo = document.documentElement.lang === 'ko';
+    const expanded = button.dataset.expanded !== 'true';
+    if (expanded) {
+        (window.pendingConfirmItems || []).forEach((item, index) => {
+            if (index < 20) return;
+            const li = document.createElement('li');
+            li.textContent = item;
+            targets.appendChild(li);
+        });
+        button.textContent = isKo ? '목록 접기' : 'Show fewer';
+    } else {
+        while (targets.children.length > 20) {
+            targets.lastElementChild.remove();
+        }
+        targets.scrollTop = 0;
+        button.textContent = isKo
+            ? `전체 ${(window.pendingConfirmItems || []).length}개 항목 보기`
+            : `Show all ${(window.pendingConfirmItems || []).length} items`;
+    }
+    button.dataset.expanded = String(expanded);
+}
+
+function closeConfirmDialog() {
+    const dialog = document.getElementById('confirmDialog');
+    if (!dialog) return;
+    dialog.classList.add('hidden');
+    dialog.classList.remove('flex');
+    delete dialog.dataset.pendingAction;
+    window.pendingConfirmAction = null;
+    window.pendingConfirmItems = [];
+}
+
+function runConfirmedAction() {
+    const dialog = document.getElementById('confirmDialog');
+    if (!dialog || !dialog.dataset.pendingAction) return;
+    const action = window.pendingConfirmAction;
+    closeConfirmDialog();
+    if (typeof action === 'function') action();
+}
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+        const dialog = document.getElementById('confirmDialog');
+        if (dialog && !dialog.classList.contains('hidden')) {
+            closeConfirmDialog();
+            return;
+        }
+        document.querySelectorAll('.side-sheet-overlay.is-open').forEach(overlay => {
+            closeSideSheet(overlay.id);
+        });
+    }
+});
+
 // 모달창 열기 및 데이터 세팅
 function openModal(type, data = null) {
     const modal = document.getElementById('addModal');
@@ -76,20 +213,7 @@ function openModal(type, data = null) {
         currentQueryField.value = window.location.search.replace('?', '');
     }
 
-    // 모달 애니메이션
-    if (modal) {
-        modal.classList.remove('hidden');
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.style.transform = 'scale(0.98)';
-            modalContent.style.opacity = '0';
-            setTimeout(() => {
-                modalContent.style.transition = 'all 0.08s ease-out';
-                modalContent.style.transform = 'scale(1)';
-                modalContent.style.opacity = '1';
-            }, 10);
-        }
-    }
+    openSideSheet('addModal');
     
     if (document.getElementById('modalTitle')) {
         document.getElementById('modalTitle').innerText = type === 'add' ? (typeof langPack !== 'undefined' ? langPack.modalAddTitle : 'Add Monitor') : (typeof langPack !== 'undefined' ? langPack.modalEditTitle : 'Edit Monitor');
@@ -185,23 +309,13 @@ function openModal(type, data = null) {
 }
 
 function closeModal() {
-    const modal = document.getElementById('addModal');
-    if (modal) {
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.style.transform = 'scale(0.98)';
-            modalContent.style.opacity = '0';
-        }
-        setTimeout(() => {
-            modal.classList.add('hidden');
-        }, 80);
-    }
+    closeSideSheet('addModal');
 }
 
 function openBulkModal() {
     const checked = document.querySelectorAll('.item-checkbox:checked');
     if (checked.length === 0) {
-        alert(typeof langPack !== 'undefined' && langPack.selStatus ? langPack.selStatus : '변경할 항목을 선택해주세요.');
+        showToast(typeof langPack !== 'undefined' && langPack.selStatus ? langPack.selStatus : '변경할 항목을 선택해주세요.', 'warning');
         return;
     }
     
@@ -223,21 +337,7 @@ function openBulkModal() {
     
     resetBulkModalForm();
     
-    const modal = document.getElementById('bulkModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.style.transform = 'scale(0.98)';
-            modalContent.style.opacity = '0';
-            setTimeout(() => {
-                modalContent.style.transition = 'all 0.08s ease-out';
-                modalContent.style.transform = 'scale(1)';
-                modalContent.style.opacity = '1';
-            }, 10);
-        }
-    }
+    openSideSheet('bulkModal');
 }
 
 function resetBulkModalForm() {
@@ -275,51 +375,15 @@ function resetBulkModalForm() {
 }
 
 function closeBulkModal() {
-    const modal = document.getElementById('bulkModal');
-    if (modal) {
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.style.transform = 'scale(0.98)';
-            modalContent.style.opacity = '0';
-        }
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }, 80);
-    }
+    closeSideSheet('bulkModal');
 }
 
 function openHistoryModal() {
-    const modal = document.getElementById('historyModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.style.transform = 'scale(0.98)';
-            modalContent.style.opacity = '0';
-            setTimeout(() => {
-                modalContent.style.transition = 'all 0.08s ease-out';
-                modalContent.style.transform = 'scale(1)';
-                modalContent.style.opacity = '1';
-            }, 10);
-        }
-    }
+    openSideSheet('historyModal');
 }
 
 function closeHistoryModal() {
-    const modal = document.getElementById('historyModal');
-    if (modal) {
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.style.transform = 'scale(0.98)';
-            modalContent.style.opacity = '0';
-        }
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }, 80);
-    }
+    closeSideSheet('historyModal');
 }
 
 function toggleBulkField(chkId, inputIds) {
@@ -469,24 +533,39 @@ function toggleLang(lang) {
 }
 
 function confirmDelete(company, no) {
-    const msg = typeof langPack !== 'undefined' && langPack.msg_confirm_del ? langPack.msg_confirm_del : '정말 삭제하시겠습니까?';
-    if (confirm(`[ ${company} ]\n\n${msg}`)) {
-        // [수정된 부분] 현재 검색/필터 쿼리 스트링 유지
-        const currentQuery = window.location.search.replace('?', '');
-        location.href = `website_status.php?action=delete&no=${no}&current_query=${encodeURIComponent(currentQuery)}`;
-    }
+    const isKo = document.documentElement.lang === 'ko';
+    const msg = typeof langPack !== 'undefined' && langPack.msg_confirm_del
+        ? langPack.msg_confirm_del
+        : (isKo ? '이 모니터링 항목을 삭제할까요?' : 'Delete this monitoring item?');
+    openConfirmDialog({
+        title: isKo ? '모니터링 항목 삭제' : 'Delete monitor',
+        message: msg,
+        items: [company],
+        actionLabel: isKo ? '삭제' : 'Delete',
+        onConfirm: () => {
+            const currentQuery = window.location.search.replace('?', '');
+            location.href = `website_status.php?action=delete&no=${no}&current_query=${encodeURIComponent(currentQuery)}`;
+        }
+    });
 }
 
 function confirmBulkDeleteSubmit() {
     const checked = document.querySelectorAll('.item-checkbox:checked');
     if (checked.length === 0) {
-        alert(typeof langPack !== 'undefined' && langPack.selDel ? langPack.selDel : '삭제할 항목을 선택해주세요.');
+        showToast(typeof langPack !== 'undefined' && langPack.selDel ? langPack.selDel : '삭제할 항목을 선택해주세요.', 'warning');
         return;
     }
-    const companies = Array.from(checked).map(cb => cb.getAttribute('data-company')).join(', ');
-    const baseMsg = typeof langPack !== 'undefined' && langPack.msg_confirm_del ? langPack.msg_confirm_del : '선택한 항목을 정말 삭제하시겠습니까?';
-    if (confirm(`[ ${companies} ]\n\n${baseMsg}`)) {
-        const ids = Array.from(checked).map(cb => cb.value).join(',');
+    const unique = Array.from(new Map(Array.from(checked, cb => [cb.value, cb])).values());
+    const isKo = document.documentElement.lang === 'ko';
+    openConfirmDialog({
+        title: isKo ? '선택 항목 삭제' : 'Delete selected items',
+        message: isKo
+            ? `${unique.length}개 모니터링 항목을 삭제할까요? 작업 이력에서 복원할 수 있습니다.`
+            : `Delete ${unique.length} monitoring items? You can restore them from job history.`,
+        items: unique.map(cb => cb.getAttribute('data-company') || cb.value),
+        actionLabel: isKo ? '모두 삭제' : 'Delete all',
+        onConfirm: () => {
+        const ids = unique.map(cb => cb.value).join(',');
         document.getElementById('bulkAction').value = 'bulk_delete';
         document.getElementById('bulkIds').value = ids;
         
@@ -495,13 +574,14 @@ function confirmBulkDeleteSubmit() {
         if (bulkQueryField) bulkQueryField.value = window.location.search.replace('?', '');
         
         document.getElementById('bulkForm').submit();
-    }
+        }
+    });
 }
 
 function confirmBulkStatusUpdate(status) {
     const checked = document.querySelectorAll('.item-checkbox:checked');
     if (checked.length === 0) {
-        alert(typeof langPack !== 'undefined' && langPack.selStatus ? langPack.selStatus : '상태를 변경할 항목을 선택해주세요.');
+        showToast(typeof langPack !== 'undefined' && langPack.selStatus ? langPack.selStatus : '상태를 변경할 항목을 선택해주세요.', 'warning');
         return;
     }
     let statusName = status;
@@ -511,9 +591,18 @@ function confirmBulkStatusUpdate(status) {
     if(status === 'alarm_unmute') statusName = typeof langPack !== 'undefined' && langPack.statusUnmute ? langPack.statusUnmute : '일시 무음 해제';
     if(status === 'alarm_mute_default') statusName = typeof langPack !== 'undefined' && langPack.statusMuteDefault ? langPack.statusMuteDefault : '일시 무음 설정';
 
-    const companies = Array.from(checked).map(cb => cb.getAttribute('data-company')).join(', ');
-    if (confirm(`[ ${companies} ]\n\n위 항목들의 알람 상태를 '${statusName}'(으)로 변경하시겠습니까?`)) {
-        const ids = Array.from(checked).map(cb => cb.value).join(',');
+    const unique = Array.from(new Map(Array.from(checked, cb => [cb.value, cb])).values());
+    const isKo = document.documentElement.lang === 'ko';
+    openConfirmDialog({
+        title: isKo ? '알람 상태 변경' : 'Change alert status',
+        message: isKo
+            ? `${unique.length}개 항목의 알람 상태를 '${statusName}'(으)로 변경할까요?`
+            : `Change the alert status of ${unique.length} items to '${statusName}'?`,
+        items: unique.map(cb => cb.getAttribute('data-company') || cb.value),
+        actionLabel: isKo ? '변경' : 'Change',
+        tone: 'neutral',
+        onConfirm: () => {
+        const ids = unique.map(cb => cb.value).join(',');
         document.getElementById('bulkAction').value = 'bulk_status';
         document.getElementById('bulkStatusValue').value = status;
         document.getElementById('bulkIds').value = ids;
@@ -523,7 +612,8 @@ function confirmBulkStatusUpdate(status) {
         if (bulkQueryField) bulkQueryField.value = window.location.search.replace('?', '');
         
         document.getElementById('bulkForm').submit();
-    }
+        }
+    });
 }
 
 function toggleSortStatus() {
@@ -746,17 +836,23 @@ function fallbackCopy(text, callback) {
     document.body.removeChild(textArea);
 }
 
-function showToast(message) {
+function showToast(message, type = 'success') {
     let container = document.querySelector('.toast-container');
     if (!container) {
         container = document.createElement('div');
         container.className = 'toast-container';
+        container.setAttribute('role', 'status');
+        container.setAttribute('aria-live', 'polite');
         document.body.appendChild(container);
     }
     
     const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerHTML = `<i class="fas fa-check-circle text-[#18aee7]"></i> <span>${message}</span>`;
+    toast.className = `toast toast-${type}`;
+    const icon = document.createElement('i');
+    icon.className = `fas ${type === 'error' ? 'fa-circle-exclamation' : type === 'warning' ? 'fa-triangle-exclamation' : 'fa-check-circle'}`;
+    const text = document.createElement('span');
+    text.textContent = message;
+    toast.append(icon, text);
     container.appendChild(toast);
     
     // Trigger layout reflow for CSS transition
@@ -769,7 +865,7 @@ function showToast(message) {
         toast.addEventListener('transitionend', () => {
             toast.remove();
         });
-    }, 2500);
+    }, 3200);
 }
 
 /**
@@ -794,11 +890,11 @@ async function diagnoseItem(no, button) {
                 location.reload();
             }, 1000);
         } else {
-            alert(data.message || '진단 중 에러가 발생했습니다.');
+            showToast(data.message || '진단 중 에러가 발생했습니다.', 'error');
         }
     } catch (err) {
         console.error('Failed to diagnose item:', err);
-        alert('진단 요청 실패: ' + err.message);
+        showToast('진단 요청 실패: ' + err.message, 'error');
     } finally {
         setTimeout(() => {
             button.classList.remove('fa-spin');

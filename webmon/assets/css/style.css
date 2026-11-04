@@ -23,6 +23,23 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+body.has-open-sheet { overflow: hidden; }
+
+.side-sheet-overlay {
+    opacity: 0;
+    transition: opacity 0.22s ease;
+}
+
+.side-sheet-overlay.is-open { opacity: 1; }
+
+.side-sheet-panel {
+    transform: translateX(100%);
+    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform;
+}
+
+.side-sheet-overlay.is-open .side-sheet-panel { transform: translateX(0); }
+
 /* UI Components */
 .unified-ui {
     height: 40px;
@@ -227,39 +244,37 @@ body.is-scrolling .cmd-tooltip {
 /* 토스트 알림 (Toast Notification) 스타일 */
 .toast-container {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    right: 20px;
+    bottom: 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     z-index: 9999;
     pointer-events: none;
+    width: min(390px, calc(100vw - 32px));
 }
 
 .toast {
     pointer-events: auto;
-    background: #1e293b; /* Slate 800 */
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 12px 20px;
-    border-radius: 12px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+    background: var(--card-bg);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 14px 16px;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
 }
 
-/* 다크모드 시 밝은 배경의 토스트로 가시성 극대화 */
-.dark .toast {
-    background: #ffffff;
-    color: #1e293b;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-}
+.toast i { color: #18aee7; }
+.toast-error i { color: #dc2626; }
+.toast-warning i { color: #d97706; }
 
 .toast.show {
     opacity: 1;
@@ -269,4 +284,23 @@ body.is-scrolling .cmd-tooltip {
 .toast.hide {
     opacity: 0;
     transform: translateY(-20px);
+}
+
+@media (max-width: 640px) {
+    .toast-container {
+        right: 16px;
+        bottom: 16px;
+        left: 16px;
+        width: auto;
+    }
+
+    .side-sheet-panel { max-width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .side-sheet-overlay,
+    .side-sheet-panel,
+    .toast {
+        transition-duration: 0.01ms;
+    }
 }

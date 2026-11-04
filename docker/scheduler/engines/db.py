@@ -5,6 +5,7 @@ aiomysql 기반 비동기 커넥션 풀.
 각 엔진에서 `async with get_pool() as pool:` 로 사용합니다.
 """
 
+import ast
 import os
 import aiomysql
 from contextlib import asynccontextmanager
@@ -19,19 +20,21 @@ def get_db_config() -> dict:
         charset  = "utf8mb4",
         autocommit = True,
     )
-    # Check for custom password override
-    custom_pass_file = "/app/config/db_pass_custom.php"
-    if os.path.exists(custom_pass_file):
-        try:
-            with open(custom_pass_file, "r") as f:
+    # Prefer the shared private runtime volume; retain the legacy override fallback.
+    runtime_pass_file = "/var/lib/webmon/db_pass"
+    if os.path.isfile(runtime_pass_file):
+        with open(runtime_pass_file, "r", encoding="utf-8") as f:
+            config["password"] = f.read()
+    else:
+        custom_pass_file = "/app/config/db_pass_custom.php"
+        if os.path.exists(custom_pass_file):
+            with open(custom_pass_file, "r", encoding="utf-8") as f:
                 for line in f:
                     if "DB_PASSWORD_OVERRIDE:" in line:
                         parts = line.split("DB_PASSWORD_OVERRIDE:", 1)
                         if len(parts) > 1:
                             config["password"] = parts[1].strip()
                             break
-        except Exception:
-            pass
     return config
 
 
@@ -48,25 +51,27 @@ async def get_pool(minsize: int = 1, maxsize: int = 10):
 
 def load_env() -> dict[str, str]:
     env = {}
-    path = "/app/.env"
-    if not os.path.exists(path):
-        return env
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                if "=" in line:
-                    parts = line.split("=", 1)
-                    if len(parts) == 2:
-                        k = parts[0].strip()
-                        v = parts[1].strip()
-                        if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
-                            v = v[1:-1]
-                        env[k] = v
-    except Exception:
-        pass
+    for path in ("/app/.env", "/var/lib/webmon/settings.env"):
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        parts = line.split("=", 1)
+                        if len(parts) == 2:
+                            k = parts[0].strip()
+                            v = parts[1].strip()
+                            if v.startswith('"') and v.endswith('"'):
+                                v = ast.literal_eval(v)
+                            elif v.startswith("'") and v.endswith("'"):
+                                v = v[1:-1]
+                            env[k] = v
+        except OSError:
+            continue
     return env
 
 
@@ -89,7 +94,7 @@ async def load_system_settings() -> dict[str, str]:
         pool.close()
         await pool.wait_closed()
 
-    # .env 병합
+    # Merge environment defaults with private runtime overrides.
     env = load_env()
     for k, v in env.items():
         if k == 'TG_TOKEN': settings['tg_token'] = v
@@ -102,4 +107,3 @@ async def load_system_settings() -> dict[str, str]:
         elif k == 'WEBMON_URL': settings['webmon_url'] = v
 
     return settings
-

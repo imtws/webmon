@@ -167,11 +167,11 @@ if (($current_view ?? 'card') === 'log') {
                         </div>
 
                         <!-- 작업 이력: iOS Tinted Style -->
-                        <button type="button" onclick="openHistoryModal()" class="unified-ui px-4 bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-600 dark:text-amber-400 font-bold transition-colors border-none rounded-xl">
+                        <button type="button" onclick="openHistoryModal()" class="unified-ui px-4 bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-[#18aee7] hover:text-[#18aee7] font-bold transition-colors rounded-xl">
                             <i class="fas fa-history mr-1.5 text-[10px]"></i><?= $current_lang == 'KO' ? '작업 이력' : 'Job History' ?>
                         </button>
                         <!-- 추가: iOS Filled System Blue Style -->
-                        <button type="button" onclick="openModal('add')" class="unified-ui px-5 bg-[#007aff] dark:bg-[#0a84ff] hover:bg-[#0066d6] dark:hover:bg-[#007aff] text-white font-bold shadow-sm transition-all border-none rounded-xl"><?= $t['btn_add'] ?></button>
+                        <button type="button" onclick="openModal('add')" class="unified-ui px-5 bg-[#18aee7] hover:bg-[#159bd0] text-white font-bold shadow-sm transition-all border-none rounded-xl"><?= $t['btn_add'] ?></button>
                         
                         <div class="flex items-center gap-2 ml-2">
                             <div class="switch-container">
@@ -514,11 +514,11 @@ if (($current_view ?? 'card') === 'log') {
     </div>
 
     <!-- ⚙️ 환경 설정 모달 ────────────────────────────────────────────── -->
-    <div id="settingsModal" class="fixed inset-0 z-[1000] hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="bg-[var(--card-bg)] border border-[var(--border-color)] w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
-            <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+    <div id="settingsModal" class="side-sheet-overlay fixed inset-0 z-[1000] hidden justify-end bg-black/40 backdrop-blur-sm">
+        <div class="side-sheet-panel bg-[var(--card-bg)] border-l border-[var(--border-color)] w-full max-w-xl h-full shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-modal="true">
+            <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center">
                 <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-sliders text-[#18aee7]"></i> <?= $current_lang == 'KO' ? '모니터링 프로그램 환경 설정' : 'System Configuration' ?></h3>
-                <i class="fas fa-times cursor-pointer hover:text-red-500" onclick="closeSettingsModal()"></i>
+                <button type="button" class="text-[var(--text-sub)] hover:text-[var(--text-main)] p-2" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeSettingsModal()"><i class="fas fa-times"></i></button>
             </div>
 
             <!-- 탭 버튼 헤더 -->
@@ -694,7 +694,7 @@ if (($current_view ?? 'card') === 'log') {
                     <!-- 5. 시스템 환경 설정 -->
                     <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
                         <button type="button" onclick="toggleSettingsAccordion('sysenv')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                            <span class="flex items-center gap-2 text-green-500"><i class="fas fa-hdd"></i> <?= $current_lang == 'KO' ? '시스템 환경 설정' : 'System Environment' ?></span>
+                            <span class="flex items-center gap-2 text-[var(--text-sub)]"><i class="fas fa-hdd"></i> <?= $current_lang == 'KO' ? '시스템 환경 설정' : 'System Environment' ?></span>
                             <i id="set-arrow-sysenv" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
                         </button>
                         <div id="set-body-sysenv" class="p-4 border-t border-[var(--border-color)] hidden">
@@ -784,7 +784,7 @@ if (($current_view ?? 'card') === 'log') {
                     <!-- 2. 기본 이메일 알림 설정 -->
                     <div class="border border-[var(--border-color)] rounded-xl bg-slate-50/30 dark:bg-slate-800/10 overflow-hidden">
                         <button type="button" onclick="toggleSettingsAccordion('defmail')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                            <span class="flex items-center gap-2 text-green-500"><i class="fas fa-envelope"></i> <?= $current_lang == 'KO' ? '기본 이메일 알림 설정' : 'Default Email Alerts Settings' ?></span>
+                            <span class="flex items-center gap-2 text-[var(--text-sub)]"><i class="fas fa-envelope"></i> <?= $current_lang == 'KO' ? '기본 이메일 알림 설정' : 'Default Email Alerts Settings' ?></span>
                             <i id="set-arrow-defmail" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
                         </button>
                         <div id="set-body-defmail" class="p-4 border-t border-[var(--border-color)] hidden">
@@ -822,8 +822,8 @@ if (($current_view ?? 'card') === 'log') {
 
     <!-- 🔔 개별 모니터링 스케줄 설정 모달 ────────────────────────────── -->
     <!-- 🔔 개별 모니터링 알람 일시 무음 설정 모달 ────────────────────────────── -->
-    <div id="itemScheduleModal" class="fixed inset-0 z-[1000] hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="bg-[var(--card-bg)] border border-[var(--border-color)] w-full max-w-md rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+    <div id="itemScheduleModal" class="side-sheet-overlay fixed inset-0 z-[1000] hidden justify-end bg-black/40 backdrop-blur-sm">
+        <div class="side-sheet-panel bg-[var(--card-bg)] border-l border-[var(--border-color)] w-full max-w-md h-full shadow-2xl flex flex-col overflow-y-auto" role="dialog" aria-modal="true">
             <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
                 <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-bell-slash text-[#18aee7]"></i> <span id="schedModalTitle">알람 일시 무음 설정</span></h3>
                 <i class="fas fa-times cursor-pointer hover:text-red-500" onclick="closeItemScheduleModal()"></i>
@@ -857,6 +857,26 @@ if (($current_view ?? 'card') === 'log') {
                     <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '스케줄 저장' : 'Save Schedule' ?></button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="confirmDialog" class="fixed inset-0 z-[1300] hidden items-center justify-center bg-black/45 backdrop-blur-sm p-4" role="presentation">
+        <div class="w-full max-w-md rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="confirmDialogTitle" aria-describedby="confirmDialogMessage">
+            <div class="confirm-dialog-icon mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400">
+                <i class="fas fa-exclamation"></i>
+            </div>
+            <h2 id="confirmDialogTitle" class="text-lg font-bold text-[var(--text-main)]"></h2>
+            <p id="confirmDialogMessage" class="mt-2 text-sm leading-6 text-[var(--text-sub)]"></p>
+            <ul id="confirmDialogTargets" class="mt-4 hidden max-h-40 space-y-1 overflow-y-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-color)] p-3 text-sm text-[var(--text-main)]"></ul>
+            <button id="confirmDialogExpand" type="button" class="mt-2 hidden text-xs font-semibold text-[#18aee7] hover:underline" onclick="toggleConfirmTargets()"></button>
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="button" onclick="closeConfirmDialog()" class="rounded-xl border border-[var(--border-color)] px-4 py-2.5 text-sm font-semibold text-[var(--text-main)] hover:bg-[var(--bg-color)]">
+                    <?= $current_lang == 'KO' ? '취소' : 'Cancel' ?>
+                </button>
+                <button id="confirmDialogAction" type="button" onclick="runConfirmedAction()" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700">
+                    <?= $current_lang == 'KO' ? '삭제' : 'Delete' ?>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1076,7 +1096,7 @@ if (($current_view ?? 'card') === 'log') {
             const startVal = document.getElementById('chart-start-' + no).value;
             const endVal = document.getElementById('chart-end-' + no).value;
             if (!startVal || !endVal) {
-                alert('<?= $current_lang == "KO" ? "시작일과 종료일을 모두 선택해주세요." : "Please select both start and end dates." ?>');
+                showToast('<?= $current_lang == "KO" ? "시작일과 종료일을 모두 선택해주세요." : "Please select both start and end dates." ?>', 'warning');
                 return;
             }
             
@@ -1085,14 +1105,14 @@ if (($current_view ?? 'card') === 'log') {
             const endDate = new Date(endVal.replace(/-/g, '/'));
             
             if (startDate > endDate) {
-                alert('<?= $current_lang == "KO" ? "시작일은 종료일보다 이전 날짜여야 합니다." : "The start date must be before the end date." ?>');
+                showToast('<?= $current_lang == "KO" ? "시작일은 종료일보다 이전 날짜여야 합니다." : "The start date must be before the end date." ?>', 'warning');
                 return;
             }
             
             // 미래 날짜 제한 검증
             const now = new Date();
             if (startDate > now || endDate > now) {
-                alert('<?= $current_lang == "KO" ? "현재 시간 이후는 조회할 수 없습니다." : "You cannot query future times." ?>');
+                showToast('<?= $current_lang == "KO" ? "현재 시간 이후는 조회할 수 없습니다." : "You cannot query future times." ?>', 'warning');
                 return;
             }
             
@@ -1125,8 +1145,7 @@ if (($current_view ?? 'card') === 'log') {
         }
 
         function openSettingsModal() {
-            document.getElementById('settingsModal').classList.remove('hidden');
-            document.getElementById('settingsModal').classList.add('flex');
+            openSideSheet('settingsModal');
             toggleAlertFormatTemplates();
             // Open first accordions by default
             toggleSettingsAccordion('tg', true);
@@ -1134,8 +1153,7 @@ if (($current_view ?? 'card') === 'log') {
         }
 
         function closeSettingsModal() {
-            document.getElementById('settingsModal').classList.remove('flex');
-            document.getElementById('settingsModal').classList.add('hidden');
+            closeSideSheet('settingsModal');
         }
 
         function toggleSettingsAccordion(id, forceOpen = null) {
@@ -1186,8 +1204,12 @@ if (($current_view ?? 'card') === 'log') {
                     msg = '<?= $current_lang == "KO" ? "이전 DB 패스워드가 올바르지 않습니다." : "The current DB password is incorrect." ?>';
                 } else if (err === 'db_alter_failed') {
                     msg = '<?= $current_lang == "KO" ? "DB 패스워드 변경에 실패했습니다." : "Failed to change DB password." ?>';
+                } else if (err === 'db_pass_required') {
+                    msg = '<?= $current_lang == "KO" ? "이전 비밀번호와 새 비밀번호를 모두 입력해 주세요." : "Enter both the current and new database passwords." ?>';
+                } else if (err === 'db_pass_storage_failed') {
+                    msg = '<?= $current_lang == "KO" ? "새 비밀번호를 안전하게 저장하지 못해 변경을 취소했습니다. 관리자에게 문의해 주세요." : "The password change was cancelled because it could not be stored securely." ?>';
                 }
-                alert(msg);
+                showToast(msg, 'error');
                 const newUrl = window.location.pathname + window.location.search.replace(/[?&]settings_error=[^&]+/, '').replace(/^&/, '?').replace(/\?$/, '');
                 window.history.replaceState({}, document.title, newUrl);
             }
@@ -1298,13 +1320,11 @@ if (($current_view ?? 'card') === 'log') {
             
             toggleSchedFields(enabled);
             
-            document.getElementById('itemScheduleModal').classList.remove('hidden');
-            document.getElementById('itemScheduleModal').classList.add('flex');
+            openSideSheet('itemScheduleModal');
         }
 
         function closeItemScheduleModal() {
-            document.getElementById('itemScheduleModal').classList.remove('flex');
-            document.getElementById('itemScheduleModal').classList.add('hidden');
+            closeSideSheet('itemScheduleModal');
         }
 
         function toggleSchedFields(enabled) {

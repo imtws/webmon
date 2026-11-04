@@ -81,13 +81,13 @@ if (!function_exists('renderFieldStatic')) {
 }
 ?>
 
-<div id="historyModal" class="hidden fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="modal-content flex flex-col w-full max-w-5xl bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-[var(--border-color)] max-h-[85vh] overflow-hidden">
+<div id="historyModal" class="side-sheet-overlay hidden fixed inset-0 z-[1100] justify-end bg-black/40 backdrop-blur-sm">
+    <div class="side-sheet-panel modal-content flex flex-col w-full max-w-5xl h-full bg-[var(--card-bg)] shadow-2xl border-l border-[var(--border-color)] overflow-hidden" role="dialog" aria-modal="true">
         
         <!-- Header -->
-        <div class="px-8 py-5 border-b border-[var(--border-color)] flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+        <div class="px-6 py-5 border-b border-[var(--border-color)] flex justify-between items-center">
             <h2 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2">
-                <i class="fas fa-history text-amber-500 animate-pulse"></i>
+                <i class="fas fa-history text-[#18aee7]"></i>
                 <span><?= $current_lang == 'KO' ? '작업 이력 및 원복 관리' : 'Job History & Rollback' ?></span>
             </h2>
             <button type="button" onclick="closeHistoryModal()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors focus:outline-none">
@@ -96,7 +96,7 @@ if (!function_exists('renderFieldStatic')) {
         </div>
         
         <!-- Content Body -->
-        <div class="flex-1 overflow-y-auto p-8 style-scrollbar">
+        <div class="flex-1 overflow-y-auto p-6 style-scrollbar">
             <?php if (empty($history_list)): ?>
                 <div class="flex flex-col items-center justify-center py-16 text-center">
                     <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-600 mb-4">
@@ -114,8 +114,8 @@ if (!function_exists('renderFieldStatic')) {
                             : '※ Shows the last 50 changes. Rollback instantly restores settings to their exact previous state.' ?>
                     </p>
                     
-                    <div class="overflow-hidden border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] shadow-xs">
-                        <table class="w-full text-left border-collapse text-xs">
+                    <div class="overflow-x-auto border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]">
+                        <table class="w-full min-w-[760px] text-left border-collapse text-xs">
                             <thead>
                                 <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-[var(--border-color)] text-[var(--text-sub)] font-extrabold">
                                     <th class="p-4 w-[60px] text-center">ID</th>
@@ -366,12 +366,16 @@ function confirmRollback(jobId, count, actionType) {
     else if (actionType === 'delete') actionLabel = isKo ? '삭제' : 'Delete';
     else if (actionType === 'edit') actionLabel = isKo ? '수정' : 'Edit';
 
-    const msg = isKo 
-        ? `[작업 유형: ${actionLabel} (대상 수: ${count}개)]\n\n해당 작업을 정말로 원복하시겠습니까?\n이전의 설정 상태로 그대로 복구됩니다.`
-        : `[Action: ${actionLabel} (Targets: ${count})]\n\nAre you sure you want to roll back this job?\nSettings will be restored to their previous states.`;
-        
-    if (confirm(msg)) {
-        window.location.href = `website_status.php?action=rollback_job&job_id=${jobId}`;
-    }
+    openConfirmDialog({
+        title: isKo ? '작업 원복' : 'Roll back job',
+        message: isKo
+            ? `[${actionLabel}] 작업의 ${count}개 대상을 이전 설정으로 복원할까요?`
+            : `Restore ${count} targets from this ${actionLabel} job to their previous settings?`,
+        actionLabel: isKo ? '원복' : 'Roll back',
+        tone: 'neutral',
+        onConfirm: () => {
+            window.location.href = `website_status.php?action=rollback_job&job_id=${jobId}`;
+        }
+    });
 }
 </script>

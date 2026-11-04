@@ -1,13 +1,16 @@
-<div id="bulkModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="modal-content flex flex-col w-full max-w-[550px] bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-[var(--border-color)] max-h-[90vh] overflow-hidden">
-        <h2 class="text-xl font-black mb-4 text-[var(--text-main)] border-b border-[var(--border-color)] pb-4 p-8 flex justify-between items-center">
+<div id="bulkModal" class="side-sheet-overlay hidden fixed inset-0 z-[1100] justify-end bg-black/40 backdrop-blur-sm">
+    <div class="side-sheet-panel modal-content flex flex-col w-full max-w-xl h-full bg-[var(--card-bg)] shadow-2xl border-l border-[var(--border-color)] overflow-hidden" role="dialog" aria-modal="true">
+        <h2 class="text-xl font-bold text-[var(--text-main)] border-b border-[var(--border-color)] px-6 py-5 flex justify-between items-center">
             <span>
                 <i class="fas fa-sliders-h mr-2 text-[#18aee7]"></i><?= $current_lang == 'KO' ? '선택 항목 일괄 설정 변경' : 'Bulk Edit Selected Items' ?>
             </span>
-            <span id="bulkModalCount" class="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-2.5 py-1 rounded-full font-bold"></span>
+            <span class="flex items-center gap-3">
+                <span id="bulkModalCount" class="text-xs text-[var(--text-sub)] font-semibold"></span>
+                <button type="button" class="text-[var(--text-sub)] hover:text-[var(--text-main)]" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeBulkModal()"><i class="fas fa-times"></i></button>
+            </span>
         </h2>
         
-        <form id="bulkModalForm" method="POST" action="website_status.php" class="flex-1 overflow-y-auto p-8 pt-0 style-scrollbar">
+        <form id="bulkModalForm" method="POST" action="website_status.php" class="flex-1 overflow-y-auto p-6 style-scrollbar">
             <input type="hidden" name="action" value="bulk_update">
             <input type="hidden" name="ids" id="bulkModalIds" value="">
             <input type="hidden" name="current_query" id="bulkModalCurrentQuery" value="">
