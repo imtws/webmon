@@ -1,61 +1,61 @@
 <div id="addModal" class="side-sheet-overlay hidden fixed inset-0 z-[1100] justify-end bg-black/40 backdrop-blur-sm">
-    <div class="side-sheet-panel modal-content flex flex-col w-full max-w-xl h-full bg-[var(--card-bg)] shadow-2xl border-l border-[var(--border-color)] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-        <h2 id="modalTitle" class="text-xl font-bold text-[var(--text-main)] border-b border-[var(--border-color)] px-6 py-5 flex items-center justify-between">
+    <div class="side-sheet-panel modal-content flex flex-col w-full max-w-3xl h-full bg-[var(--card-bg)] shadow-2xl border-l border-[var(--border-color)] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <h2 id="modalTitle" class="text-lg font-bold text-[var(--text-main)] border-b border-[var(--border-color)] px-6 py-4 flex items-center justify-between">
             <span><?= $t['modal_add'] ?></span>
             <button type="button" class="text-[var(--text-sub)] hover:text-[var(--text-main)]" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeModal()"><i class="fas fa-times"></i></button>
         </h2>
         
-        <form id="modalForm" method="POST" class="flex-1 overflow-y-auto p-6 style-scrollbar">
+        <form id="modalForm" method="POST" class="flex min-h-0 flex-1 flex-col overflow-y-auto style-scrollbar">
             <input type="hidden" name="action" id="modalAction" value="add">
             <input type="hidden" name="no" id="modalNo" value="">
             <input type="hidden" name="current_query" id="modalCurrentQuery" value="">
             
-            <div class="space-y-4">
+            <div class="grid grid-cols-1 gap-x-4 gap-y-3 p-5 sm:grid-cols-2">
                 <div>
-                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['h_group'] ?></label>
-                    <select name="group_select" id="modalGroupSelect" onchange="toggleGroupNewInput()" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]">
+                    <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['h_group'] ?></label>
+                    <select name="group_select" id="modalGroupSelect" onchange="toggleGroupNewInput()" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]">
                         <?php foreach($existing_groups as $g): ?><option value="<?=htmlspecialchars($g)?>"><?=htmlspecialchars($g)?></option><?php endforeach; ?>
                         <option value="_NEW_" class="text-[#18aee7] font-bold"><?= $t['group_add_new'] ?></option>
                     </select>
-                    <input type="text" name="group_name_new" id="modalGroupNew" class="hidden mt-2 w-full p-3 border-l-4 border-l-[#18aee7] border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]" placeholder="새 그룹명 입력">
+                    <input type="text" name="group_name_new" id="modalGroupNew" class="hidden mt-2 w-full rounded-lg border border-l-4 border-[var(--border-color)] border-l-[#18aee7] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)]" placeholder="새 그룹명 입력">
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['h_company'] ?></label>
-                    <input type="text" name="company" id="modalCompany" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" required>
+                    <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['h_company'] ?></label>
+                    <input type="text" name="company" id="modalCompany" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['h_url'] ?></label>
-                    <input type="text" name="url" id="modalUrl" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" required>
+                    <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['h_url'] ?></label>
+                    <input type="text" name="url" id="modalUrl" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['h_keyword'] ?></label>
-                    <input type="text" name="contents" id="modalContents" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" required>
+                    <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['h_keyword'] ?></label>
+                    <input type="text" name="contents" id="modalContents" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['h_comment'] ?></label>
-                    <input type="text" name="comment" id="modalComment" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="<?= $t['ph_comment'] ?>">
+                    <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['h_comment'] ?></label>
+                    <input type="text" name="comment" id="modalComment" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="<?= $t['ph_comment'] ?>">
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $current_lang == 'KO' ? '이메일 발송 방식' : 'Email Mode' ?></label>
-                    <select name="email_mode" id="modalEmailMode" onchange="toggleModalSmtpFields()" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]">
+                    <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '이메일 발송 방식' : 'Email Mode' ?></label>
+                    <select name="email_mode" id="modalEmailMode" onchange="toggleModalSmtpFields()" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]">
                         <option value="none"><?= $current_lang == 'KO' ? '미발송 (사용 안 함)' : 'Disabled' ?></option>
                         <option value="postfix"><?= $current_lang == 'KO' ? '로컬 Postfix 직접 발송' : 'Direct Postfix' ?></option>
                         <option value="smtp"><?= $current_lang == 'KO' ? '외부 SMTP 릴레이 발송' : 'SMTP Relay' ?></option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $current_lang == 'KO' ? '발송자 이메일' : 'Sender Email' ?></label>
-                    <input type="email" name="sender_email" id="modalSenderEmail" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="sender@example.com (선택)">
+                    <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '발송자 이메일' : 'Sender Email' ?></label>
+                    <input type="email" name="sender_email" id="modalSenderEmail" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="sender@example.com (선택)">
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $current_lang == 'KO' ? '수신자 이메일' : 'Receiver Email' ?></label>
-                    <input type="email" name="receiver_email" id="modalReceiverEmail" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="receiver@example.com (선택)">
+                    <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '수신자 이메일' : 'Receiver Email' ?></label>
+                    <input type="email" name="receiver_email" id="modalReceiverEmail" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="receiver@example.com (선택)">
                 </div>
 
                 <!-- 개별 SMTP 설정 폼 (SMTP 선택 시 동적 노출) -->
-                <div id="modalSmtpFields" class="hidden space-y-4 border border-[var(--border-color)] p-4 rounded-xl bg-slate-50/20 dark:bg-slate-800/10">
-                    <h5 class="text-xs font-black text-[#18aee7] uppercase tracking-wider"><i class="fas fa-server"></i> <?= $current_lang == 'KO' ? '개별 SMTP 서버 설정' : 'Individual SMTP Settings' ?></h5>
-                    <div class="grid grid-cols-2 gap-3">
+                <div id="modalSmtpFields" class="hidden col-span-full space-y-3 rounded-xl border border-[var(--border-color)] p-3">
+                    <h5 class="text-[11px] font-semibold text-[var(--text-sub)]"><i class="fas fa-server mr-1 text-[#18aee7]"></i><?= $current_lang == 'KO' ? '개별 SMTP 서버 설정' : 'Individual SMTP Settings' ?></h5>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div>
                             <label class="block text-[10px] font-black text-[var(--text-sub)] mb-0.5">SMTP Host</label>
                             <input type="text" name="smtp_host" id="modalSmtpHost" class="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--bg-color)] text-xs text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="smtp.gmail.com">
@@ -83,33 +83,33 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="col-span-full grid grid-cols-3 gap-3 border-t border-[var(--border-color)] pt-3">
                     <div>
-                        <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['h_alarm'] ?></label>
-                        <select name="check" id="modalCheck" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)]">
+                        <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['h_alarm'] ?></label>
+                        <select name="check" id="modalCheck" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-2.5 py-2 text-sm text-[var(--text-main)]">
                             <option value="alarm"><?= $t['status_alarm'] ?></option>
                             <option value="no alarm"><?= $t['status_noalarm'] ?></option>
                             <option value="disable"><?= $t['status_disable'] ?></option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider">SSL Expiry</label>
-                        <select name="ssl_mon" id="modalSsl" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)]">
+                        <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]">SSL 만료일</label>
+                        <select name="ssl_mon" id="modalSsl" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-2.5 py-2 text-sm text-[var(--text-main)]">
                             <option value="1">ON</option><option value="0">OFF</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider">Domain Expiry</label>
-                        <select name="dom_mon" id="modalDom" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)]">
+                        <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]">도메인 만료일</label>
+                        <select name="dom_mon" id="modalDom" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-2.5 py-2 text-sm text-[var(--text-main)]">
                             <option value="1">ON</option><option value="0">OFF</option>
                         </select> 
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 mt-4">
+                <div class="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
-                        <label class="block text-xs font-black text-[var(--text-sub)] mb-2 uppercase tracking-wider"><?= $t['modal_engine'] ?? 'ENGINE' ?></label>
-                        <div class="flex bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-1 h-[46px]">
+                        <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['modal_engine'] ?? 'ENGINE' ?></label>
+                        <div class="flex h-10 rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] p-1">
                             <label class="flex-1 cursor-pointer h-full">
                                 <input type="radio" name="engine_type" value="lynx" class="hidden peer" checked>
                                 <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg text-[var(--text-sub)] hover:text-[var(--text-main)] peer-checked:bg-[#18aee7] peer-checked:text-white transition-all">LYNX</div>
@@ -121,8 +121,8 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-black text-[var(--text-sub)] mb-2 uppercase tracking-wider"><?= $t['modal_retry'] ?? 'RETRY COUNT' ?></label>
-                        <select name="retry_count" id="modalRetry" class="w-full h-[46px] px-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)] outline-none focus:border-[#18aee7]">
+                        <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['modal_retry'] ?? 'RETRY COUNT' ?></label>
+                        <select name="retry_count" id="modalRetry" class="w-full h-10 rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]">
                             <option value="1">1<?= $current_lang == 'KO' ? '회 (기본)' : ' Time' ?></option>
                             <option value="2">2<?= $current_lang == 'KO' ? '회' : ' Times' ?></option>
                             <option value="3">3<?= $current_lang == 'KO' ? '회' : ' Times' ?></option>
@@ -131,15 +131,15 @@
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-black text-[var(--text-sub)] mb-1 uppercase tracking-wider"><?= $t['modal_timeout'] ?? 'TIMEOUT (SEC)' ?></label>
-                    <input type="number" name="timeout_sec" id="modalTimeout" class="w-full p-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] text-[var(--text-main)]" value="2" min="1" max="30">
-                </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-8 pb-4">
+                    <div>
+                            <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['modal_timeout'] ?? 'TIMEOUT (SEC)' ?></label>
+                            <input type="number" name="timeout_sec" id="modalTimeout" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)]" value="2" min="1" max="30">
+                        </div>
+                    </div>
+            <div class="sticky bottom-0 flex justify-end gap-2 border-t border-[var(--border-color)] bg-[var(--card-bg)] px-5 py-3">
                 <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-100 dark:bg-slate-800 rounded-xl text-sm font-bold transition-colors"><?= $t['modal_cancel'] ?? '취소' ?></button>
-                <button type="submit" class="px-10 py-3 bg-[#18aee7] text-white rounded-xl text-sm font-black shadow-lg hover:shadow-xl transition-all"><?= $t['modal_save'] ?? '저장' ?></button>
-                </div>
+                <button type="submit" class="rounded-xl bg-[#18aee7] px-8 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#159bd0]"><?= $t['modal_save'] ?? '저장' ?></button>
+            </div>
         </form>
     </div>
 </div>
