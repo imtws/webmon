@@ -40,6 +40,19 @@ body.has-open-sheet { overflow: hidden; }
 
 .side-sheet-overlay.is-open .side-sheet-panel { transform: translateX(0); }
 
+#addModal .side-sheet-panel {
+    max-height: calc(100vh - 2rem);
+}
+
+#modalForm {
+    max-height: calc(100vh - 6rem);
+}
+
+@supports (height: 100dvh) {
+    #addModal .side-sheet-panel { max-height: calc(100dvh - 2rem); }
+    #modalForm { max-height: calc(100dvh - 6rem); }
+}
+
 /* UI Components */
 .unified-ui {
     height: 40px;

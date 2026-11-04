@@ -1,11 +1,11 @@
 <div id="addModal" class="side-sheet-overlay hidden fixed inset-0 z-[1100] justify-end bg-black/40 backdrop-blur-sm">
-    <div class="side-sheet-panel modal-content flex flex-col w-full max-w-3xl h-full bg-[var(--card-bg)] shadow-2xl border-l border-[var(--border-color)] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-        <h2 id="modalTitle" class="text-lg font-bold text-[var(--text-main)] border-b border-[var(--border-color)] px-6 py-4 flex items-center justify-between">
+    <div class="side-sheet-panel modal-content my-auto flex w-full max-w-3xl flex-col self-center overflow-hidden rounded-l-2xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <h2 id="modalTitle" class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] px-6 py-4 text-lg font-bold text-[var(--text-main)]">
             <span><?= $t['modal_add'] ?></span>
             <button type="button" class="text-[var(--text-sub)] hover:text-[var(--text-main)]" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeModal()"><i class="fas fa-times"></i></button>
         </h2>
         
-        <form id="modalForm" method="POST" class="flex min-h-0 flex-1 flex-col overflow-y-auto style-scrollbar">
+        <form id="modalForm" method="POST" class="flex min-h-0 flex-col overflow-y-auto style-scrollbar">
             <input type="hidden" name="action" id="modalAction" value="add">
             <input type="hidden" name="no" id="modalNo" value="">
             <input type="hidden" name="current_query" id="modalCurrentQuery" value="">
