@@ -992,6 +992,11 @@ if (($current_view ?? 'card') === 'log') {
                 });
                 const responseTimes = data.map(item => item.response_time);
                 const results = data.map(item => item.result);
+                const formatChartTimestamp = timestamp => {
+                    const parsed = new Date(timestamp.replace(' ', 'T'));
+                    return Number.isNaN(parsed.getTime()) ? timestamp : parsed.toLocaleString();
+                };
+                const isKo = document.documentElement.lang === 'ko';
 
                 // 통계 연산
                 if (responseTimes.length > 0) {
@@ -1064,16 +1069,42 @@ if (($current_view ?? 'card') === 'log') {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
                         plugins: {
                             legend: { display: false },
                             tooltip: {
                                 callbacks: {
+                                    title: function(items) {
+                                        if (!items.length) return '';
+                                        const point = data[items[0].dataIndex];
+                                        const startTime = formatChartTimestamp(point.period_start || point.time);
+                                        const endTime = formatChartTimestamp(point.period_end || point.time);
+                                        const sampleCount = point.sample_count || 1;
+                                        if (sampleCount === 1) return startTime;
+                                        return isKo
+                                            ? `${startTime} ~ ${endTime} (${sampleCount}회 평균)`
+                                            : `${startTime} – ${endTime} (avg. of ${sampleCount} checks)`;
+                                    },
                                     label: function(context) {
-                                        const index = context.dataIndex;
-                                        const rVal = results[index];
-                                        const tVal = responseTimes[index];
-                                        const statusStr = rVal > 0 ? 'SUCCESS' : 'FAIL';
-                                        return `Response Time: ${tVal.toFixed(3)}s (${statusStr})`;
+                                        const point = data[context.dataIndex];
+                                        const responseLabel = isKo ? '평균 응답시간' : 'Avg response time';
+                                        const resultLabel = isKo ? '결과' : 'Result';
+                                        const status = point.result > 0
+                                            ? (isKo ? '정상' : 'Success')
+                                            : (isKo ? '장애 포함' : 'Failure detected');
+                                        const lines = [
+                                            `${responseLabel}: ${Number(point.response_time).toFixed(3)}s`,
+                                            `${resultLabel}: ${status}`
+                                        ];
+                                        if ((point.sample_count || 1) > 1) {
+                                            lines.push(isKo
+                                                ? `장애 ${point.failure_count}회 / 전체 ${point.sample_count}회`
+                                                : `${point.failure_count} failures / ${point.sample_count} checks`);
+                                        }
+                                        return lines;
                                     }
                                 }
                             }

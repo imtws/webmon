@@ -75,8 +75,12 @@ $data = [];
 while ($row = $res->fetch_assoc()) {
     $data[] = [
         'time' => $row['log_time'],
+        'period_start' => $row['log_time'],
+        'period_end' => $row['log_time'],
         'response_time' => (float)$row['response_time'],
-        'result' => (int)$row['result']
+        'result' => (int)$row['result'],
+        'sample_count' => 1,
+        'failure_count' => (int)$row['result'] === 0 ? 1 : 0
     ];
 }
 
@@ -99,12 +103,14 @@ if ($total_count > $max_points) {
 
         $sum_rt = 0;
         $min_res = 1; // 1 = 성공, 0 = 실패 (구간 중 한 번이라도 실패하면 실패 처리하여 가시성 확보)
+        $failure_count = 0;
         $bucket_count = 0;
 
         for ($j = $start_idx; $j <= $end_idx; $j++) {
             $sum_rt += $data[$j]['response_time'];
             if ($data[$j]['result'] === 0) {
                 $min_res = 0;
+                $failure_count++;
             }
             $bucket_count++;
         }
@@ -112,8 +118,12 @@ if ($total_count > $max_points) {
         $mid_idx = (int)floor(($start_idx + $end_idx) / 2);
         $downsampled[] = [
             'time' => $data[$mid_idx]['time'],
+            'period_start' => $data[$start_idx]['time'],
+            'period_end' => $data[$end_idx]['time'],
             'response_time' => $bucket_count > 0 ? (float)($sum_rt / $bucket_count) : 0.0,
-            'result' => $min_res
+            'result' => $min_res,
+            'sample_count' => $bucket_count,
+            'failure_count' => $failure_count
         ];
     }
     $data = $downsampled;
