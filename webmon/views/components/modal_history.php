@@ -90,7 +90,7 @@ if (!function_exists('renderFieldStatic')) {
                 <i class="fas fa-history text-[#18aee7]"></i>
                 <span><?= $current_lang == 'KO' ? '작업 이력 및 원복 관리' : 'Job History & Rollback' ?></span>
             </h2>
-            <button type="button" onclick="closeHistoryModal()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors focus:outline-none">
+            <button type="button" onclick="closeHistoryModal()" class="sheet-close-button" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>">
                 <i class="fas fa-times text-lg"></i>
             </button>
         </div>
@@ -332,13 +332,6 @@ if (!function_exists('renderFieldStatic')) {
                     </div>
                 </div>
             <?php endif; ?>
-        </div>
-        
-        <!-- Footer -->
-        <div class="px-8 py-4 border-t border-[var(--border-color)] flex justify-end bg-slate-50 dark:bg-slate-800/30">
-            <button type="button" onclick="closeHistoryModal()" class="px-6 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold rounded-xl text-[var(--text-main)] transition-colors">
-                <?= $current_lang == 'KO' ? '닫기' : 'Close' ?>
-            </button>
         </div>
     </div>
 </div>

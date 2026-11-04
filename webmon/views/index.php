@@ -142,23 +142,24 @@ if (($current_view ?? 'card') === 'log') {
 <body class="m-0 p-0 text-[var(--text-main)] bg-[var(--bg-color)]">
 
     <?php if ($db_pass === 'your_secure_password_here' || empty($db_pass)): ?>
-    <div onclick="openSettingsModal(); switchSettingsTab('sys');" class="w-full bg-gradient-to-r from-red-600 to-orange-500 text-white px-8 py-3 text-center text-sm font-extrabold flex justify-center items-center gap-2 shadow-md cursor-pointer hover:opacity-90 transition-opacity">
-        <i class="fas fa-shield-alt animate-bounce"></i>
-        <span><?= $current_lang == 'KO' ? '보안 경고: 현재 기본/비어있는 DB 비밀번호가 사용 중입니다! 여기를 누르거나 우측 상단 설정 아이콘(⚙️)을 눌러 안전한 DB 비밀번호로 변경(설정)해 주세요.' : 'Security Warning: Default or empty DB password is in use! Click here or click the settings icon (⚙️) on the top right to change/set a secure DB password.' ?></span>
+    <div class="security-banner">
+        <i class="fas fa-shield-alt" aria-hidden="true"></i>
+        <span><?= $current_lang == 'KO' ? '기본 DB 비밀번호를 사용 중입니다.' : 'The default database password is in use.' ?></span>
+        <button type="button" onclick="openSettingsModal(); switchSettingsTab('sys');"><?= $current_lang == 'KO' ? '변경하기' : 'Change password' ?></button>
     </div>
     <?php endif; ?>
 
     <div id="headerSticky" class="sticky top-0 z-[100] w-full bg-[var(--bg-color)] shadow-sm border-b border-[var(--border-color)]">
-        <div class="px-8 pt-8 pb-3">
-            <div class="max-w-7xl mx-auto flex flex-col gap-6">
-                <div class="flex justify-between items-center">
-                    <h1 onclick="location.href='website_status.php'" class="text-2xl text-[#18aee7] font-black cursor-pointer"><?= $t['logo'] ?></h1>
+        <div class="dashboard-header-inner">
+            <div class="max-w-7xl mx-auto flex flex-col gap-4">
+                <div class="dashboard-toolbar">
+                    <h1 onclick="location.href='website_status.php'" class="text-xl text-[#18aee7] font-black cursor-pointer"><?= $t['logo'] ?></h1>
                     <div class="flex items-center gap-2">
                         <!-- 일괄 작업 컨트롤 바: 체크 시에만 표시 (iOS Contextual Action Bar) -->
                         <div id="batchActionBar" class="flex items-center gap-2 transition-all duration-300 opacity-0 -translate-x-2 pointer-events-none hidden">
                             <span class="text-[11px] font-black text-slate-500 dark:text-slate-400 mr-1"><span id="batchCount" class="text-[#18aee7]">0</span>개 선택됨</span>
                             <!-- 선택 일괄 설정: iOS Tinted Style -->
-                            <button type="button" onclick="openBulkModal()" class="unified-ui px-4 bg-blue-500/10 dark:bg-blue-500/20 hover:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#007aff] dark:text-[#0a84ff] font-bold transition-colors border-none rounded-xl">
+                            <button type="button" onclick="openBulkModal()" class="unified-ui px-4 bg-[#18aee7]/10 dark:bg-[#18aee7]/15 hover:bg-[#18aee7]/20 dark:hover:bg-[#18aee7]/25 text-[#18aee7] font-bold transition-colors border-none rounded-xl">
                                 <i class="fas fa-sliders-h mr-1.5 text-[10px]"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
                             </button>
                             <!-- 선택 삭제: iOS Destructive Tinted Style -->
@@ -194,30 +195,30 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
                 </div>
 
-                <div class="flex justify-between items-end px-1">
+                <div class="flex justify-between items-end px-1 dashboard-status-row">
                     <!-- iOS 스타일 Segmented Control -->
-                    <div class="bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md p-1 rounded-2xl flex gap-1 relative w-max max-w-full shadow-inner border border-slate-200/50 dark:border-slate-700/30">
+                    <div class="status-tabs bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-xl flex gap-1 relative w-max max-w-full border border-slate-200/50 dark:border-slate-700/30">
                         <!-- TOTAL 탭 -->
-                        <div onclick="applyType('total')" class="relative px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='total' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5 scale-[1.02]' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
+                        <div onclick="applyType('total')" class="relative px-3 py-2 rounded-lg flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='total' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
                             <i class="fas fa-th-list text-slate-500 dark:text-slate-400 text-xs"></i>
                             <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">TOTAL</span>
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-900/30 text-[#18aee7]"><?= $stat_total ?></span>
                         </div>
                         <!-- SUCCESS 탭 -->
-                        <div onclick="applyType('success')" class="relative px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='success' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5 scale-[1.02]' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
+                        <div onclick="applyType('success')" class="relative px-3 py-2 rounded-lg flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='success' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
                             <i class="fas fa-check-circle text-green-500 text-xs"></i>
                             <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">SUCCESS</span>
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"><?= $stat_success ?></span>
                         </div>
                         <!-- FAILURE 탭 -->
-                        <div onclick="applyType('failure')" class="relative px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='failure' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5 scale-[1.02]' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
+                        <div onclick="applyType('failure')" class="relative px-3 py-2 rounded-lg flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='failure' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
                             <i class="fas fa-exclamation-triangle text-red-500 text-xs"></i>
                             <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">FAILURE</span>
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"><?= $stat_fail ?></span>
                         </div>
                         <!-- EXPIRING 탭 -->
                         <?php if (($current_view ?? 'card') !== 'log'): ?>
-                        <div onclick="applyType('expiring')" class="relative px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='expiring' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5 scale-[1.02]' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
+                        <div onclick="applyType('expiring')" class="relative px-3 py-2 rounded-lg flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='expiring' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
                             <i class="fas fa-hourglass-half text-amber-500 text-xs"></i>
                             <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">EXPIRING</span>
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500"><?= $stat_expiring ?></span>
@@ -225,13 +226,13 @@ if (($current_view ?? 'card') === 'log') {
                         <?php endif; ?>
                     </div>
                     <!-- 실행 정보 -->
-                    <div class="text-[10px] font-bold text-right text-[var(--text-sub)] opacity-70 mb-1">
+                    <div class="text-[10px] font-medium text-right text-[var(--text-sub)] mb-1 dashboard-run-info">
                         <div><i class="fas fa-microchip"></i> <?= $t['last_run'] ?>: <?= $last_run ?></div>
                         <div><i class="far fa-clock"></i> <?= $t['next_run'] ?>: <?= $next_run ?></div>
                     </div>
                 </div>
 
-                <div class="bg-slate-100/40 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700 rounded-2xl p-2.5 flex flex-wrap items-center gap-3 shadow-sm backdrop-blur-md">
+                <div class="filter-toolbar bg-slate-100/40 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700 rounded-xl p-2 flex flex-wrap items-center gap-2.5">
                     <?php if (isset($_GET['filter_no']) && (int)$_GET['filter_no'] > 0): ?>
                     <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-[#18aee7] border border-blue-100 dark:border-blue-800 rounded-xl text-xs font-bold whitespace-nowrap shadow-sm">
                         <span><i class="fas fa-info-circle mr-1"></i><?= $current_lang == 'KO' ? '개별 항목 보기 중' : 'Single Item View' ?></span>
@@ -245,7 +246,7 @@ if (($current_view ?? 'card') === 'log') {
                     <?php endif; ?>
 
                     <!-- 그룹 필터 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
+                    <div class="filter-control flex items-center">
                         <i class="fas fa-folder text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
                         <select id="searchGroup" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white max-w-[120px]">
                             <option value="all"><?= $t['group_all'] ?></option>
@@ -256,7 +257,7 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 검색 창 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 flex-1 min-w-[180px] shadow-sm">
+                    <div class="filter-control flex flex-1 items-center min-w-[180px]">
                         <i class="fas fa-search text-[10px] text-slate-400 dark:text-slate-500 mr-2.5"></i>
                         <input type="text" id="searchCompany" value="<?=htmlspecialchars($search_company)?>" class="w-full bg-transparent text-xs outline-none text-[var(--text-main)] dark:text-white" placeholder="<?= $t['search_company_ph'] ?>" onkeypress="if(event.keyCode==13) triggerSearch()">
                     </div>
@@ -265,7 +266,7 @@ if (($current_view ?? 'card') === 'log') {
                     </button>
 
                     <!-- 상태 필터 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
+                    <div class="filter-control flex items-center">
                         <i class="fas fa-filter text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
                         <select id="filterStatus" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white">
                             <option value="all" <?= $filter_status=='all'?'selected':'' ?>><?= $t['filter_all'] ?></option>
@@ -282,7 +283,7 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 엔진 필터 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
+                    <div class="filter-control flex items-center">
                         <i class="fas fa-microchip text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
                         <select id="filterEngine" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white">
                             <option value="all" <?= (!isset($_GET['filter_engine']) || $_GET['filter_engine'] == 'all') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? '모든 엔진' : 'All Engines' ?></option>
@@ -293,7 +294,7 @@ if (($current_view ?? 'card') === 'log') {
 
                     <?php if ($current_view !== 'log'): ?>
                     <!-- 정렬 필터 -->
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
+                    <div class="filter-control flex items-center">
                         <i class="fas fa-sort-amount-down text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
                         <select id="sortOrder" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white pr-1">
                             <option value="latest" <?= $sort=='latest'?'selected':'' ?>><?= $t['sort_latest'] ?></option>
@@ -450,7 +451,7 @@ if (($current_view ?? 'card') === 'log') {
                     <input type="hidden" name="ids" id="bulkIds" value="">
                     <input type="hidden" name="current_query" id="bulkCurrentQuery" value="">
                     
-                    <div id="mainForm" class="<?= $current_view == 'card' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'view-list' ?>">
+                    <div id="mainForm" class="<?= $current_view == 'card' ? 'monitor-card-grid' : 'view-list' ?>">
                         <?php 
                         if($result && $result->num_rows > 0) {
                             while($row = $result->fetch_assoc()): 
@@ -490,8 +491,8 @@ if (($current_view ?? 'card') === 'log') {
                                 $group_name_display = htmlspecialchars($row['group_name'] ?: '기본 그룹');
                         ?>
                         
-                        <div class="monitor-item group relative bg-[var(--card-bg)] overflow-hidden transition-all border border-[var(--border-color)] rounded-xl <?= $is_disabled ? 'opacity-60' : '' ?> hover:shadow-md">
-                            <div class="absolute top-0 left-0 w-1.5 h-full <?= $border_color ?>"></div>
+                        <div class="monitor-item group relative bg-[var(--card-bg)] overflow-visible transition-all border border-[var(--border-color)] rounded-xl <?= $is_disabled ? 'opacity-60' : '' ?> hover:shadow-md">
+                            <div class="monitor-status-edge absolute top-0 left-0 w-1.5 h-full <?= $border_color ?>"></div>
 
                             <?php if (($current_view ?? 'card') === 'card'): ?>
                                 <?php include 'views/components/item_card.php'; ?>
@@ -518,7 +519,7 @@ if (($current_view ?? 'card') === 'log') {
         <div class="side-sheet-panel bg-[var(--card-bg)] border-l border-[var(--border-color)] w-full max-w-xl h-full shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-modal="true">
             <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center">
                 <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-sliders text-[#18aee7]"></i> <?= $current_lang == 'KO' ? '모니터링 프로그램 환경 설정' : 'System Configuration' ?></h3>
-                <button type="button" class="text-[var(--text-sub)] hover:text-[var(--text-main)] p-2" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeSettingsModal()"><i class="fas fa-times"></i></button>
+                <button type="button" class="sheet-close-button" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeSettingsModal()"><i class="fas fa-times"></i></button>
             </div>
 
             <!-- 탭 버튼 헤더 -->
@@ -811,7 +812,6 @@ if (($current_view ?? 'card') === 'log') {
                 </div>
 
                 <div class="flex justify-end gap-3 mt-4 border-t border-[var(--border-color)] pt-4">
-                    <button type="button" onclick="closeSettingsModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl font-bold transition-all text-xs"><?= $current_lang == 'KO' ? '취소' : 'Cancel' ?></button>
                     <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '설정 저장' : 'Save Settings' ?></button>
                 </div>
             </form>
@@ -826,7 +826,7 @@ if (($current_view ?? 'card') === 'log') {
         <div class="side-sheet-panel bg-[var(--card-bg)] border-l border-[var(--border-color)] w-full max-w-md h-full shadow-2xl flex flex-col overflow-y-auto" role="dialog" aria-modal="true">
             <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
                 <h3 class="text-base font-black flex items-center gap-2"><i class="fas fa-bell-slash text-[#18aee7]"></i> <span id="schedModalTitle">알람 일시 무음 설정</span></h3>
-                <i class="fas fa-times cursor-pointer hover:text-red-500" onclick="closeItemScheduleModal()"></i>
+                <button type="button" class="sheet-close-button" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeItemScheduleModal()"><i class="fas fa-times"></i></button>
             </div>
             
             <form action="save_item_schedule.php" method="POST" class="p-6 flex flex-col gap-4 text-sm">
@@ -853,7 +853,6 @@ if (($current_view ?? 'card') === 'log') {
                 </div>
 
                 <div class="flex justify-end gap-3 mt-4 border-t border-[var(--border-color)] pt-4">
-                    <button type="button" onclick="closeItemScheduleModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl font-bold transition-all text-xs"><?= $current_lang == 'KO' ? '취소' : 'Cancel' ?></button>
                     <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '스케줄 저장' : 'Save Schedule' ?></button>
                 </div>
             </form>

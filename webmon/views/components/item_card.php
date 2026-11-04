@@ -1,36 +1,37 @@
-<div class="p-5 relative <?= $current_view == 'list' ? 'hidden' : 'block' ?>">
-    <div class="flex justify-between items-start mb-3">
-        <div class="flex items-center gap-3">
-            <input type="checkbox" name="chk_ids[]" value="<?=$row['no']?>" data-company="<?=htmlspecialchars($row['company'])?>" class="item-checkbox w-4 h-4 rounded accent-[#18aee7] cursor-pointer">
-            <span class="group-badge clickable" onclick="filterByGroup('<?=$group_name_display?>')"># <?= $group_name_display ?></span>
+<div class="monitor-card-body relative <?= $current_view == 'list' ? 'hidden' : 'block' ?>">
+    <div class="monitor-card-header">
+        <input type="checkbox" name="chk_ids[]" value="<?=$row['no']?>" data-company="<?=htmlspecialchars($row['company'])?>" class="item-checkbox h-4 w-4 rounded accent-[#18aee7] cursor-pointer">
+        <div class="min-w-0 flex-1">
+            <h2 class="truncate text-[17px] font-bold text-[var(--text-main)]"><?= htmlspecialchars($row['company']) ?></h2>
+            <span class="group-badge clickable" onclick='filterByGroup(<?= json_encode($row['group_name'] ?: '기본 그룹', JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP) ?>)'><?= htmlspecialchars($row['group_name'] ?: '기본 그룹') ?></span>
         </div>
-        <div class="flex gap-3 text-[var(--text-sub)] dark:text-slate-400 items-center opacity-30 group-hover:opacity-100 transition-opacity duration-200">
+        <details class="monitor-actions">
+            <summary aria-label="<?= $current_lang == 'KO' ? '항목 작업' : 'Monitor actions' ?>" title="<?= $current_lang == 'KO' ? '항목 작업' : 'Monitor actions' ?>"><i class="fas fa-ellipsis"></i></summary>
+            <div class="monitor-actions-menu">
             <?php
-            $bell_color = 'hover:text-yellow-500';
+            $bell_color = '';
             $bell_title = $current_lang == 'KO' ? '알람 일시 무음 설정' : 'Mute Settings';
             if ($is_scheduled && !empty($row['mute_until'])) {
                 if ($is_currently_off_schedule) {
-                    $bell_color = 'text-violet-400 hover:text-violet-500';
+                    $bell_color = 'text-violet-500';
                     $bell_title = ($current_lang == 'KO' ? '일시 무음 적용 중 (종료: ' : 'Muted until (End: ') . htmlspecialchars($row['mute_until']) . ')';
                 } else {
-                    $bell_color = 'text-[#18aee7] hover:text-blue-500';
+                    $bell_color = 'text-[#18aee7]';
                     $bell_title = ($current_lang == 'KO' ? '일시 무음 기한 만료 (기한: ' : 'Mute expired (Limit: ') . htmlspecialchars($row['mute_until']) . ')';
                 }
             }
             ?>
-            <i class="fas fa-bell cursor-pointer <?= $bell_color ?>" title="<?= $bell_title ?>" onclick='openScheduleModal(event, <?= json_encode($row) ?>)'></i>
-            <i class="fas fa-chart-line cursor-pointer hover:text-[#18aee7]" title="<?= $current_lang == 'KO' ? '응답 추이 그래프 보기' : 'View Response Trend Graph' ?>" onclick="toggleViewMode('list', <?=$row['no']?>)"></i>
-            <i class="fas fa-sync-alt cursor-pointer hover:text-[#18aee7] diagnose-btn" title="<?= $current_lang == 'KO' ? '즉시 재진단 및 만료 정보 갱신' : 'Diagnose & Sync Expiry' ?>" onclick="diagnoseItem(<?=$row['no']?>, this)"></i>
-            <i class="fas fa-cog cursor-pointer hover:text-[#18aee7]" onclick='openModal("edit", <?= json_encode($row) ?>)'></i>
-            <i class="fas fa-trash cursor-pointer hover:text-red-500" onclick="confirmDelete('<?=htmlspecialchars($row['company'])?>', <?=$row['no']?>)"></i>
-        </div>
+            <button type="button" class="monitor-action <?= $bell_color ?>" title="<?= $bell_title ?>" onclick='openScheduleModal(event, <?= json_encode($row) ?>)'><i class="fas fa-bell"></i><span><?= $current_lang == 'KO' ? '알람 일시 무음' : 'Mute schedule' ?></span></button>
+            <button type="button" class="monitor-action" title="<?= $current_lang == 'KO' ? '응답 추이 그래프 보기' : 'View response trend' ?>" onclick="toggleViewMode('list', <?=$row['no']?>)"><i class="fas fa-chart-line"></i><span><?= $current_lang == 'KO' ? '응답 추이' : 'Response trend' ?></span></button>
+            <button type="button" class="monitor-action diagnose-btn" title="<?= $current_lang == 'KO' ? '즉시 재진단 및 만료 정보 갱신' : 'Diagnose and sync expiry' ?>" onclick="diagnoseItem(<?=$row['no']?>, this)"><i class="fas fa-sync-alt"></i><span><?= $current_lang == 'KO' ? '지금 재진단' : 'Run check now' ?></span></button>
+            <button type="button" class="monitor-action" onclick='openModal("edit", <?= json_encode($row) ?>)'><i class="fas fa-pen"></i><span><?= $current_lang == 'KO' ? '설정 수정' : 'Edit settings' ?></span></button>
+            <button type="button" class="monitor-action is-danger" onclick="confirmDelete(<?= json_encode($row['company'], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP) ?>, <?=$row['no']?>)"><i class="fas fa-trash"></i><span><?= $current_lang == 'KO' ? '삭제' : 'Delete' ?></span></button>
+            </div>
+        </details>
     </div>
     
-    <div class="mb-4">
-        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-300 tracking-wider block mb-1 uppercase"><?= $t['h_company'] ?></span>
-        <h2 class="text-[16px] font-extrabold truncate text-[var(--text-main)] dark:text-white mb-1.5"><?= htmlspecialchars($row['company']) ?></h2>
-        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-300 tracking-wider block mb-1 uppercase"><?= $t['h_url'] ?></span>
-        <p class="text-[12px] text-[#18aee7] dark:text-[#38bdf8] font-semibold truncate">
+    <div class="monitor-card-url">
+        <p class="truncate text-[12px] font-medium text-[#18aee7]">
             <a href="<?= htmlspecialchars($row['url']) ?>" target="_blank" class="hover:underline flex items-center gap-1">
                 <i class="fas fa-link text-[10px] opacity-70"></i><?= htmlspecialchars($row['url']) ?>
             </a>
@@ -42,46 +43,23 @@
     $dom_res = getExpiryColorAndText($row['dom_expiry'], $row['dom_mon']);
     ?>
     <!-- iOS 설정 그룹 스타일의 인포 목록 -->
-    <div class="space-y-2 mb-4">
+    <div class="monitor-card-details">
         <!-- SSL 만료일 행 -->
-        <div class="flex items-center justify-between bg-slate-100/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/70">
-            <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-blue-500/20">
-                    <i class="fas fa-lock"></i>
-                </div>
-                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-300"><?= $t['h_ssl'] ?></span>
-            </div>
-            <div class="flex items-center">
-                <span class="text-[11px] font-extrabold text-slate-800 dark:text-white"><?= $row['ssl_expiry'] ? date('Y-m-d', strtotime($row['ssl_expiry'])) : '-' ?></span>
-                <?= $ssl_res['badge'] ?>
-            </div>
+        <div class="monitor-detail-row">
+            <span><?= $t['h_ssl'] ?></span>
+            <span class="font-semibold text-[var(--text-main)]"><?= $row['ssl_expiry'] ? date('Y-m-d', strtotime($row['ssl_expiry'])) : '-' ?><?= $ssl_res['badge'] ?></span>
         </div>
         
         <!-- 도메인 만료일 행 -->
-        <div class="flex items-center justify-between bg-slate-100/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/70">
-            <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-indigo-500/20">
-                    <i class="fas fa-globe"></i>
-                </div>
-                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-300"><?= $t['h_dom'] ?></span>
-            </div>
-            <div class="flex items-center">
-                <span class="text-[11px] font-extrabold text-slate-800 dark:text-white"><?= $row['dom_expiry'] ? date('Y-m-d', strtotime($row['dom_expiry'])) : '-' ?></span>
-                <?= $dom_res['badge'] ?>
-            </div>
+        <div class="monitor-detail-row">
+            <span><?= $t['h_dom'] ?></span>
+            <span class="font-semibold text-[var(--text-main)]"><?= $row['dom_expiry'] ? date('Y-m-d', strtotime($row['dom_expiry'])) : '-' ?><?= $dom_res['badge'] ?></span>
         </div>
 
         <!-- 키워드 행 -->
-        <div class="flex items-center justify-between bg-slate-100/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/70">
-            <div class="flex items-center gap-2 min-w-0 flex-1">
-                <div class="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center text-[10px] shadow-sm shadow-amber-500/20 flex-shrink-0">
-                    <i class="fas fa-search"></i>
-                </div>
-                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-300 flex-shrink-0 mr-2"><?= $t['h_keyword'] ?></span>
-            </div>
-            <div class="flex items-center min-w-0">
-                <span class="text-[11px] font-extrabold text-slate-800 dark:text-white truncate max-w-[130px]" title="<?= htmlspecialchars($row['contents']) ?>"><?= htmlspecialchars($row['contents']) ?></span>
-            </div>
+        <div class="monitor-detail-row">
+            <span><?= $t['h_keyword'] ?></span>
+            <span class="max-w-[65%] truncate font-semibold text-[var(--text-main)]" title="<?= htmlspecialchars($row['contents']) ?>"><?= htmlspecialchars($row['contents']) ?></span>
         </div>
     </div>
 
@@ -92,8 +70,8 @@
         $status_badge = 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-violet-200/50 dark:border-violet-800/30';
     } else {
         $status_badge = ($row['check'] == 'alarm') 
-            ? 'bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-green-200/50 dark:border-green-800/30' 
-            : 'bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-orange-200/50 dark:border-orange-800/50';
+            ? 'bg-sky-50 dark:bg-sky-950/30 text-[#159bd0] px-2 py-0.5 rounded-lg text-[9px] font-bold border border-sky-200/70 dark:border-sky-800/40'
+            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-slate-200/70 dark:border-slate-700/50';
     }
 
     if ($is_currently_off_schedule) {
@@ -101,11 +79,11 @@
     } else {
         $result_badge = ($row['value'] > 0)
             ? 'bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[9px] font-bold shadow-sm shadow-emerald-500/10'
-            : 'bg-red-500 text-white px-2 py-0.5 rounded-lg text-[9px] font-bold shadow-sm shadow-red-500/10 animate-pulse';
+            : 'bg-red-500 text-white px-2 py-0.5 rounded-lg text-[9px] font-bold';
     }
     ?>
     <!-- 하단 상태 및 상세 설정 메타 배지 영역 (iOS Pills Layout) -->
-    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700/80 flex flex-col gap-2.5">
+    <div class="monitor-card-footer">
         <!-- 알람 상태 및 검사 결과 -->
         <div class="flex items-center justify-between text-xs">
             <div class="flex items-center gap-1.5">
@@ -129,27 +107,17 @@
         $engine_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/50';
 
         $timeout_val = $row['timeout_sec'] ?? 2;
-        if ($timeout_val > 2) {
-            $timeout_class = 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30';
-        } else {
-            $timeout_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/50';
-        }
-
         $retry_val = $row['retry_count'] ?? 1;
-        if ($retry_val > 1) {
-            $retry_class = 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30';
-        } else {
-            $retry_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/50';
-        }
+        $detail_class = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/50';
         ?>
         <div class="flex items-center gap-1.5 flex-wrap">
             <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase <?= $engine_class ?>">
                 <?= strtoupper($engine_val) ?>
             </span>
-            <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase <?= $timeout_class ?>">
+            <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase <?= $detail_class ?>">
                 TIMEOUT: <?= $timeout_val ?>s
             </span>
-            <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase <?= $retry_class ?>">
+            <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase <?= $detail_class ?>">
                 RETRY: <?= $retry_val ?><?= $current_lang == 'KO' ? '회' : 'x' ?>
             </span>
         </div>

@@ -1,11 +1,11 @@
 <div id="addModal" class="side-sheet-overlay hidden fixed inset-0 z-[1100] justify-end bg-black/40 backdrop-blur-sm">
-    <div class="side-sheet-panel modal-content my-auto flex w-full max-w-3xl flex-col self-center overflow-hidden rounded-l-2xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="side-sheet-panel modal-content flex h-full w-full max-w-3xl flex-col overflow-hidden border-l border-[var(--border-color)] bg-[var(--card-bg)] shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <h2 id="modalTitle" class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] px-6 py-4 text-lg font-bold text-[var(--text-main)]">
-            <span><?= $t['modal_add'] ?></span>
-            <button type="button" class="text-[var(--text-sub)] hover:text-[var(--text-main)]" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            <span id="modalTitleText"><?= $t['modal_add'] ?></span>
+            <button type="button" class="sheet-close-button" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeModal()"><i class="fas fa-times"></i></button>
         </h2>
         
-        <form id="modalForm" method="POST" class="flex min-h-0 flex-col overflow-y-auto style-scrollbar">
+        <form id="modalForm" method="POST" class="flex min-h-0 flex-1 flex-col overflow-y-auto style-scrollbar">
             <input type="hidden" name="action" id="modalAction" value="add">
             <input type="hidden" name="no" id="modalNo" value="">
             <input type="hidden" name="current_query" id="modalCurrentQuery" value="">
@@ -137,7 +137,6 @@
                         </div>
                     </div>
             <div class="sticky bottom-0 flex justify-end gap-2 border-t border-[var(--border-color)] bg-[var(--card-bg)] px-5 py-3">
-                <button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-100 dark:bg-slate-800 rounded-xl text-sm font-bold transition-colors"><?= $t['modal_cancel'] ?? '취소' ?></button>
                 <button type="submit" class="rounded-xl bg-[#18aee7] px-8 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#159bd0]"><?= $t['modal_save'] ?? '저장' ?></button>
             </div>
         </form>

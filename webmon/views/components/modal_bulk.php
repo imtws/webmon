@@ -6,7 +6,7 @@
             </span>
             <span class="flex items-center gap-3">
                 <span id="bulkModalCount" class="text-xs text-[var(--text-sub)] font-semibold"></span>
-                <button type="button" class="text-[var(--text-sub)] hover:text-[var(--text-main)]" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeBulkModal()"><i class="fas fa-times"></i></button>
+                <button type="button" class="sheet-close-button" aria-label="<?= $current_lang == 'KO' ? '닫기' : 'Close' ?>" onclick="closeBulkModal()"><i class="fas fa-times"></i></button>
             </span>
         </h2>
         
@@ -190,7 +190,6 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pb-4">
-                    <button type="button" onclick="closeBulkModal()" class="px-6 py-3 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl text-sm font-bold transition-all text-xs text-[var(--text-main)]"><?= $t['modal_cancel'] ?? '취소' ?></button>
                     <button type="submit" class="px-10 py-3 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl text-sm font-black shadow-lg hover:shadow-xl transition-all text-xs"><?= $t['modal_save'] ?? '일괄 변경 적용' ?></button>
                 </div>
             </div>
