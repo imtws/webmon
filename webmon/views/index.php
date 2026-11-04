@@ -174,6 +174,9 @@ if (($current_view ?? 'card') === 'log') {
                         </button>
                         <!-- 추가: iOS Filled System Blue Style -->
                         <button type="button" onclick="openModal('add')" class="unified-ui px-5 bg-[#18aee7] hover:bg-[#159bd0] text-white font-bold shadow-sm transition-all border-none rounded-xl"><?= $t['btn_add'] ?></button>
+                        <button type="button" onclick="openCsvImportModal()" class="unified-ui px-4 bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-[#18aee7] hover:text-[#18aee7] font-bold transition-colors rounded-xl" title="<?= $current_lang == 'KO' ? 'CSV 파일로 여러 항목 가져오기' : 'Import multiple monitors from CSV' ?>">
+                            <i class="fas fa-file-import mr-1.5"></i><?= $current_lang == 'KO' ? 'CSV 가져오기' : 'Import CSV' ?>
+                        </button>
                         
                         <div class="flex items-center gap-2 ml-2">
                             <div class="switch-container">
@@ -719,15 +722,18 @@ if (($current_view ?? 'card') === 'log') {
                             <i id="set-arrow-dbpass" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
                         </button>
                         <div id="set-body-dbpass" class="p-4 border-t border-[var(--border-color)] hidden">
-                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '이전 비밀번호와 변경할 새 비밀번호를 입력하여 DB 비밀번호를 변경합니다.' : 'Change database password by providing the current and new password.' ?></p>
+                            <?php $usesDefaultDbPassword = isset($db_pass) && hash_equals('your_secure_password_here', $db_pass); ?>
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $usesDefaultDbPassword
+                                ? ($current_lang == 'KO' ? '기본 DB 비밀번호를 사용 중입니다. 이전 비밀번호는 비워두고 새 비밀번호만 입력해도 됩니다.' : 'The default database password is in use. Leave the current password blank and enter a new password.')
+                                : ($current_lang == 'KO' ? 'DB 비밀번호를 변경하려면 이전 비밀번호와 새 비밀번호를 입력하세요.' : 'Enter the current and new passwords to change the database password.') ?></p>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이전 DB 패스워드' : 'Current DB Password' ?></label>
-                                    <input type="password" name="db_pass_old" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '이전 패스워드 입력' : 'Enter current password' ?>">
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이전 DB 패스워드' : 'Current DB Password' ?><?= $usesDefaultDbPassword ? ' (' . ($current_lang == 'KO' ? '선택' : 'optional') . ')' : '' ?></label>
+                                    <input type="password" name="db_pass_old" autocomplete="current-password" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '이전 패스워드 입력' : 'Enter current password' ?>">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '변경할 패스워드' : 'New DB Password' ?></label>
-                                    <input type="password" name="db_pass_new" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '변경할 패스워드 입력' : 'Enter new password' ?>">
+                                    <input type="password" name="db_pass_new" autocomplete="new-password" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '변경할 패스워드 입력' : 'Enter new password' ?>">
                                 </div>
                             </div>
                         </div>
@@ -922,6 +928,7 @@ if (($current_view ?? 'card') === 'log') {
     </div>
 
     <?php include 'views/components/modal_form.php'; ?>
+    <?php include 'views/components/modal_csv_import.php'; ?>
     <?php include 'views/components/modal_bulk.php'; ?>
     <?php include 'views/components/modal_history.php'; ?>
 
@@ -1286,7 +1293,7 @@ if (($current_view ?? 'card') === 'log') {
                 } else if (err === 'db_alter_failed') {
                     msg = '<?= $current_lang == "KO" ? "DB 패스워드 변경에 실패했습니다." : "Failed to change DB password." ?>';
                 } else if (err === 'db_pass_required') {
-                    msg = '<?= $current_lang == "KO" ? "이전 비밀번호와 새 비밀번호를 모두 입력해 주세요." : "Enter both the current and new database passwords." ?>';
+                    msg = '<?= $current_lang == "KO" ? "새 비밀번호를 입력해 주세요. 기본 비밀번호 사용 중에는 이전 비밀번호를 비워둘 수 있습니다." : "Enter a new password. The current password may be left blank when the default is in use." ?>';
                 } else if (err === 'sender_email_invalid') {
                     msg = '<?= $current_lang == "KO" ? "기본 발송 이메일 주소 형식을 확인해 주세요." : "Enter a valid default sender email address." ?>';
                 } else if (err === 'db_pass_storage_failed') {
@@ -1320,6 +1327,17 @@ if (($current_view ?? 'card') === 'log') {
                     case 'bulk_edit_success':
                         msgText = isKo ? '선택한 항목들의 설정이 일괄 변경되었습니다.' : 'Selected items settings updated in bulk successfully.';
                         break;
+                    case 'csv_import_success': {
+                        const added = Number(urlParams.get('added') || 0);
+                        const skipped = Number(urlParams.get('skipped') || 0);
+                        msgText = isKo
+                            ? `CSV 가져오기 완료: ${added}개 등록, ${skipped}개 중복 건너뜀`
+                            : `CSV import complete: ${added} added, ${skipped} duplicates skipped`;
+                        break;
+                    }
+                    case 'csv_import_error':
+                        msgText = (isKo ? 'CSV 가져오기 실패: ' : 'CSV import failed: ') + (urlParams.get('detail') || (isKo ? '파일을 확인해 주세요.' : 'Please check the file.'));
+                        break;
                     case 'invalid_schedule':
                         msgText = isKo ? '무음 종료 시각을 현재보다 뒤로 지정해 주세요.' : 'Choose a mute end time in the future.';
                         break;
@@ -1335,9 +1353,10 @@ if (($current_view ?? 'card') === 'log') {
                 }
                 
                 if (msgText) {
-                    showToast(msgText, msgType === 'invalid_schedule' ? 'error' : undefined);
-                    const cleanSearch = window.location.search.replace(new RegExp('[?&]msg=' + msgType), '').replace(/^&/, '?').replace(/\?$/, '');
-                    const newUrl = window.location.pathname + cleanSearch;
+                    showToast(msgText, ['invalid_schedule', 'csv_import_error'].includes(msgType) ? 'error' : undefined);
+                    const cleanUrl = new URL(window.location.href);
+                    ['msg', 'detail', 'added', 'skipped'].forEach(param => cleanUrl.searchParams.delete(param));
+                    const newUrl = cleanUrl.pathname + cleanUrl.search + cleanUrl.hash;
                     window.history.replaceState({}, document.title, newUrl);
                 }
             }

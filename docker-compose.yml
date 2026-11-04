@@ -87,6 +87,31 @@ services:
     networks:
       - webmon_net
 
+  # Explicit one-shot recovery command; never started by `up`.
+  db-password-reset:
+    profiles:
+      - maintenance
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    entrypoint: ["php", "/var/www/html/reset_db_password.php"]
+    command: ["--reset-to-configured-password"]
+    network_mode: "service:db"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./webmon:/var/www/html:ro
+      - webmon_runtime:/var/lib/webmon
+    environment:
+      DB_HOST: 127.0.0.1
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-sitemonitor}
+      DB_USER: ${DB_USER:-sitemonitor}
+      DB_PASS: ${DB_PASS}
+      DB_ROOT_PASS: ${DB_ROOT_PASS}
+      DB_ROOT_USER: root
+
   # ── Postfix SMTP Relay ──────────────────────────────────────────────
   mail:
     image: boky/postfix

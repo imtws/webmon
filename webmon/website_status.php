@@ -3,6 +3,17 @@
 // [0] 환경 설정 및 공통 파일 로드 (★ 이 부분이 빠져서 에러가 났던 겁니다!)
 // ==========================================
 require_once 'config/database.php';
+
+function redirectCsvImportError(string $redirectUrl, string $detail): void {
+    $separator = strpos($redirectUrl, '?') !== false ? '&' : '?';
+    header("Location: " . $redirectUrl . $separator . "msg=csv_import_error&detail=" . rawurlencode($detail));
+    exit;
+}
+
+function csvUnicodeLength(string $value): int {
+    $matched = preg_match_all('/./us', $value);
+    return $matched === false ? PHP_INT_MAX : $matched;
+}
 require_once 'config/language.php';
 require_once 'classes/Utils.php';
 
@@ -194,6 +205,13 @@ if (isset($_GET['action']) && $_GET['action'] == 'rollback_job') {
                     $values_str = implode(', ', $values);
                     $db->query("INSERT INTO monitor_conf ($fields_str) VALUES ($values_str)");
                 }
+            } elseif ($action_type === 'csv_import') {
+                foreach ($snapshot as $item) {
+                    $no = (int)($item['no'] ?? 0);
+                    if ($no > 0) {
+                        $db->query("DELETE FROM monitor_conf WHERE no = $no");
+                    }
+                }
             }
             
             $db->query("SET FOREIGN_KEY_CHECKS = 1;");
@@ -251,7 +269,202 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $redirect_url .= "?" . $_POST['current_query'];
     }
 
-    if ($action === 'add' || $action === 'edit') {
+    if ($action === 'csv_import') {
+        $upload = $_FILES['csv_file'] ?? null;
+        if (!$upload || !isset($upload['error']) || $upload['error'] !== UPLOAD_ERR_OK) {
+            redirectCsvImportError($redirect_url, 'CSV 파일 업로드에 실패했습니다.');
+        }
+        if (($upload['size'] ?? 0) > 5 * 1024 * 1024 || !is_file($upload['tmp_name'] ?? '') || filesize($upload['tmp_name']) > 5 * 1024 * 1024) {
+            redirectCsvImportError($redirect_url, 'CSV 파일은 5MB 이하여야 합니다.');
+        }
+
+        $handle = fopen($upload['tmp_name'], 'rb');
+        if ($handle === false) {
+            redirectCsvImportError($redirect_url, 'CSV 파일을 읽을 수 없습니다.');
+        }
+
+        $header = fgetcsv($handle, 0, ',', '"', '');
+        if (!$header) {
+            fclose($handle);
+            redirectCsvImportError($redirect_url, 'CSV 헤더를 찾을 수 없습니다.');
+        }
+        $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string)$header[0]);
+        $allowedFields = [
+            'company', 'url', 'contents', 'group_name', 'check', 'ssl_mon', 'dom_mon',
+            'comment', 'engine_type', 'retry_count', 'timeout_sec', 'email_mode',
+            'sender_email', 'receiver_email'
+        ];
+        $headerMap = [];
+        foreach ($header as $index => $column) {
+            $key = strtolower(trim((string)$column));
+            if (!in_array($key, $allowedFields, true)) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "지원하지 않는 CSV 열: $column");
+            }
+            if (isset($headerMap[$key])) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "중복된 CSV 열: $column");
+            }
+            $headerMap[$key] = $index;
+        }
+        foreach (['company', 'url', 'contents'] as $requiredField) {
+            if (!isset($headerMap[$requiredField])) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "필수 CSV 열이 없습니다: $requiredField");
+            }
+        }
+
+        $validatedRows = [];
+        $lineNumber = 1;
+        $booleanValue = static function (string $value, int $default): ?int {
+            if ($value === '') return $default;
+            $normalized = strtolower(trim($value));
+            if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) return 1;
+            if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) return 0;
+            return null;
+        };
+        while (($values = fgetcsv($handle, 0, ',', '"', '')) !== false) {
+            $lineNumber++;
+            if (count($values) === 1 && trim((string)$values[0]) === '') continue;
+            if (count($values) !== count($header)) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: CSV 열 개수가 헤더와 일치하지 않습니다.");
+            }
+            if (count($validatedRows) >= 500) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, '한 번에 최대 500행까지 가져올 수 있습니다.');
+            }
+            $get = static function (string $field) use ($headerMap, $values): string {
+                return isset($headerMap[$field]) ? trim((string)($values[$headerMap[$field]] ?? '')) : '';
+            };
+            $company = $get('company');
+            $url = $get('url');
+            $contents = $get('contents');
+            $parsedUrl = filter_var($url, FILTER_VALIDATE_URL) ? parse_url($url) : false;
+            if ($company === '' || $url === '' || $contents === '') {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: 회사명, URL, 키워드가 필요합니다.");
+            }
+            if (csvUnicodeLength($company) > 200 || csvUnicodeLength($contents) > 500 || csvUnicodeLength($url) > 500) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: 회사명, URL 또는 키워드가 허용 길이를 초과합니다.");
+            }
+            if (!$parsedUrl || !isset($parsedUrl['scheme']) || !in_array(strtolower($parsedUrl['scheme']), ['http', 'https'], true)) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: 올바른 HTTP 또는 HTTPS URL이 아닙니다.");
+            }
+
+            $check = $get('check') ?: 'alarm';
+            $checkAliases = ['active' => 'alarm', 'enabled' => 'alarm', 'mute' => 'no alarm', 'muted' => 'no alarm', 'disabled' => 'disable'];
+            $check = $checkAliases[strtolower($check)] ?? strtolower($check);
+            if (!in_array($check, ['alarm', 'no alarm', 'disable'], true)) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: check 값은 alarm, no alarm, disable 중 하나여야 합니다.");
+            }
+
+            $sslMon = $booleanValue($get('ssl_mon'), 1);
+            $domMon = $booleanValue($get('dom_mon'), 1);
+            if ($sslMon === null || $domMon === null) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: ssl_mon과 dom_mon은 1 또는 0이어야 합니다.");
+            }
+            $engine = strtolower($get('engine_type') ?: 'lynx');
+            if (!in_array($engine, ['lynx', 'curl'], true)) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: engine_type은 lynx 또는 curl이어야 합니다.");
+            }
+            $retryCount = $get('retry_count') === '' ? 1 : (int)$get('retry_count');
+            $timeoutSec = $get('timeout_sec') === '' ? 2 : (int)$get('timeout_sec');
+            if (!in_array($retryCount, [1, 2, 3, 5], true) || !preg_match('/^\d+$/', $get('retry_count') === '' ? '1' : $get('retry_count'))) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: retry_count는 1, 2, 3, 5 중 하나여야 합니다.");
+            }
+            if ($timeoutSec < 1 || $timeoutSec > 30 || !preg_match('/^\d+$/', $get('timeout_sec') === '' ? '2' : $get('timeout_sec'))) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: timeout_sec는 1에서 30 사이여야 합니다.");
+            }
+
+            $emailMode = strtolower($get('email_mode') ?: 'none');
+            if (!in_array($emailMode, ['none', 'postfix', 'smtp'], true)) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: email_mode는 none, postfix, smtp 중 하나여야 합니다.");
+            }
+            $senderEmail = $get('sender_email');
+            $receiverEmail = $get('receiver_email');
+            foreach (['발송자 이메일' => $senderEmail, '수신자 이메일' => $receiverEmail] as $label => $email) {
+                if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    fclose($handle);
+                    redirectCsvImportError($redirect_url, "행 $lineNumber: $label 형식이 올바르지 않습니다.");
+                }
+            }
+            $groupName = $get('group_name') ?: '기본 그룹';
+            $comment = $get('comment');
+            if (csvUnicodeLength($groupName) > 100 || csvUnicodeLength($comment) > 500) {
+                fclose($handle);
+                redirectCsvImportError($redirect_url, "행 $lineNumber: 그룹명 또는 메모가 허용 길이를 초과합니다.");
+            }
+            $validatedRows[] = compact('company', 'groupName', 'url', 'contents', 'check', 'sslMon', 'domMon', 'comment', 'senderEmail', 'receiverEmail', 'emailMode', 'engine', 'retryCount', 'timeoutSec');
+        }
+        fclose($handle);
+        if (!$validatedRows) {
+            redirectCsvImportError($redirect_url, '가져올 데이터 행이 없습니다.');
+        }
+
+        $addedCount = 0;
+        $skippedCount = 0;
+        $importedItems = [];
+        try {
+            $db->begin_transaction();
+            $duplicateStmt = $db->prepare("SELECT no FROM monitor_conf WHERE url = ? LIMIT 1");
+            $insertStmt = $db->prepare("INSERT INTO monitor_conf
+                (company, group_name, url, contents, `check`, ssl_mon, dom_mon, comment, sender_email, receiver_email, email_mode, engine_type, retry_count, timeout_sec, mod_date, updated_at, value, response_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 1, 0)");
+            $seenUrls = [];
+            foreach ($validatedRows as $row) {
+                if (isset($seenUrls[$row['url']])) {
+                    $skippedCount++;
+                    continue;
+                }
+                $seenUrls[$row['url']] = true;
+                $duplicateStmt->bind_param('s', $row['url']);
+                $duplicateStmt->execute();
+                if ($duplicateStmt->get_result()->num_rows > 0) {
+                    $skippedCount++;
+                    continue;
+                }
+                $insertStmt->bind_param(
+                    'sssssiisssssii',
+                    $row['company'], $row['groupName'], $row['url'], $row['contents'], $row['check'],
+                    $row['sslMon'], $row['domMon'], $row['comment'], $row['senderEmail'], $row['receiverEmail'],
+                    $row['emailMode'], $row['engine'], $row['retryCount'], $row['timeoutSec']
+                );
+                $insertStmt->execute();
+                $importedItems[] = ['no' => $db->insert_id, 'company' => $row['company'], 'url' => $row['url']];
+                $addedCount++;
+            }
+            $duplicateStmt->close();
+            $insertStmt->close();
+            if ($importedItems) {
+                $snapshot = json_encode($importedItems, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                $actionType = 'csv_import';
+                $changedFields = 'CSV import';
+                $historyStmt = $db->prepare("INSERT INTO job_history (action_type, target_count, changed_fields, snapshot) VALUES (?, ?, ?, ?)");
+                $historyStmt->bind_param('siss', $actionType, $addedCount, $changedFields, $snapshot);
+                $historyStmt->execute();
+                $historyStmt->close();
+            }
+            $db->commit();
+        } catch (mysqli_sql_exception | JsonException $error) {
+            $db->rollback();
+            error_log('CSV monitor import failed: ' . $error->getMessage());
+            redirectCsvImportError($redirect_url, '데이터베이스 등록에 실패하여 전체 작업을 취소했습니다.');
+        }
+
+        $separator = strpos($redirect_url, '?') !== false ? '&' : '?';
+        header("Location: " . $redirect_url . $separator . "msg=csv_import_success&added=$addedCount&skipped=$skippedCount");
+        exit;
+    }
+    elseif ($action === 'add' || $action === 'edit') {
         $company = $db->real_escape_string($_POST['company']);
         $group_select = $_POST['group_select'] ?? '';
         $group_name_new = trim($_POST['group_name_new'] ?? '');
@@ -386,6 +599,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($schedule_enabled === '1') {
                 $mute_until_input = trim($_POST['mute_until'] ?? '');
+                if ($mute_until_input === '') {
+                    $mute_until_date = new DateTime();
+                    $mute_until_date->modify('+2 hours');
+                    $mute_until_input = $mute_until_date->format('Y-m-d\TH:i');
+                }
                 $mute_until_date = DateTime::createFromFormat('Y-m-d\TH:i', $mute_until_input);
                 $date_errors = DateTime::getLastErrors();
                 if (!$mute_until_date || ($date_errors && ($date_errors['warning_count'] || $date_errors['error_count'])) ||

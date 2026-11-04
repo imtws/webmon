@@ -533,6 +533,13 @@ function resetBulkModalForm() {
     const form = document.getElementById('bulkModalForm');
     if (!form) return;
     form.reset();
+
+    const muteUntil = document.getElementById('bulkMuteUntil');
+    if (muteUntil) {
+        const defaultMuteUntil = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        const localDateTime = new Date(defaultMuteUntil.getTime() - defaultMuteUntil.getTimezoneOffset() * 60000);
+        muteUntil.value = localDateTime.toISOString().slice(0, 16);
+    }
     
     const fieldsToDisable = [
         { chk: 'chkGroup', inputs: ['bulkGroupSelect', 'bulkGroupNew'] },
@@ -567,6 +574,147 @@ function resetBulkModalForm() {
 
 function closeBulkModal() {
     closeSideSheet('bulkModal');
+}
+
+function openCsvImportModal() {
+    const form = document.getElementById('csvImportForm');
+    const status = document.getElementById('csvPreviewStatus');
+    const preview = document.getElementById('csvPreviewWrap');
+    const submit = document.getElementById('csvImportSubmit');
+    if (form) form.reset();
+    if (status) {
+        status.classList.add('hidden');
+        status.textContent = '';
+    }
+    if (preview) preview.classList.add('hidden');
+    if (submit) {
+        submit.disabled = true;
+        submit.textContent = document.documentElement.lang === 'ko' ? '항목 가져오기' : 'Import monitors';
+    }
+    openSideSheet('csvImportModal');
+}
+
+function closeCsvImportModal() {
+    closeSideSheet('csvImportModal');
+}
+
+function parseCsvRows(text) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+    const source = text.replace(/^\uFEFF/, '');
+
+    for (let i = 0; i < source.length; i++) {
+        const char = source[i];
+        if (inQuotes) {
+            if (char === '"' && source[i + 1] === '"') {
+                field += '"';
+                i++;
+            } else if (char === '"') {
+                inQuotes = false;
+            } else {
+                field += char;
+            }
+        } else if (char === '"' && field === '') {
+            inQuotes = true;
+        } else if (char === ',') {
+            row.push(field);
+            field = '';
+        } else if (char === '\n' || char === '\r') {
+            row.push(field);
+            if (row.some(value => value.trim() !== '')) rows.push(row);
+            row = [];
+            field = '';
+            if (char === '\r' && source[i + 1] === '\n') i++;
+        } else if (char === '"') {
+            throw new Error('CSV에 잘못된 따옴표가 있습니다.');
+        } else {
+            field += char;
+        }
+    }
+
+    if (inQuotes) throw new Error('CSV 따옴표가 닫히지 않았습니다.');
+    row.push(field);
+    if (row.some(value => value.trim() !== '')) rows.push(row);
+    return rows;
+}
+
+async function previewCsvImport(file) {
+    const isKo = document.documentElement.lang === 'ko';
+    const status = document.getElementById('csvPreviewStatus');
+    const preview = document.getElementById('csvPreviewWrap');
+    const count = document.getElementById('csvPreviewCount');
+    const body = document.getElementById('csvPreviewBody');
+    const submit = document.getElementById('csvImportSubmit');
+    const showStatus = (message, isError = false) => {
+        status.textContent = message;
+        status.classList.remove('hidden');
+        status.classList.toggle('text-red-600', isError);
+        status.classList.toggle('dark:text-red-400', isError);
+    };
+
+    submit.disabled = true;
+    preview.classList.add('hidden');
+    body.replaceChildren();
+    if (!file) return;
+    if (!/\.csv$/i.test(file.name) || file.size > 5 * 1024 * 1024) {
+        showStatus(isKo ? 'CSV 파일(최대 5MB)만 선택할 수 있습니다.' : 'Choose a CSV file no larger than 5 MB.', true);
+        return;
+    }
+
+    try {
+        const rows = parseCsvRows(await file.text());
+        if (rows.length < 2) throw new Error(isKo ? '헤더와 데이터 행이 필요합니다.' : 'The CSV must contain a header and at least one data row.');
+        if (rows.length - 1 > 500) throw new Error(isKo ? '한 번에 최대 500행까지 가져올 수 있습니다.' : 'Import up to 500 rows at a time.');
+
+        const headers = rows[0].map(value => value.trim().toLowerCase());
+        const allowedHeaders = [
+            'company', 'url', 'contents', 'group_name', 'check', 'ssl_mon', 'dom_mon',
+            'comment', 'engine_type', 'retry_count', 'timeout_sec', 'email_mode',
+            'sender_email', 'receiver_email'
+        ];
+        if (new Set(headers).size !== headers.length) {
+            throw new Error(isKo ? 'CSV 헤더에 중복된 열이 있습니다.' : 'The CSV header contains duplicate columns.');
+        }
+        const unsupported = headers.filter(header => !allowedHeaders.includes(header));
+        if (unsupported.length) {
+            throw new Error((isKo ? '지원하지 않는 CSV 열: ' : 'Unsupported CSV columns: ') + unsupported.join(', '));
+        }
+        const indexes = Object.fromEntries(headers.map((header, index) => [header, index]));
+        const required = ['company', 'url', 'contents'];
+        const missing = required.filter(header => !Object.prototype.hasOwnProperty.call(indexes, header));
+        if (missing.length) {
+            throw new Error((isKo ? '필수 열이 없습니다: ' : 'Missing required columns: ') + missing.join(', '));
+        }
+
+        const records = rows.slice(1);
+        if (records.some(values => values.length !== headers.length)) {
+            throw new Error(isKo ? 'CSV 데이터 열 개수가 헤더와 일치하지 않습니다.' : 'A data row has a different number of columns than the header.');
+        }
+        if (records.some(values => required.some(header => !(values[indexes[header]] || '').trim()))) {
+            throw new Error(isKo ? '회사명, URL, 키워드는 모든 데이터 행에 입력해야 합니다.' : 'Company, URL, and keyword are required on every row.');
+        }
+
+        count.textContent = isKo
+            ? `총 ${records.length}개 행 · 처음 ${Math.min(records.length, 20)}개 미리보기`
+            : `${records.length} rows · previewing ${Math.min(records.length, 20)}`;
+        records.slice(0, 20).forEach((values, index) => {
+            const tr = document.createElement('tr');
+            [String(index + 2), values[indexes.company] || '', values[indexes.url] || '', values[indexes.contents] || '', indexes.group_name === undefined ? '' : values[indexes.group_name] || ''].forEach(value => {
+                const td = document.createElement('td');
+                td.className = 'max-w-[280px] truncate p-3';
+                td.textContent = value;
+                tr.appendChild(td);
+            });
+            body.appendChild(tr);
+        });
+        preview.classList.remove('hidden');
+        showStatus(isKo ? '미리보기가 준비되었습니다. 등록 전 전체 행을 서버에서 검증합니다.' : 'Preview ready. The server validates every row before importing.');
+        submit.disabled = false;
+    } catch (error) {
+        showStatus(error.message || (isKo ? 'CSV 파일을 읽지 못했습니다.' : 'Could not read the CSV file.'), true);
+    }
 }
 
 function openHistoryModal() {
@@ -973,6 +1121,21 @@ function updateBatchActionBar() {
 
 window.addEventListener('DOMContentLoaded', () => {
     initializeFilterDropdowns();
+    const csvFileInput = document.getElementById('csvImportFile');
+    if (csvFileInput) {
+        csvFileInput.addEventListener('change', () => previewCsvImport(csvFileInput.files[0]));
+    }
+    const csvForm = document.getElementById('csvImportForm');
+    if (csvForm) {
+        csvForm.addEventListener('submit', event => {
+            if (!csvFileInput || !csvFileInput.files.length || document.getElementById('csvImportSubmit').disabled) {
+                event.preventDefault();
+                return;
+            }
+            document.getElementById('csvImportSubmit').disabled = true;
+            document.getElementById('csvImportSubmit').textContent = document.documentElement.lang === 'ko' ? '가져오는 중…' : 'Importing…';
+        });
+    }
     const autoRefreshToggle = document.getElementById('autoRefreshToggle');
     if (autoRefreshToggle) {
         const saved = sessionStorage.getItem('webmon_auto_refresh') === 'true';

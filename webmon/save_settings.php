@@ -24,8 +24,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $db_pass_new = $_POST['db_pass_new'] ?? '';
 
     if ($db_pass_old !== '' || $db_pass_new !== '') {
-        if ($db_pass_old === '' || $db_pass_new === '') {
+        if ($db_pass_new === '') {
             redirectSettingsError('db_pass_required');
+        }
+        if ($db_pass_old === '') {
+            $defaultDbPassword = 'your_secure_password_here';
+            if (hash_equals($defaultDbPassword, $db_pass)) {
+                $db_pass_old = $db_pass;
+            } else {
+                redirectSettingsError('db_pass_required');
+            }
         }
 
         $db_host = getenv('DB_HOST') ?: 'localhost';

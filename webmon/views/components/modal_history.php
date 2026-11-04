@@ -148,6 +148,9 @@ if (!function_exists('renderFieldStatic')) {
                                     } elseif ($action_type === 'edit') {
                                         $badge_class = 'bg-green-50 text-green-600 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/40';
                                         $action_name = $current_lang == 'KO' ? '수정' : 'Edit';
+                                    } elseif ($action_type === 'csv_import') {
+                                        $badge_class = 'bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-800/40';
+                                        $action_name = $current_lang == 'KO' ? 'CSV 가져오기' : 'CSV Import';
                                     } else {
                                         $badge_class = 'bg-gray-50 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
                                         $action_name = $action_type;
@@ -356,6 +359,7 @@ function confirmRollback(jobId, count, actionType) {
     const isKo = (document.documentElement.lang === 'ko' || '<?= $current_lang ?>' === 'KO');
     let actionLabel = actionType;
     if (actionType === 'bulk_update') actionLabel = isKo ? '일괄 수정' : 'Bulk Edit';
+    else if (actionType === 'csv_import') actionLabel = isKo ? 'CSV 가져오기' : 'CSV Import';
     else if (actionType === 'bulk_delete') actionLabel = isKo ? '일괄 삭제' : 'Bulk Delete';
     else if (actionType === 'delete') actionLabel = isKo ? '삭제' : 'Delete';
     else if (actionType === 'edit') actionLabel = isKo ? '수정' : 'Edit';

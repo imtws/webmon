@@ -199,6 +199,7 @@
                         <div id="bulkMuteUntilContainer">
                             <label for="bulkMuteUntil" class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '무음 종료 시각' : 'Mute until' ?></label>
                             <input type="datetime-local" name="mute_until" id="bulkMuteUntil" class="w-full disabled:opacity-50" disabled>
+                            <p class="mt-1 text-[10px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '기본값: 지금부터 2시간 후 (비워두어도 동일하게 적용됩니다)' : 'Default: 2 hours from now (also used if left blank)' ?></p>
                         </div>
                         <p class="text-[11px] leading-relaxed text-[var(--text-sub)]">
                             <?= $current_lang == 'KO' ? '선택한 모든 항목에 같은 종료 시각을 적용합니다. 스케줄 해제 시 즉시 알림이 다시 활성화됩니다.' : 'Applies the same end time to all selected items. Clearing the schedule resumes alerts immediately.' ?>
