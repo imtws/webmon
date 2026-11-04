@@ -85,25 +85,6 @@ services:
     networks:
       - webmon_net
 
-  # ── phpMyAdmin (개발용: docker compose --profile dev up) ──────────────
-  pma:
-    image: phpmyadmin:latest
-    container_name: webmon_pma
-    restart: unless-stopped
-    ports:
-      - "8081:80"
-    environment:
-      PMA_HOST:     db
-      PMA_USER:     ${DB_USER:-sitemonitor}
-      PMA_PASSWORD: ${DB_PASS}
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - webmon_net
-    profiles:
-      - dev
-
   # ── Postfix SMTP Relay ──────────────────────────────────────────────
   mail:
     image: boky/postfix

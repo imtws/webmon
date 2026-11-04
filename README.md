@@ -118,13 +118,6 @@ SCHEDULE_REPORT=0 9 * * 1    # 매주 월요일 9시
 
 ---
 
-## 개발용 (phpMyAdmin 포함)
-
-```bash
-docker compose --profile dev up -d --build
-# phpMyAdmin: http://localhost:8081
-```
-
 ---
 
 ## 환경변수 전체 목록
