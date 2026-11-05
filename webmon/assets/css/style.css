@@ -1523,3 +1523,12 @@ body.is-scrolling .cmd-tooltip {
 .flip-meta { display: flex; align-items: center; gap: 6px; min-width: 0; margin-top: 2px; }
 .flip-meta .group-badge { flex: none; }
 .flip-url { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--text-sub); }
+.flip-chart { cursor: crosshair; }
+.flip-tip {
+    display: none; position: absolute; z-index: 5; padding: 4px 8px; border-radius: 8px; pointer-events: none;
+    background: rgba(15, 23, 42, 0.92); color: #fff; font-size: 11px; line-height: 1.35; white-space: nowrap;
+}
+.flip-dot {
+    display: none; position: absolute; z-index: 4; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+    background: #18aee7; border: 2px solid var(--card-bg); pointer-events: none;
+}

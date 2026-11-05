@@ -1562,6 +1562,9 @@ function drawFlipChart(item, data, range) {
     ctx.lineTo(x(data.length - 1), padT + ph); ctx.lineTo(x(0), padT + ph); ctx.closePath();
     ctx.fillStyle = grad; ctx.fill();
 
+    canvas._geo = { data, padL, pw, padT, ph, top, W, H };
+    bindFlipHover(canvas);
+
     data.forEach((d, i) => {
         if (d.result === 0) {
             ctx.beginPath(); ctx.arc(x(i), y(d.response_time), 3, 0, Math.PI * 2);
@@ -1628,3 +1631,39 @@ document.addEventListener('keydown', e => {
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
     if (document.querySelector('.item-checkbox:checked')) clearSelection();
 });
+
+// 그래프 위에 마우스를 올리면 해당 시각의 응답 값을 툴팁으로 표시
+function bindFlipHover(canvas) {
+    if (canvas._hoverBound) return;
+    canvas._hoverBound = true;
+    const wrap = canvas.parentElement;
+    const tip = document.createElement('div');
+    tip.className = 'flip-tip';
+    const dot = document.createElement('div');
+    dot.className = 'flip-dot';
+    wrap.append(dot, tip);
+    const hide = () => { tip.style.display = 'none'; dot.style.display = 'none'; };
+    canvas.addEventListener('mouseleave', hide);
+    canvas.addEventListener('mousemove', e => {
+        const g = canvas._geo;
+        if (!g || !g.data.length) return hide();
+        const r = canvas.getBoundingClientRect();
+        const mx = e.clientX - r.left;
+        const n = g.data.length;
+        const idx = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round(((mx - g.padL) / g.pw) * (n - 1))));
+        const d = g.data[idx];
+        const px = g.padL + (n === 1 ? g.pw / 2 : (idx / (n - 1)) * g.pw);
+        const py = g.padT + g.ph - (d.response_time / g.top) * g.ph;
+        const ko = document.documentElement.lang === 'ko';
+        const failed = d.result === 0 || (d.failure_count || 0) > 0;
+        tip.innerHTML = `<b>${(d.time || '').slice(5, 16).replace('-', '/')}</b><br>${d.response_time.toFixed(2)}s` +
+            (failed ? ` <span style="color:#f87171">${ko ? '실패' : 'Failed'}${d.failure_count > 1 ? ' ' + d.failure_count : ''}</span>` : '');
+        tip.style.display = 'block';
+        dot.style.display = 'block';
+        dot.style.left = px + 'px';
+        dot.style.top = py + 'px';
+        const tw = tip.offsetWidth;
+        tip.style.left = Math.max(0, Math.min(g.W - tw, px - tw / 2)) + 'px';
+        tip.style.top = Math.max(0, py - tip.offsetHeight - 10) + 'px';
+    });
+}
