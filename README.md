@@ -18,7 +18,9 @@ PHP + MariaDB + Python asyncio 기반의 웹사이트 콘텐츠 모니터링 툴
 - **재시도 로직** — 실패 시 설정된 횟수만큼 자동 재시도
 - **SSL 만료일 추적** — 인증서 직접 조회로 자동 갱신
 - **도메인 만료일 추적** — WHOIS 기반 (한국 2단계 TLD 포함)
-- **텔레그램 알림** — 감지 실패 즉시 + 주간 만료 예정 리포트 (plain text 포맷 고정 지원)
+- **텔레그램 알림** — 감지 실패를 여러 업체 한 통으로 묶어 발송 (업체별 번호 부여, 템플릿 변수 `{detections}` `{recommendations}` `{YYYY-MM-DD}` 지원)
+- **SSL·도메인 만료 안내 메일** — 임박 기준일(기본 30일) 이내 항목을 WebMon 스타일 HTML 메일로 발송. 요일·시각·수신자는 설정 화면에서 지정 (이메일 전용)
+- **이메일 제목 설정** — 기본 `[WebSiteMonitor] 웹사이트 모니터링 알람 발생 {YYYY-MM-DD}`, 설정 화면에서 변경 가능
 - **이메일 알림 (SMTP / 직접 발송)** — 활성화한 외부 SMTP 릴레이 발송 또는 수신 도메인 메일 서버로 직접 발송 지원
 - **전역 이메일 발송 주소** — 기본 발송자(From) 이메일 주소를 SMTP 릴레이 설정과 분리해 관리하며, 항목별 발송자 주소가 지정되면 항목별 주소 우선 적용
 - **이메일 헤더 사이트 테마 반영 및 가독성 개선** — 메일 알림의 헤더 부분을 WebMon 고유의 스카이블루(#18aee7) 테마 및 연한 배경(#f8fafc) 조합의 인라인 스타일로 디자인하여, 일부 메일 클라이언트 다크 모드 등에서 글씨가 안 보였던 가독성 문제를 예방하고 브랜드 일관성 확보
@@ -60,10 +62,10 @@ docker/
     engines/
       __init__.py
       db.py                     ← aiomysql 커넥션 풀
-      notify.py                 ← 텔레그램 발송
+      notify.py                 ← 텔레그램/이메일 발송
       alert.py                  ← 키워드 감지 엔진 (매 1분)
       asset.py                  ← SSL/도메인 갱신 (매일 01:00)
-      report.py                 ← 주간 리포트 (매주 월 09:00)
+      report.py                 ← 만료 안내 메일 (매분 틱, 설정 요일·시각에 발송)
   mysql/
     init/
       01_schema.sql
@@ -113,8 +115,9 @@ docker compose logs -f web
 ```env
 SCHEDULE_ALERT=* * * * *     # 매 1분
 SCHEDULE_ASSET=0 1 * * *     # 매일 새벽 1시
-SCHEDULE_REPORT=0 9 * * 1    # 매주 월요일 9시
 ```
+
+만료 안내 메일의 발송 요일·시각은 cron이 아니라 설정 화면의 "SSL·도메인 만료 안내"에서 지정합니다 (예: 매주 월 09:00).
 
 변경 후: `docker compose restart scheduler`
 
@@ -135,7 +138,6 @@ SCHEDULE_REPORT=0 9 * * 1    # 매주 월요일 9시
 | `PHP_TIMEZONE` | `Asia/Seoul` | 타임존 |
 | `SCHEDULE_ALERT` | `* * * * *` | 키워드 감지 스케줄 |
 | `SCHEDULE_ASSET` | `0 1 * * *` | SSL/도메인 갱신 스케줄 |
-| `SCHEDULE_REPORT` | `0 9 * * 1` | 주간 리포트 스케줄 |
 | `ALERT_CONCURRENCY` | `60` | 동시 체크 상한 |
 
 ---
