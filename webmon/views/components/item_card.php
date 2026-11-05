@@ -131,7 +131,10 @@
     <div class="monitor-card-back-head">
         <div class="min-w-0 flex-1">
             <h2 class="truncate text-[15px] font-bold text-[var(--text-main)]"><?= htmlspecialchars($row['company']) ?></h2>
-            <p class="text-[11px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '응답 시간 추이' : 'Response time trend' ?></p>
+            <div class="flip-meta">
+                <span class="group-badge"><?= htmlspecialchars($row['group_name'] ?: '기본 그룹') ?></span>
+                <span class="flip-url" title="<?= htmlspecialchars($row['url']) ?>"><?= htmlspecialchars(preg_replace('#^https?://#i', '', rtrim($row['url'], '/'))) ?></span>
+            </div>
         </div>
         <div class="flip-range" role="group">
             <button type="button" class="flip-range-btn is-active" data-range="1h" onclick="setFlipRange(<?=$row['no']?>, '1h')"><?= $current_lang == 'KO' ? '1시간' : '1H' ?></button>
