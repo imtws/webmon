@@ -519,11 +519,14 @@ select option {
 .monitor-card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-    align-items: start;
+    align-items: stretch;
     gap: 16px;
 }
 
-.monitor-card-grid > .monitor-item { width: 100%; }
+.monitor-card-grid > .monitor-item {
+    display: flex;
+    width: 100%;
+}
 
 .monitor-card-grid:has(> .monitor-item:only-child) {
     display: flex;
@@ -534,7 +537,13 @@ select option {
     max-width: 680px;
 }
 
-.monitor-card-body { padding: 16px; }
+.monitor-card-body {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    padding: 16px;
+}
 
 .monitor-card-header {
     display: flex;
@@ -568,10 +577,12 @@ select option {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-top: 12px;
+    margin-top: auto;
     padding-top: 12px;
     border-top: 1px solid var(--border-color);
 }
+
+.monitor-card-result { min-height: 32px; }
 
 .monitor-actions {
     position: relative;

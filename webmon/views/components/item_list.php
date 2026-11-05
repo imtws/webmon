@@ -54,9 +54,9 @@
     <div class="flex-1 text-center text-[var(--text-sub)] dark:text-slate-100 truncate px-1"><?= htmlspecialchars($row['contents']) ?></div>
     <div class="flex-1 text-center"><span class="<?= $status_badge ?>"><?= $check_text ?></span></div>
     <div class="flex-1 text-center min-w-0 flex flex-col items-center justify-center">
-        <span class="<?= $result_badge ?>"><?= $is_disabled ? '-' : $result_text ?></span>
+        <span class="<?= $result_badge ?>"<?php if (!$is_disabled && $row['value'] == 0 && !empty($row['error_msg'])): ?> title="<?= htmlspecialchars($row['error_msg'], ENT_QUOTES, 'UTF-8') ?>"<?php endif; ?>><?= $is_disabled ? '-' : $result_text ?></span>
         <?php if (!$is_disabled && $row['value'] == 0 && !empty($row['error_msg'])): ?>
-            <span class="text-[9px] text-red-500 font-bold block mt-0.5 leading-none max-w-[90px] truncate" title="<?= htmlspecialchars($row['error_msg']) ?>">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
+            <span class="text-[9px] text-red-500 font-bold block mt-0.5 leading-none max-w-[90px] truncate" title="<?= htmlspecialchars($row['error_msg'], ENT_QUOTES, 'UTF-8') ?>">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
         <?php endif; ?>
     </div>
     <div class="w-36 text-right pr-2 text-[var(--text-sub)] flex justify-end items-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity duration-200">

@@ -23,6 +23,7 @@ import aiomysql
 from .db import get_pool, load_system_settings
 from .notify import send_telegram, send_email
 from .asset import _check_whois, to_lookup_domain, extract_host
+from .process import communicate_with_timeout
 
 log = logging.getLogger("webmon.alert")
 
@@ -97,8 +98,9 @@ async def _fetch(row: dict, sem: asyncio.Semaphore) -> dict:
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
+                start_new_session=True,
             )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout + 2)
+            stdout, _ = await communicate_with_timeout(proc, timeout + 2)
             body = stdout.decode("utf-8", errors="replace")
             
             # 도메인 만료 안내 페이지 키워드 검사

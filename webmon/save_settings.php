@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($db_pass_old === '') {
             $defaultDbPassword = 'your_secure_password_here';
-            if (hash_equals($defaultDbPassword, $db_pass)) {
+            if ($db_pass === '' || hash_equals($defaultDbPassword, $db_pass)) {
                 $db_pass_old = $db_pass;
             } else {
                 redirectSettingsError('db_pass_required');

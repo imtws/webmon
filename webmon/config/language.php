@@ -6,7 +6,7 @@ $current_view = $_COOKIE['webmon_view'] ?? 'card';
 
 $lang_pack = [
     'KO' => [
-        'logo' => 'WebMon 웹사이트 모니터링',
+        'logo' => 'WebMon',
         'btn_status' => '알람 확인 상태 변경',
         'btn_del' => '선택 삭제',
         'btn_add' => '+ 추가',
@@ -74,7 +74,7 @@ $lang_pack = [
         'expiring' => 'EXPIRING',
     ],
     'EN' => [
-        'logo' => 'WebMon Monitoring',
+        'logo' => 'WebMon',
         'btn_status' => 'Change Status',
         'btn_del' => 'Delete Selected',
         'btn_add' => '+ Add',

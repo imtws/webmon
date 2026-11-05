@@ -722,15 +722,17 @@ if (($current_view ?? 'card') === 'log') {
                             <i id="set-arrow-dbpass" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
                         </button>
                         <div id="set-body-dbpass" class="p-4 border-t border-[var(--border-color)] hidden">
-                            <?php $usesDefaultDbPassword = isset($db_pass) && hash_equals('your_secure_password_here', $db_pass); ?>
+                            <?php $usesDefaultDbPassword = isset($db_pass) && ($db_pass === '' || hash_equals('your_secure_password_here', $db_pass)); ?>
                             <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $usesDefaultDbPassword
-                                ? ($current_lang == 'KO' ? '기본 DB 비밀번호를 사용 중입니다. 이전 비밀번호는 비워두고 새 비밀번호만 입력해도 됩니다.' : 'The default database password is in use. Leave the current password blank and enter a new password.')
+                                ? ($current_lang == 'KO' ? '초기 DB 비밀번호를 사용 중입니다. 이전 비밀번호 입력 없이 새 비밀번호만 입력하면 변경됩니다.' : 'The initial database password is in use. Enter only a new password; no current password is needed.')
                                 : ($current_lang == 'KO' ? 'DB 비밀번호를 변경하려면 이전 비밀번호와 새 비밀번호를 입력하세요.' : 'Enter the current and new passwords to change the database password.') ?></p>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 <?= $usesDefaultDbPassword ? '' : 'md:grid-cols-2' ?> gap-4">
+                                <?php if (!$usesDefaultDbPassword): ?>
                                 <div>
-                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이전 DB 패스워드' : 'Current DB Password' ?><?= $usesDefaultDbPassword ? ' (' . ($current_lang == 'KO' ? '선택' : 'optional') . ')' : '' ?></label>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이전 DB 패스워드' : 'Current DB Password' ?></label>
                                     <input type="password" name="db_pass_old" autocomplete="current-password" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '이전 패스워드 입력' : 'Enter current password' ?>">
                                 </div>
+                                <?php endif; ?>
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '변경할 패스워드' : 'New DB Password' ?></label>
                                     <input type="password" name="db_pass_new" autocomplete="new-password" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '변경할 패스워드 입력' : 'Enter new password' ?>">

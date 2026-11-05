@@ -23,6 +23,7 @@ import aiomysql
 import aiohttp
 
 from .db import get_pool, load_system_settings
+from .process import communicate_with_timeout
 
 log = logging.getLogger("webmon.asset")
 
@@ -107,8 +108,9 @@ async def _check_ssl(host: str) -> str | None:
             cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
+            start_new_session=True,
         )
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10)
+        stdout, _ = await communicate_with_timeout(proc, timeout=10)
         output = stdout.decode("utf-8", errors="replace").strip()
         if output.startswith("notAfter="):
             raw_date = output.split("=", 1)[1].strip()
@@ -128,8 +130,9 @@ async def _check_whois(domain: str) -> str | None:
             "timeout", "10", WHOIS_BIN, domain,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
+            start_new_session=True,
         )
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=15)
+        stdout, _ = await communicate_with_timeout(proc, timeout=15)
         output = stdout.decode("utf-8", errors="replace")
         return parse_whois_expiry(output)
     except Exception as e:
