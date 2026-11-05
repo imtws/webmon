@@ -1614,3 +1614,17 @@ function updateBatchFlipLabel() {
     btn.classList.toggle('!text-white', allFlipped);
     btn.classList.toggle('hidden', items.length === 0);
 }
+
+function clearSelection() {
+    document.querySelectorAll('.item-checkbox:checked').forEach(cb => { cb.checked = false; });
+    const all = document.getElementById('selectAll');
+    if (all) all.checked = false;
+    updateBatchActionBar();
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (document.querySelector('.item-checkbox:checked')) clearSelection();
+});
