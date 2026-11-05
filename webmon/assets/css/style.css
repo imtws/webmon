@@ -1534,3 +1534,11 @@ body.is-scrolling .cmd-tooltip {
 }
 .monitor-item.is-flipping { will-change: transform; transition: none; backface-visibility: hidden; }
 .monitor-item.is-flipping * { pointer-events: none; }
+
+/* 모니터링 추가/수정 시트: 가독성을 위한 글꼴 확대 */
+#modalForm label { font-size: 13px !important; }
+#modalForm input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+#modalForm select,
+#modalForm textarea { font-size: 15px !important; }
+#modalForm input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]),
+#modalForm select { min-height: 42px; }
