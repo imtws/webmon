@@ -1542,3 +1542,15 @@ body.is-scrolling .cmd-tooltip {
 #modalForm textarea { font-size: 15px !important; }
 #modalForm input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]),
 #modalForm select { min-height: 42px; }
+
+/* 작업 이력 / CSV 가져오기 / 일괄 설정 시트: 작은 글꼴 단계별 확대 */
+:is(#historyModal, #csvImportModal, #bulkModal) .text-\[8px\],
+:is(#historyModal, #csvImportModal, #bulkModal) .text-\[9px\] { font-size: 11px !important; }
+:is(#historyModal, #csvImportModal, #bulkModal) .text-\[10px\] { font-size: 12px !important; }
+:is(#historyModal, #csvImportModal, #bulkModal) .text-\[11px\],
+:is(#historyModal, #csvImportModal, #bulkModal) .text-xs { font-size: 13px !important; }
+:is(#historyModal, #csvImportModal, #bulkModal) .text-\[13px\],
+:is(#historyModal, #csvImportModal, #bulkModal) .text-sm { font-size: 15px !important; }
+:is(#csvImportModal, #bulkModal) input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+:is(#csvImportModal, #bulkModal) select,
+:is(#csvImportModal, #bulkModal) textarea { font-size: 15px !important; }
