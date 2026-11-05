@@ -1609,7 +1609,8 @@ function updateBatchFlipLabel() {
     if (!btn) return;
     const items = selectedCardItems();
     const allFlipped = items.length > 0 && items.every(i => i.classList.contains('is-flipped'));
-    const label = btn.querySelector('span');
-    if (label) label.textContent = allFlipped ? btn.dataset.labelClose : btn.dataset.labelOpen;
+    btn.title = allFlipped ? btn.dataset.labelClose : btn.dataset.labelOpen;
+    btn.classList.toggle('bg-[#18aee7]', allFlipped);
+    btn.classList.toggle('!text-white', allFlipped);
     btn.classList.toggle('hidden', items.length === 0);
 }
