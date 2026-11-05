@@ -1516,3 +1516,5 @@ body.is-scrolling .cmd-tooltip {
 }
 .flip-detail-btn:hover { background: #159bd0; }
 @media (prefers-reduced-motion: reduce) { .monitor-item { transition: none; } }
+.monitor-item.is-flipped > .monitor-status-edge { z-index: 3; }
+.monitor-item.is-flipped > .monitor-card-back { padding-left: 22px; }

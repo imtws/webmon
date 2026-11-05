@@ -1460,11 +1460,11 @@ function flipCard(no) {
         if (opening) loadFlipChart(no);
     };
     if (reduce || !item.animate) { swap(); return; }
-    const half = 160;
-    const out = item.animate([{ transform: 'perspective(900px) rotateY(0deg)' }, { transform: 'perspective(900px) rotateY(90deg)' }], { duration: half, easing: 'ease-in' });
+    const half = 140;
+    const out = item.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0.02)' }], { duration: half, easing: 'ease-in' });
     out.onfinish = () => {
         swap();
-        item.animate([{ transform: 'perspective(900px) rotateY(-90deg)' }, { transform: 'perspective(900px) rotateY(0deg)' }], { duration: half, easing: 'ease-out' });
+        item.animate([{ transform: 'scaleX(0.02)' }, { transform: 'scaleX(1)' }], { duration: half, easing: 'ease-out' });
     };
 }
 
@@ -1523,7 +1523,7 @@ function drawFlipChart(item, data, range) {
     set('rate', (((samples - fails) / samples) * 100).toFixed(1) + '%');
     set('fail', String(fails));
 
-    const rect = canvas.getBoundingClientRect();
+    const rect = { width: canvas.clientWidth, height: canvas.clientHeight };
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.max(1, Math.round(rect.width * dpr));
     canvas.height = Math.max(1, Math.round(rect.height * dpr));
@@ -1569,4 +1569,20 @@ function drawFlipChart(item, data, range) {
 
 function refreshFlippedCharts() {
     document.querySelectorAll('.monitor-item.is-flipped').forEach(item => loadFlipChart(Number(item.dataset.monitorId), true));
+}
+
+// 레이아웃(열 수, 창 크기) 변경 시 뒷면 그래프를 선명하게 다시 그림
+if (window.ResizeObserver) {
+    const flipRO = new ResizeObserver(entries => {
+        entries.forEach(en => {
+            const item = en.target;
+            if (!item.classList.contains('is-flipped')) return;
+            const no = Number(item.dataset.monitorId);
+            const c = flipChartCache.get(`${no}:${flipChartState.get(no) || '1h'}`);
+            if (c) drawFlipChart(item, c.data, flipChartState.get(no) || '1h');
+        });
+    });
+    const observeFlips = () => document.querySelectorAll('.monitor-item:has(.monitor-card-back)').forEach(i => flipRO.observe(i));
+    document.addEventListener('DOMContentLoaded', observeFlips);
+    new MutationObserver(observeFlips).observe(document.body, { childList: true, subtree: true });
 }
