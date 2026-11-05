@@ -1455,6 +1455,7 @@ function flipCard(no, force) {
     const opening = typeof force === 'boolean' ? force : !item.classList.contains('is-flipped');
     if (opening === item.classList.contains('is-flipped')) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (opening) fetchFlipData(no, flipChartState.get(no) || '1h').catch(() => {});
     const swap = () => {
         item.classList.toggle('is-flipped', opening);
         updateBatchFlipLabel();
@@ -1463,11 +1464,13 @@ function flipCard(no, force) {
         if (opening) loadFlipChart(no);
     };
     if (reduce || !item.animate) { swap(); return; }
-    const half = 140;
-    const out = item.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0.02)' }], { duration: half, easing: 'ease-in' });
+    const half = 90;
+    item.classList.add('is-flipping');
+    const out = item.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0.04)' }], { duration: half, easing: 'cubic-bezier(.4,0,1,1)' });
     out.onfinish = () => {
         swap();
-        item.animate([{ transform: 'scaleX(0.02)' }, { transform: 'scaleX(1)' }], { duration: half, easing: 'ease-out' });
+        const back = item.animate([{ transform: 'scaleX(0.04)' }, { transform: 'scaleX(1)' }], { duration: half, easing: 'cubic-bezier(0,0,.2,1)' });
+        back.onfinish = () => item.classList.remove('is-flipping');
     };
 }
 
@@ -1479,24 +1482,31 @@ function setFlipRange(no, range) {
     loadFlipChart(no);
 }
 
+const flipInflight = new Map();
+
+function fetchFlipData(no, range, force = false) {
+    const key = `${no}:${range}`;
+    const cached = flipChartCache.get(key);
+    if (cached && !force && Date.now() - cached.at < FLIP_CACHE_MS) return Promise.resolve(cached.data);
+    if (flipInflight.has(key)) return flipInflight.get(key);
+    const p = fetch(`get_chart_data.php?no=${no}&range=${range}&max=${range === '1h' ? 60 : 96}`, { cache: 'no-store' })
+        .then(res => { if (!res.ok) throw new Error(res.status); return res.json(); })
+        .then(data => { flipChartCache.set(key, { at: Date.now(), data }); return data; })
+        .finally(() => flipInflight.delete(key));
+    flipInflight.set(key, p);
+    return p;
+}
+
 async function loadFlipChart(no, force = false) {
     const item = document.querySelector(`.monitor-item[data-monitor-id="${no}"]`);
     if (!item) return;
     const range = flipChartState.get(no) || '1h';
     const msg = item.querySelector('.flip-chart-msg');
-    const key = `${no}:${range}`;
-    const cached = flipChartCache.get(key);
-    if (cached && !force && Date.now() - cached.at < FLIP_CACHE_MS) {
-        drawFlipChart(item, cached.data, range);
-        return;
-    }
+    const cached = flipChartCache.get(`${no}:${range}`);
     if (msg && !cached) msg.textContent = document.documentElement.lang === 'ko' ? '불러오는 중...' : 'Loading...';
     try {
-        const res = await fetch(`get_chart_data.php?no=${no}&range=${range}&max=${range === '1h' ? 60 : 96}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(res.status);
-        const data = await res.json();
-        flipChartCache.set(key, { at: Date.now(), data });
-        if (flipChartState.get(no) === range || !flipChartState.has(no)) drawFlipChart(item, data, range);
+        const data = await fetchFlipData(no, range, force);
+        if ((flipChartState.get(no) || '1h') === range && item.classList.contains('is-flipped')) drawFlipChart(item, data, range);
     } catch (e) {
         if (msg) msg.textContent = document.documentElement.lang === 'ko' ? '그래프를 불러오지 못했습니다.' : 'Failed to load graph.';
     }
@@ -1589,8 +1599,13 @@ if (window.ResizeObserver) {
         });
     });
     const observeFlips = () => document.querySelectorAll('.monitor-item:has(.monitor-card-back)').forEach(i => flipRO.observe(i));
-    document.addEventListener('DOMContentLoaded', observeFlips);
-    new MutationObserver(observeFlips).observe(document.body, { childList: true, subtree: true });
+    const startFlipObserver = () => {
+        observeFlips();
+        const flipHost = document.getElementById('mainForm');
+        if (flipHost) new MutationObserver(observeFlips).observe(flipHost, { childList: true });
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startFlipObserver);
+    else startFlipObserver();
 }
 
 // 선택한 카드를 한 번에 뒤집기: 하나라도 앞면이면 모두 그래프로, 모두 뒷면이면 모두 카드로

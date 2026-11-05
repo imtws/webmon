@@ -1532,3 +1532,5 @@ body.is-scrolling .cmd-tooltip {
     display: none; position: absolute; z-index: 4; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
     background: #18aee7; border: 2px solid var(--card-bg); pointer-events: none;
 }
+.monitor-item.is-flipping { will-change: transform; transition: none; backface-visibility: hidden; }
+.monitor-item.is-flipping * { pointer-events: none; }
