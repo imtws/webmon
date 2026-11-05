@@ -1176,6 +1176,7 @@ function updateBatchActionBar() {
 
     const count = checked.length;
     countSpan.innerText = count;
+    updateBatchFlipLabel();
 
     if (count > 0) {
         bar.classList.remove('hidden');
@@ -1448,13 +1449,15 @@ const flipChartCache = new Map();
 const flipChartState = new Map();
 const FLIP_CACHE_MS = 30000;
 
-function flipCard(no) {
+function flipCard(no, force) {
     const item = document.querySelector(`.monitor-item[data-monitor-id="${no}"]`);
     if (!item) return;
-    const opening = !item.classList.contains('is-flipped');
+    const opening = typeof force === 'boolean' ? force : !item.classList.contains('is-flipped');
+    if (opening === item.classList.contains('is-flipped')) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const swap = () => {
         item.classList.toggle('is-flipped', opening);
+        updateBatchFlipLabel();
         const back = item.querySelector('.monitor-card-back');
         if (back) back.setAttribute('aria-hidden', String(!opening));
         if (opening) loadFlipChart(no);
@@ -1585,4 +1588,28 @@ if (window.ResizeObserver) {
     const observeFlips = () => document.querySelectorAll('.monitor-item:has(.monitor-card-back)').forEach(i => flipRO.observe(i));
     document.addEventListener('DOMContentLoaded', observeFlips);
     new MutationObserver(observeFlips).observe(document.body, { childList: true, subtree: true });
+}
+
+// 선택한 카드를 한 번에 뒤집기: 하나라도 앞면이면 모두 그래프로, 모두 뒷면이면 모두 카드로
+function selectedCardItems() {
+    return [...document.querySelectorAll('.item-checkbox:checked')]
+        .map(cb => cb.closest('.monitor-item'))
+        .filter(item => item && item.querySelector('.monitor-card-back') && item.querySelector('.monitor-card-body') && item.offsetParent !== null);
+}
+
+function flipSelectedCards() {
+    const items = selectedCardItems();
+    if (!items.length) return;
+    const opening = items.some(i => !i.classList.contains('is-flipped'));
+    items.forEach((item, idx) => setTimeout(() => flipCard(Number(item.dataset.monitorId), opening), Math.min(idx, 12) * 40));
+}
+
+function updateBatchFlipLabel() {
+    const btn = document.getElementById('batchFlipBtn');
+    if (!btn) return;
+    const items = selectedCardItems();
+    const allFlipped = items.length > 0 && items.every(i => i.classList.contains('is-flipped'));
+    const label = btn.querySelector('span');
+    if (label) label.textContent = allFlipped ? btn.dataset.labelClose : btn.dataset.labelOpen;
+    btn.classList.toggle('hidden', items.length === 0);
 }

@@ -168,6 +168,9 @@ if (($current_view ?? 'card') === 'log') {
                             <button type="button" onclick="openBulkModal()" class="unified-ui px-4 bg-[#18aee7]/10 dark:bg-[#18aee7]/15 hover:bg-[#18aee7]/20 dark:hover:bg-[#18aee7]/25 text-[#18aee7] font-bold transition-colors border-none rounded-xl">
                                 <i class="fas fa-sliders-h mr-1.5 text-[10px]"></i><?= $current_lang == 'KO' ? '선택 일괄 설정' : 'Bulk Edit Selected' ?>
                             </button>
+                            <button type="button" id="batchFlipBtn" onclick="flipSelectedCards()" class="unified-ui px-4 bg-[#18aee7]/10 dark:bg-[#18aee7]/15 hover:bg-[#18aee7]/20 dark:hover:bg-[#18aee7]/25 text-[#18aee7] font-bold transition-colors border-none rounded-xl" data-label-open="<?= $current_lang == 'KO' ? '선택 그래프 보기' : 'Show Graphs' ?>" data-label-close="<?= $current_lang == 'KO' ? '선택 카드로 돌아가기' : 'Back to Cards' ?>">
+                                <i class="fas fa-chart-line mr-1.5 text-[10px]"></i><span><?= $current_lang == 'KO' ? '선택 그래프 보기' : 'Show Graphs' ?></span>
+                            </button>
                             <!-- 선택 삭제: iOS Destructive Tinted Style -->
                             <button type="button" onclick="confirmBulkDeleteSubmit()" class="unified-ui px-4 bg-red-500/10 dark:bg-red-500/20 hover:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 font-bold transition-colors border-none rounded-xl"><?= $t['btn_del'] ?></button>
                             <div class="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></div>
