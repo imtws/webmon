@@ -1518,3 +1518,5 @@ body.is-scrolling .cmd-tooltip {
 @media (prefers-reduced-motion: reduce) { .monitor-item { transition: none; } }
 .monitor-item.is-flipped > .monitor-status-edge { z-index: 3; }
 .monitor-item.is-flipped > .monitor-card-back { padding-left: 22px; }
+.monitor-item.is-flipped .monitor-card-header .item-checkbox { visibility: visible; position: relative; z-index: 4; }
+.monitor-item.is-flipped .monitor-card-back-head { padding-left: 26px; }
