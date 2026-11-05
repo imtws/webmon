@@ -1655,9 +1655,17 @@ function bindFlipHover(canvas) {
         const px = g.padL + (n === 1 ? g.pw / 2 : (idx / (n - 1)) * g.pw);
         const py = g.padT + g.ph - (d.response_time / g.top) * g.ph;
         const ko = document.documentElement.lang === 'ko';
-        const failed = d.result === 0 || (d.failure_count || 0) > 0;
-        tip.innerHTML = `<b>${(d.time || '').slice(5, 16).replace('-', '/')}</b><br>${d.response_time.toFixed(2)}s` +
-            (failed ? ` <span style="color:#f87171">${ko ? '실패' : 'Failed'}${d.failure_count > 1 ? ' ' + d.failure_count : ''}</span>` : '');
+        const fmt = t => {
+            const p = new Date(String(t).replace(' ', 'T'));
+            return Number.isNaN(p.getTime()) ? t : p.toLocaleString();
+        };
+        const cnt = d.sample_count || 1;
+        const start = fmt(d.period_start || d.time), end = fmt(d.period_end || d.time);
+        const title = cnt === 1 ? start : (ko ? `${start} ~ ${end} (${cnt}회 평균)` : `${start} – ${end} (avg. of ${cnt} checks)`);
+        const status = d.result > 0 ? (ko ? '정상' : 'Success') : (ko ? '장애 포함' : 'Failure detected');
+        let html = `<b>${title}</b><br>${ko ? '평균 응답시간' : 'Avg response time'}: ${Number(d.response_time).toFixed(3)}s<br>${ko ? '결과' : 'Result'}: ${status}`;
+        if (cnt > 1) html += `<br>${ko ? `장애 ${d.failure_count}회 / 전체 ${cnt}회` : `${d.failure_count} failures / ${cnt} checks`}`;
+        tip.innerHTML = html;
         tip.style.display = 'block';
         dot.style.display = 'block';
         dot.style.left = px + 'px';
