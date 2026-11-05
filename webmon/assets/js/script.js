@@ -1077,7 +1077,9 @@ async function refreshDashboard() {
                     item = freshItem;
                 } else {
                     existingById.delete(freshItem.dataset.monitorId);
-                    if (existing.outerHTML !== freshItem.outerHTML) {
+                    if (existing.classList.contains('is-flipped')) {
+                        item = existing;
+                    } else if (existing.outerHTML !== freshItem.outerHTML) {
                         existing.replaceWith(freshItem);
                         item = freshItem;
                     }
@@ -1095,6 +1097,7 @@ async function refreshDashboard() {
             if (currentValue && refreshedValue) currentValue.textContent = refreshedValue.textContent;
         });
         updateBatchActionBar();
+        refreshFlippedCharts();
     } catch (error) {
         console.error('Failed to refresh dashboard:', error);
     }
@@ -1438,4 +1441,132 @@ async function diagnoseItem(no, button) {
             if (spinner) spinner.classList.remove('fa-spin');
         }, 1000);
     }
+}
+
+// 카드 뒷면 응답 그래프 (Chart.js 없이 canvas 직접 렌더링, 열 때만 로드)
+const flipChartCache = new Map();
+const flipChartState = new Map();
+const FLIP_CACHE_MS = 30000;
+
+function flipCard(no) {
+    const item = document.querySelector(`.monitor-item[data-monitor-id="${no}"]`);
+    if (!item) return;
+    const opening = !item.classList.contains('is-flipped');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const swap = () => {
+        item.classList.toggle('is-flipped', opening);
+        const back = item.querySelector('.monitor-card-back');
+        if (back) back.setAttribute('aria-hidden', String(!opening));
+        if (opening) loadFlipChart(no);
+    };
+    if (reduce || !item.animate) { swap(); return; }
+    const half = 160;
+    const out = item.animate([{ transform: 'perspective(900px) rotateY(0deg)' }, { transform: 'perspective(900px) rotateY(90deg)' }], { duration: half, easing: 'ease-in' });
+    out.onfinish = () => {
+        swap();
+        item.animate([{ transform: 'perspective(900px) rotateY(-90deg)' }, { transform: 'perspective(900px) rotateY(0deg)' }], { duration: half, easing: 'ease-out' });
+    };
+}
+
+function setFlipRange(no, range) {
+    const item = document.querySelector(`.monitor-item[data-monitor-id="${no}"]`);
+    if (!item) return;
+    item.querySelectorAll('.flip-range-btn').forEach(b => b.classList.toggle('is-active', b.dataset.range === range));
+    flipChartState.set(no, range);
+    loadFlipChart(no);
+}
+
+async function loadFlipChart(no, force = false) {
+    const item = document.querySelector(`.monitor-item[data-monitor-id="${no}"]`);
+    if (!item) return;
+    const range = flipChartState.get(no) || '1h';
+    const msg = item.querySelector('.flip-chart-msg');
+    const key = `${no}:${range}`;
+    const cached = flipChartCache.get(key);
+    if (cached && !force && Date.now() - cached.at < FLIP_CACHE_MS) {
+        drawFlipChart(item, cached.data, range);
+        return;
+    }
+    if (msg && !cached) msg.textContent = document.documentElement.lang === 'ko' ? '불러오는 중...' : 'Loading...';
+    try {
+        const res = await fetch(`get_chart_data.php?no=${no}&range=${range}&max=${range === '1h' ? 60 : 96}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        flipChartCache.set(key, { at: Date.now(), data });
+        if (flipChartState.get(no) === range || !flipChartState.has(no)) drawFlipChart(item, data, range);
+    } catch (e) {
+        if (msg) msg.textContent = document.documentElement.lang === 'ko' ? '그래프를 불러오지 못했습니다.' : 'Failed to load graph.';
+    }
+}
+
+function drawFlipChart(item, data, range) {
+    const canvas = item.querySelector('.flip-chart');
+    const msg = item.querySelector('.flip-chart-msg');
+    if (!canvas || !Array.isArray(data)) return;
+    const isKo = document.documentElement.lang === 'ko';
+    const set = (k, v) => { const el = item.querySelector(`[data-stat="${k}"]`); if (el) el.textContent = v; };
+    if (!data.length) {
+        if (msg) msg.textContent = isKo ? '표시할 기록이 없습니다.' : 'No records.';
+        ['avg', 'max', 'rate', 'fail'].forEach(k => set(k, '-'));
+        const c = canvas.getContext('2d'); c.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+    if (msg) msg.textContent = '';
+
+    let samples = 0, fails = 0, sum = 0, max = 0;
+    data.forEach(d => {
+        const n = d.sample_count || 1;
+        samples += n; fails += d.failure_count || 0; sum += d.response_time * n; if (d.response_time > max) max = d.response_time;
+    });
+    set('avg', (sum / samples).toFixed(2) + 's');
+    set('max', max.toFixed(2) + 's');
+    set('rate', (((samples - fails) / samples) * 100).toFixed(1) + '%');
+    set('fail', String(fails));
+
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = rect.width, H = rect.height;
+    const css = getComputedStyle(document.documentElement);
+    const sub = css.getPropertyValue('--text-sub').trim() || '#64748b';
+    const border = css.getPropertyValue('--border-color').trim() || '#e2e8f0';
+    const padL = 30, padR = 6, padT = 6, padB = 16;
+    const pw = W - padL - padR, ph = H - padT - padB;
+    const top = Math.max(max * 1.15, 0.1);
+    const x = i => padL + (data.length === 1 ? pw / 2 : (i / (data.length - 1)) * pw);
+    const y = v => padT + ph - (v / top) * ph;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = '10px sans-serif'; ctx.fillStyle = sub; ctx.strokeStyle = border; ctx.lineWidth = 1;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    [0, 0.5, 1].forEach(t => {
+        const v = top * t, yy = y(v);
+        ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(W - padR, yy); ctx.stroke();
+        ctx.fillText(v.toFixed(v >= 10 ? 0 : 1), padL - 4, yy);
+    });
+    const fmt = s => (s || '').slice(range === '1h' ? 11 : 11, 16);
+    ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillText(fmt(data[0].time), padL, H - padB + 3);
+    ctx.textAlign = 'right'; ctx.fillText(fmt(data[data.length - 1].time), W - padR, H - padB + 3);
+
+    const grad = ctx.createLinearGradient(0, padT, 0, padT + ph);
+    grad.addColorStop(0, 'rgba(24,174,231,0.28)'); grad.addColorStop(1, 'rgba(24,174,231,0)');
+    ctx.beginPath();
+    data.forEach((d, i) => i ? ctx.lineTo(x(i), y(d.response_time)) : ctx.moveTo(x(i), y(d.response_time)));
+    ctx.strokeStyle = '#18aee7'; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.lineTo(x(data.length - 1), padT + ph); ctx.lineTo(x(0), padT + ph); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+
+    data.forEach((d, i) => {
+        if (d.result === 0) {
+            ctx.beginPath(); ctx.arc(x(i), y(d.response_time), 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#ef4444'; ctx.fill();
+        }
+    });
+}
+
+function refreshFlippedCharts() {
+    document.querySelectorAll('.monitor-item.is-flipped').forEach(item => loadFlipChart(Number(item.dataset.monitorId), true));
 }

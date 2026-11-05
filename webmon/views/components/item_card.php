@@ -5,6 +5,7 @@
             <h2 class="truncate text-[17px] font-bold text-[var(--text-main)]"><?= htmlspecialchars($row['company']) ?></h2>
             <span class="group-badge clickable" onclick='filterByGroup(<?= json_encode($row['group_name'] ?: '기본 그룹', JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP) ?>)'><?= htmlspecialchars($row['group_name'] ?: '기본 그룹') ?></span>
         </div>
+        <button type="button" class="card-flip-btn" onclick="flipCard(<?=$row['no']?>)" title="<?= $current_lang == 'KO' ? '최근 응답 그래프 보기' : 'Show recent response graph' ?>" aria-label="<?= $current_lang == 'KO' ? '최근 응답 그래프 보기' : 'Show recent response graph' ?>"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
         <details class="monitor-actions">
             <summary aria-label="<?= $current_lang == 'KO' ? '항목 작업' : 'Monitor actions' ?>" title="<?= $current_lang == 'KO' ? '항목 작업' : 'Monitor actions' ?>"><i class="fas fa-ellipsis"></i></summary>
             <div class="monitor-actions-menu">
@@ -22,7 +23,7 @@
             }
             ?>
             <button type="button" class="monitor-action <?= $bell_color ?>" title="<?= $bell_title ?>" onclick='openScheduleModal(event, <?= json_encode($row) ?>)'><i class="fas fa-bell"></i><span><?= $current_lang == 'KO' ? '알람 일시 무음' : 'Mute schedule' ?></span></button>
-            <button type="button" class="monitor-action" title="<?= $current_lang == 'KO' ? '응답 추이 그래프 보기' : 'View response trend' ?>" onclick="toggleViewMode('list', <?=$row['no']?>)"><i class="fas fa-chart-line"></i><span><?= $current_lang == 'KO' ? '응답 추이' : 'Response trend' ?></span></button>
+            <button type="button" class="monitor-action" title="<?= $current_lang == 'KO' ? '리스트 뷰에서 상세 그래프 조회' : 'Open detailed graph in list view' ?>" onclick="toggleViewMode('list', <?=$row['no']?>)"><i class="fas fa-chart-area"></i><span><?= $current_lang == 'KO' ? '상세 그래프 조회' : 'Detailed graph' ?></span></button>
             <button type="button" class="monitor-action diagnose-btn" title="<?= $current_lang == 'KO' ? '즉시 재진단 및 만료 정보 갱신' : 'Diagnose and sync expiry' ?>" onclick="diagnoseItem(<?=$row['no']?>, this)"><i class="fas fa-sync-alt"></i><span><?= $current_lang == 'KO' ? '지금 재진단' : 'Run check now' ?></span></button>
             <button type="button" class="monitor-action" onclick='openModal("edit", <?= json_encode($row) ?>)'><i class="fas fa-pen"></i><span><?= $current_lang == 'KO' ? '설정 수정' : 'Edit settings' ?></span></button>
             <button type="button" class="monitor-action is-danger" onclick="confirmDelete(<?= json_encode($row['company'], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP) ?>, <?=$row['no']?>)"><i class="fas fa-trash"></i><span><?= $current_lang == 'KO' ? '삭제' : 'Delete' ?></span></button>
@@ -125,4 +126,28 @@
             </span>
         </div>
     </div>
+</div>
+<div class="monitor-card-back" aria-hidden="true">
+    <div class="monitor-card-back-head">
+        <div class="min-w-0 flex-1">
+            <h2 class="truncate text-[15px] font-bold text-[var(--text-main)]"><?= htmlspecialchars($row['company']) ?></h2>
+            <p class="text-[11px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '응답 시간 추이' : 'Response time trend' ?></p>
+        </div>
+        <div class="flip-range" role="group">
+            <button type="button" class="flip-range-btn is-active" data-range="1h" onclick="setFlipRange(<?=$row['no']?>, '1h')"><?= $current_lang == 'KO' ? '1시간' : '1H' ?></button>
+            <button type="button" class="flip-range-btn" data-range="1d" onclick="setFlipRange(<?=$row['no']?>, '1d')"><?= $current_lang == 'KO' ? '24시간' : '24H' ?></button>
+        </div>
+        <button type="button" class="card-flip-btn is-active" onclick="flipCard(<?=$row['no']?>)" title="<?= $current_lang == 'KO' ? '카드로 돌아가기' : 'Back to card' ?>" aria-label="<?= $current_lang == 'KO' ? '카드로 돌아가기' : 'Back to card' ?>"><i class="fas fa-rotate-left" aria-hidden="true"></i></button>
+    </div>
+    <div class="flip-chart-wrap">
+        <canvas class="flip-chart" data-no="<?=$row['no']?>"></canvas>
+        <div class="flip-chart-msg"><?= $current_lang == 'KO' ? '불러오는 중...' : 'Loading...' ?></div>
+    </div>
+    <div class="flip-stats">
+        <div><span><?= $current_lang == 'KO' ? '평균' : 'Avg' ?></span><b data-stat="avg">-</b></div>
+        <div><span><?= $current_lang == 'KO' ? '최대' : 'Max' ?></span><b data-stat="max">-</b></div>
+        <div><span><?= $current_lang == 'KO' ? '성공률' : 'Success' ?></span><b data-stat="rate">-</b></div>
+        <div><span><?= $current_lang == 'KO' ? '실패' : 'Failures' ?></span><b data-stat="fail">-</b></div>
+    </div>
+    <button type="button" class="flip-detail-btn" onclick="toggleViewMode('list', <?=$row['no']?>)"><i class="fas fa-chart-area"></i> <?= $current_lang == 'KO' ? '상세 그래프 조회' : 'Detailed graph' ?></button>
 </div>

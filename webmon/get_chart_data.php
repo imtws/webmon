@@ -53,7 +53,9 @@ if (!empty($start) && !empty($end)) {
 
 if (!$stmt) {
     $interval = '1 DAY';
-    if ($range === '7d') {
+    if ($range === '1h') {
+        $interval = '1 HOUR';
+    } elseif ($range === '7d') {
         $interval = '7 DAY';
     } elseif ($range === '30d') {
         $interval = '30 DAY';
@@ -88,7 +90,7 @@ $stmt->close();
 
 // 📈 로그 다운샘플링 (최대 300포인트로 압축하여 차트 버벅임 및 메모리 낭비 예방)
 $total_count = count($data);
-$max_points = 300;
+$max_points = isset($_GET['max']) ? max(20, min(300, (int)$_GET['max'])) : 300;
 
 if ($total_count > $max_points) {
     $downsampled = [];

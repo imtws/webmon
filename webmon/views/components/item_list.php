@@ -90,7 +90,7 @@
 <div id="accordion-<?=$row['no']?>" class="hidden w-full px-8 pb-5 pt-3 border-t border-[var(--border-color)] bg-slate-50/50 dark:bg-slate-800/20 flex-col gap-4 <?= $current_view == 'card' ? '!hidden' : '' ?>">
     <div class="flex justify-between items-center">
         <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-[var(--text-sub)] dark:text-slate-300"><i class="fas fa-chart-line"></i> <?= $current_lang == 'KO' ? '응답 속도 추이:' : 'Response Time Trend:' ?></span>
+            <span class="text-xs font-bold text-[var(--text-sub)] dark:text-slate-300"><i class="fas fa-chart-line"></i> <?= $current_lang == 'KO' ? '상세 응답 그래프:' : 'Detailed Response Graph:' ?></span>
             <div class="inline-flex rounded-md shadow-sm" role="group">
                 <button type="button" onclick="loadChart(<?=$row['no']?>, '1d')" class="px-3 py-1 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-l-md hover:bg-gray-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:hover:bg-slate-600">1D</button>
                 <button type="button" onclick="loadChart(<?=$row['no']?>, '7d')" class="px-3 py-1 text-xs font-bold text-gray-700 bg-white border-t border-b border-gray-200 hover:bg-gray-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:hover:bg-slate-600">7D</button>
