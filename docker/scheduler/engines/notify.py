@@ -11,6 +11,7 @@ import smtplib
 import asyncio
 from email.mime.text import MIMEText
 from email.header import Header
+from email.utils import formatdate, make_msgid
 import aiohttp
 
 from .db import load_system_settings
@@ -69,6 +70,23 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
         log.warning("이메일 알림 수신 이메일(alert_email)이 입력되지 않음")
         return False
 
+    postfix_sender = settings.get("smtp_user", "").strip()
+    use_global_relay = email_mode == "postfix" and settings.get("smtp_mode", "direct") == "relay"
+    if use_global_relay:
+        email_mode = "smtp"
+        smtp_host = settings.get("smtp_host", "").strip()
+        try:
+            smtp_port = int(settings.get("smtp_port", "587"))
+        except (TypeError, ValueError):
+            log.error("Global SMTP relay has an invalid port")
+            return False
+        smtp_user = settings.get("smtp_user", "").strip()
+        smtp_pass = settings.get("smtp_pass", "")
+        smtp_secure = settings.get("smtp_secure", "tls").strip() or "tls"
+        if not smtp_host:
+            log.error("Global SMTP relay is enabled but SMTP_HOST is empty")
+            return False
+
     # SMTP 모드 분기 (postfix vs smtp)
     if email_mode == "postfix":
         smtp_host = "mail"
@@ -113,6 +131,8 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
         sender = sender_email.strip()
     elif settings.get("global_sender_email", "").strip():
         sender = settings["global_sender_email"].strip()
+    elif email_mode == "postfix" and "@" in postfix_sender:
+        sender = postfix_sender
     elif smtp_user and "@" in smtp_user:
         sender = smtp_user
 
@@ -121,6 +141,8 @@ def _send_email_sync(subject: str, body: str, settings: dict, sender_email: str 
     msg["Subject"] = Header(subject, "utf-8")
     msg["From"] = sender
     msg["To"] = alert_email
+    msg["Date"] = formatdate(localtime=True)
+    msg["Message-ID"] = make_msgid(domain=sender.rsplit("@", 1)[-1] or "localhost")
 
     try:
         if smtp_secure == "ssl":

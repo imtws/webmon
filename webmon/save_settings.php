@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tg_chat_id = trim($_POST['tg_chat_id'] ?? '');
 
     $email_enabled = isset($_POST['email_enabled']) ? '1' : '0';
-    $smtp_mode = trim($_POST['smtp_mode'] ?? 'direct');
+    $smtp_mode = isset($_POST['smtp_relay_enabled']) ? 'relay' : 'direct';
     $smtp_host = trim($_POST['smtp_host'] ?? 'mail');
     $smtp_port = trim($_POST['smtp_port'] ?? '25');
     $smtp_user = trim($_POST['smtp_user'] ?? '');
@@ -123,9 +123,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($log_rotate_mb < 1) $log_rotate_mb = 50;
 
     $alert_format = trim($_POST['alert_format'] ?? 'plain');
+    $email_subject = trim(str_replace(["\r", "\n"], ' ', (string)($_POST['email_subject'] ?? '')));
+    if ($email_subject === '') $email_subject = '[WebSiteMonitor] 웹사이트 모니터링 알람 발생 {YYYY-MM-DD}';
+    $report_enabled = isset($_POST['report_enabled']) ? '1' : '0';
+    $report_days = array_values(array_unique(array_filter(
+        array_map('intval', (array)($_POST['report_weekdays'] ?? [])),
+        fn($d) => $d >= 0 && $d <= 6
+    )));
+    sort($report_days);
+    if (!$report_days) $report_days = [1];
+    $report_time = trim((string)($_POST['report_time'] ?? '09:00'));
+    if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $report_time)) $report_time = '09:00';
+    $report_within_days = min(365, max(1, (int)($_POST['report_within_days'] ?? 30)));
+    $report_receiver_email = trim((string)($_POST['report_receiver_email'] ?? ''));
+    if ($report_receiver_email !== '' && !filter_var($report_receiver_email, FILTER_VALIDATE_EMAIL)) $report_receiver_email = '';
     $email_template_html = $_POST['email_template_html'] ?? '';
     $email_template_plain = $_POST['email_template_plain'] ?? '';
-    $tg_template_html = $_POST['tg_template_html'] ?? '';
+    $tg_template_plain = $_POST['tg_template_plain'] ?? '';
 
     // Keep credentials outside the database and source tree.
     require_once __DIR__ . '/classes/Utils.php';
@@ -165,9 +179,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'log_max_lines' => (string)$log_max_lines,
         'log_rotate_mb' => (string)$log_rotate_mb,
         'alert_format' => $alert_format,
+        'email_subject' => $email_subject,
+        'report_enabled' => $report_enabled,
+        'report_weekdays' => implode(',', $report_days),
+        'report_time' => $report_time,
+        'report_within_days' => (string)$report_within_days,
+        'report_receiver_email' => $report_receiver_email,
         'email_template_html' => $email_template_html,
         'email_template_plain' => $email_template_plain,
-        'tg_template_html' => $tg_template_html
+        'tg_template_plain' => $tg_template_plain
     ];
 
     foreach ($updates as $k => $v) {

@@ -12,9 +12,11 @@ PHP alert_engine.php 의 Python asyncio 변환본.
 """
 
 import asyncio
+import html
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import re
 import time
 from datetime import datetime
 
@@ -32,6 +34,125 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) WebMon/2.1"
 
 # 동시 실행 상한 (sysctl fs.pipe 등 고려)
 CONCURRENCY = int(os.environ.get("ALERT_CONCURRENCY", 60))
+
+LEGACY_TELEGRAM_TEMPLATE = """🚨 [WebMon] 웹사이트 장애 발생 알림
+
+📌 대상 업체: {company}
+🔗 대상 URL: {url}
+❌ 감지 실패 키워드: {keyword}
+⏱️ 발생 시간: {time}
+⚙️ 실행 엔진: {engine} ({response_time}s)
+
+💡 권장 처리 내용:
+{comment}
+
+🖥️ 대시보드: {web_url}"""
+
+DEFAULT_EMAIL_SUBJECT = "[WebSiteMonitor] 웹사이트 모니터링 알람 발생 {YYYY-MM-DD}"
+
+DEFAULT_TELEGRAM_TEMPLATE = """[WebSiteMonitor 알람발생]
+
+시간 : {time}
+
+-------------------------- 감지 내용 --------------------------
+{detections}
+-------------------------- 권 장 처 리 -------------------------
+{recommendations}
+--------------------------------------------------------------
+
+웹사이트 모니터링 URL : {web_url}"""
+
+
+def _group_email_items(failed_items: list[dict]) -> dict:
+    """Group failed items by identical delivery settings so each recipient gets one email."""
+    groups: dict = {}
+    for item in failed_items:
+        row = item["row"]
+        key = (
+            row.get("email_mode", "none") or "none",
+            row.get("sender_email", "") or "",
+            row.get("receiver_email", "") or "",
+            row.get("smtp_host", "") or "",
+            row.get("smtp_port", 25),
+            row.get("smtp_user", "") or "",
+            row.get("smtp_pass", "") or "",
+            row.get("smtp_secure", "none") or "none",
+        )
+        groups.setdefault(key, []).append(item)
+    return groups
+
+
+def _normalize_comment(text: str) -> str:
+    """Turn literal backslash-n sequences into real line breaks and drop blank lines."""
+    text = re.sub(r"\\+n", "\n", text.replace("\r\n", "\n"))
+    return "\n".join(line.strip() for line in text.split("\n") if line.strip())
+
+
+def render_telegram_alert_message(
+    failed_items: list[dict], template: str, now: str, web_url: str, escape: bool = False
+) -> str:
+    """Render one message with shared header/footer and per-item details."""
+    esc = (lambda v: html.escape(v, quote=True)) if escape else (lambda v: v)
+    detections = []
+    recommendations = []
+    companies = []
+    urls = []
+    keywords = []
+    comments = []
+    engines = []
+    response_times = []
+
+    for no, item in enumerate(failed_items, 1):
+        row = item["row"]
+        company = esc(str(row.get("company", "")))
+        url = esc(str(row.get("url", "")))
+        keyword = esc(str(row.get("contents", "")))
+        comment = _normalize_comment(str(row.get("comment", "") or "")) or "별도 권장 처리 내용 없음"
+        comment = esc(comment)
+        reason = esc(item.get("reason") or "")
+
+        if reason:
+            if "도메인 만료" in reason:
+                keyword = f"도메인 만료 ({reason})"
+                comment = esc("도메인 만료가 감지되었습니다. 도메인 등록 대행업체를 통해 도메인 만료 연장을 진행해 주시기 바랍니다.")
+            else:
+                keyword = f"{keyword} ({reason})"
+
+        detections.append(
+            f"| {no}. {company} 업체의 {url} 사이트내에 [{keyword}] 컨텐츠 감지 불가!!"
+        )
+        indent = "<br>\n|    " if escape else "\n|    "
+        recommendations.append(f"| {no}. {comment.replace(chr(10), indent)}")
+        if company and company not in companies:
+            companies.append(company)
+        if url and url not in urls:
+            urls.append(url)
+        keywords.append(f"{company}: {keyword}" if company else keyword)
+        comments.append(comment)
+        engine = str(row.get("engine_type") or "lynx").upper()
+        if engine not in engines:
+            engines.append(engine)
+        response_times.append(f"{float(item['elapsed']):.3f}s")
+
+    sep = "<br>\n" if escape else "\n"
+    replacements = {
+        "{detections}": sep.join(detections),
+        "{recommendations}": sep.join(recommendations),
+        "{company}": ", ".join(companies),
+        "{url}": sep.join(urls),
+        "{keyword}": sep.join(keywords),
+        "{comment}": sep.join(comments),
+        "{time}": esc(now),
+        "{YYYY-MM-DD}": esc(now[:10]),
+        "{engine}": ", ".join(engines),
+        "{response_time}": sep.join(response_times),
+        "{web_url}": esc(web_url),
+    }
+    return re.sub(
+        r"\{[A-Za-z_-]+\}",
+        lambda match: replacements.get(match.group(0), match.group(0)),
+        template,
+    )
 
 
 # ── 무음 스케줄 판별 ──────────────────────────────────────────────────
@@ -366,69 +487,24 @@ async def run_alert():
                 log.info("[alert] 🚨 장애가 감지되었으나, 무음 시간대 설정이 적용되어 알림을 건너뜁니다.")
                 return
 
-            now = datetime.now().strftime("%Y-%m-%d | %I:%M:%S%p")
+            now = datetime.now().strftime("%Y-%m-%d | %I:%M:%S%p").lower()
             web_url = settings.get("webmon_url", WEBMON_URL)
             alert_format = settings.get("alert_format", "plain")
 
-            # 1. 텔레그램 발송 (언제나 plain으로 모든 장애 항목 통합 발송)
-            telegram_lines = []
-            telegram_actions = []
-            for item in failed_items:
-                row = item["row"]
-                reason = item.get("reason") or f"[{row['contents']}] 컨텐츠 감지 불가"
-                telegram_lines.append(
-                    f"| {row['company']} 업체의 {row['url']} 사이트내에 {reason}!!"
-                )
-                
-                comment = row.get('comment') or '별도 권장 처리 내용 없음'
-                if "도메인 만료" in reason:
-                    comment = "도메인 만료가 감지되었습니다. 도메인 등록 대행업체를 통해 도메인 만료 연장을 진행해 주시기 바랍니다."
-                telegram_actions.append(
-                    f"| {comment}"
-                )
-
-            tg_msg = "\n".join([
-                "🚨 [WebSiteMonitor 알람발생]",
-                "",
-                f"시간 : {now}",
-                "",
-                "-------------------------- 감지 내용 --------------------------",
-                "\n".join(telegram_lines),
-                "-------------------------- 권 장 처 리 -------------------------",
-                "\n".join(telegram_actions),
-                "--------------------------------------------------------------",
-                "",
-                f"🔗 웹사이트 모니터링 : {web_url}",
-            ])
-            await send_telegram(tg_msg, settings)
-
-            def render_template(template: str, row: dict, elapsed: float, reason: str = None) -> str:
-                keyword_display = str(row.get("contents", ""))
-                comment_display = str(row.get("comment", "") or "별도 권장 처리 내용 없음")
-                
-                if reason:
-                    if "도메인 만료" in reason:
-                        keyword_display = f"도메인 만료 ({reason})"
-                        comment_display = "도메인 만료가 감지되었습니다. 도메인 등록 대행업체를 통해 도메인 만료 연장을 진행해 주시기 바랍니다."
-                    else:
-                        keyword_display = f"{keyword_display} ({reason})"
-                
-                replacements = {
-                    "{company}": str(row.get("company", "")),
-                    "{url}": str(row.get("url", "")),
-                    "{keyword}": keyword_display,
-                    "{comment}": comment_display,
-                    "{time}": str(now),
-                    "{engine}": str(row.get("engine_type") or "lynx").upper(),
-                    "{response_time}": f"{elapsed:.3f}",
-                    "{web_url}": str(web_url)
-                }
-                rendered = template
-                for key, val in replacements.items():
-                    rendered = rendered.replace(key, val)
-                return rendered
+            # Telegram messages are plain text and aggregate this check cycle.
+            tg_template = settings.get("tg_template_plain") or DEFAULT_TELEGRAM_TEMPLATE
+            if tg_template == LEGACY_TELEGRAM_TEMPLATE:
+                tg_template = DEFAULT_TELEGRAM_TEMPLATE
+            telegram_message = render_telegram_alert_message(
+                failed_items, tg_template, now, web_url
+            )
+            telegram_sent = await send_telegram(telegram_message, settings)
+            if settings.get("tg_enabled", "0") == "1" and not telegram_sent:
+                log.error("[alert] Telegram notification delivery failed")
 
             # 2. 이메일 발송 (HTML vs Plain)
+            email_attempted = 0
+            email_sent = 0
             if alert_format == "html":
                 default_email_tpl = """<!DOCTYPE html>
 <html>
@@ -438,7 +514,7 @@ async def run_alert():
 <body style="font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background-color: #f8fafc; color: #1e293b; padding: 20px; margin: 0; -webkit-text-size-adjust: none; -ms-text-size-adjust: none;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
         <div style="background-color: #f8fafc; color: #18aee7; padding: 24px; text-align: center; border-bottom: 1px solid #e2e8f0;">
-            <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #18aee7;">🚨 [WebMon] 웹사이트 장애 발생 알림</h1>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #18aee7;">[WebMon] 웹사이트 장애 발생 알림</h1>
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; background-color: #ffffff;">
@@ -469,7 +545,7 @@ async def run_alert():
             </table>
             
             <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-                <h4 style="margin: 0 0 6px 0; color: #b45309; font-size: 13px; font-weight: 800;">💡 권장 처리 가이드</h4>
+                <h4 style="margin: 0 0 6px 0; color: #b45309; font-size: 13px; font-weight: 800;">권장 처리 가이드</h4>
                 <p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.5;">{comment}</p>
             </div>
         </div>
@@ -481,84 +557,59 @@ async def run_alert():
 </html>"""
                 email_tpl = settings.get("email_template_html") or default_email_tpl
 
-                for item in failed_items:
-                    row = item["row"]
-                    elapsed = item["elapsed"]
-                    reason = item.get("reason")
-                    email_body = render_template(email_tpl, row, elapsed, reason)
-                    
-                    custom_sender = row.get("sender_email", "") or ""
-                    custom_receiver = row.get("receiver_email", "") or ""
-                    custom_email_mode = row.get("email_mode", "none") or "none"
-
-                    indiv_host = row.get("smtp_host", "") or ""
-                    indiv_port = row.get("smtp_port", 25)
-                    indiv_user = row.get("smtp_user", "") or ""
-                    indiv_pass = row.get("smtp_pass", "") or ""
-                    indiv_secure = row.get("smtp_secure", "none") or "none"
-
-                    await send_email(
-                        subject=f"🚨 [WebSiteMonitor] 장애 발생 알림 ({row['company']})",
-                        body=email_body,
-                        settings=settings,
-                        sender_email=custom_sender,
-                        receiver_email=custom_receiver,
-                        email_mode=custom_email_mode,
-                        smtp_host=indiv_host,
-                        smtp_port=indiv_port,
-                        smtp_user=indiv_user,
-                        smtp_pass=indiv_pass,
-                        smtp_secure=indiv_secure,
-                        alert_format="html"
-                    )
             else:
                 default_plain_tpl = "\n".join([
-                    "🚨 [WebSiteMonitor 알람발생]",
+                    "[WebSiteMonitor 알람발생]",
                     "",
                     "시간 : {time}",
                     "",
                     "-------------------------- 감지 내용 --------------------------",
-                    "| {company} 업체의 {url} 사이트내에 [{keyword}] 컨텐츠 감지 불가!!",
+                    "{detections}",
                     "-------------------------- 권 장 처 리 -------------------------",
-                    "| {comment}",
+                    "{recommendations}",
                     "--------------------------------------------------------------",
                     "",
-                    "🔗 웹사이트 모니터링 : {web_url}",
+                    "웹사이트 모니터링 : {web_url}",
                 ])
                 email_tpl = settings.get("email_template_plain") or default_plain_tpl
 
-                for item in failed_items:
-                    row = item["row"]
-                    elapsed = item["elapsed"]
-                    reason = item.get("reason")
-                    email_body = render_template(email_tpl, row, elapsed, reason)
+            email_groups = _group_email_items(failed_items)
+            for group_key, group_items in email_groups.items():
+                (custom_email_mode, custom_sender, custom_receiver,
+                 indiv_host, indiv_port, indiv_user, indiv_pass, indiv_secure) = group_key
+                email_body = render_telegram_alert_message(
+                    group_items, email_tpl, now, web_url, escape=(alert_format == "html")
+                )
+                email_subject = (
+                    settings.get("email_subject") or DEFAULT_EMAIL_SUBJECT
+                ).replace("{YYYY-MM-DD}", now[:10]).replace("{time}", now).replace("\r", " ").replace("\n", " ").strip()
+                email_ok = await send_email(
+                    subject=email_subject,
+                    body=email_body,
+                    settings=settings,
+                    sender_email=custom_sender,
+                    receiver_email=custom_receiver,
+                    email_mode=custom_email_mode,
+                    smtp_host=indiv_host,
+                    smtp_port=indiv_port,
+                    smtp_user=indiv_user,
+                    smtp_pass=indiv_pass,
+                    smtp_secure=indiv_secure,
+                    alert_format="html" if alert_format == "html" else "plain",
+                )
+                if custom_email_mode != "none" and settings.get("email_enabled", "0") == "1":
+                    email_attempted += 1
+                    email_sent += int(email_ok)
 
-                    custom_sender = row.get("sender_email", "") or ""
-                    custom_receiver = row.get("receiver_email", "") or ""
-                    custom_email_mode = row.get("email_mode", "none") or "none"
-
-                    indiv_host = row.get("smtp_host", "") or ""
-                    indiv_port = row.get("smtp_port", 25)
-                    indiv_user = row.get("smtp_user", "") or ""
-                    indiv_pass = row.get("smtp_pass", "") or ""
-                    indiv_secure = row.get("smtp_secure", "none") or "none"
-
-                    await send_email(
-                        subject=f"🚨 [WebSiteMonitor] 장애 발생 알림 ({row['company']})",
-                        body=email_body,
-                        settings=settings,
-                        sender_email=custom_sender,
-                        receiver_email=custom_receiver,
-                        email_mode=custom_email_mode,
-                        smtp_host=indiv_host,
-                        smtp_port=indiv_port,
-                        smtp_user=indiv_user,
-                        smtp_pass=indiv_pass,
-                        smtp_secure=indiv_secure,
-                        alert_format="plain"
-                    )
-
-            log.info(f"[alert] ✅ {len(failed_items)}건 알람 발송 완료 (Telegram/Email 개별발송)")
+            email_failed = email_attempted - email_sent
+            if email_failed:
+                log.error("[alert] Email delivery failed for %s of %s attempted notifications", email_failed, email_attempted)
+            log.info(
+                "[alert] Alert processing complete (Telegram: %s, Email: %s/%s sent)",
+                "sent" if telegram_sent else ("failed" if settings.get("tg_enabled", "0") == "1" else "disabled"),
+                email_sent,
+                email_attempted
+            )
         else:
             log.info("[alert] ✅ 이상 없음")
 

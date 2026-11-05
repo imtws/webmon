@@ -31,11 +31,14 @@
     </div>
     
     <div class="monitor-card-url">
-        <p class="truncate text-[12px] font-medium text-[#18aee7]">
+        <p class="monitor-card-url-link truncate text-[12px] font-medium text-[#18aee7]">
             <a href="<?= htmlspecialchars($row['url']) ?>" target="_blank" class="hover:underline flex items-center gap-1">
                 <i class="fas fa-link text-[10px] opacity-70"></i><?= htmlspecialchars($row['url']) ?>
             </a>
         </p>
+        <button type="button" class="url-copy-button" onclick="copyUrl(this)" data-url="<?= htmlspecialchars($row['url'], ENT_QUOTES, 'UTF-8') ?>" title="<?= $current_lang == 'KO' ? 'URL 복사' : 'Copy URL' ?>" aria-label="<?= $current_lang == 'KO' ? 'URL 복사' : 'Copy URL' ?>">
+            <i class="far fa-copy" aria-hidden="true"></i>
+        </button>
     </div>
 
     <?php
@@ -85,17 +88,17 @@
     <!-- 하단 상태 및 상세 설정 메타 배지 영역 (iOS Pills Layout) -->
     <div class="monitor-card-footer">
         <!-- 알람 상태 및 검사 결과 -->
-        <div class="flex items-center justify-between text-xs">
+        <div class="monitor-card-status-row">
             <div class="flex items-center gap-1.5">
                 <span class="text-slate-500 dark:text-slate-300 font-bold text-[10px] uppercase"><?= $t['h_alarm'] ?></span>
                 <span class="<?= $status_badge ?>"><?= $check_text ?></span>
             </div>
-            <div class="flex items-center gap-1.5">
+            <div class="monitor-card-result">
                 <span class="text-slate-500 dark:text-slate-300 font-bold text-[10px] uppercase"><?= $t['h_result'] ?></span>
-                <div class="monitor-card-result flex flex-col items-end">
+                <div class="monitor-card-result-value">
                     <span class="<?= $result_badge ?>"<?php if (!$is_disabled && $row['value'] == 0 && !empty($row['error_msg'])): ?> title="<?= htmlspecialchars($row['error_msg'], ENT_QUOTES, 'UTF-8') ?>"<?php endif; ?>><?= $is_disabled ? '-' : $result_text ?></span>
                     <?php if (!$is_disabled && $row['value'] == 0 && !empty($row['error_msg'])): ?>
-                        <span class="text-[9px] text-red-500 font-bold mt-0.5 max-w-[120px] truncate" title="<?= htmlspecialchars($row['error_msg']) ?>">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
+                        <span class="monitor-card-error" title="<?= htmlspecialchars($row['error_msg']) ?>">(<?= htmlspecialchars($row['error_msg']) ?>)</span>
                     <?php endif; ?>
                 </div>
             </div>

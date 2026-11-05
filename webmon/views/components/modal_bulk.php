@@ -31,7 +31,7 @@
                                 <option value="_NEW_"><?= $t['group_add_new'] ?></option>
                             </select>
                         </div>
-                        <input type="text" name="group_name_new" id="bulkGroupNew" class="hidden mt-2 w-full p-2.5 border-l-4 border-l-[#18aee7] border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] disabled:opacity-40" placeholder="새 그룹명 입력" disabled>
+                        <input type="text" name="group_name_new" id="bulkGroupNew" class="hidden mt-2 w-full p-2.5 border-l-4 border-l-[#18aee7] border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)] disabled:opacity-40" placeholder="<?= $current_lang == 'KO' ? '새 그룹명 입력' : 'Enter a new group name' ?>" disabled>
                     </div>
                 </div>
 
@@ -124,7 +124,7 @@
                             <div class="filter-control flex w-full items-center">
                                 <select name="email_mode" id="bulkEmailMode" onchange="toggleBulkSmtpVisibility()" disabled>
                                     <option value="none"><?= $current_lang == 'KO' ? '미발송 (사용 안 함)' : 'Disabled' ?></option>
-                                    <option value="postfix"><?= $current_lang == 'KO' ? '로컬 Postfix 직접 발송' : 'Direct Postfix' ?></option>
+                                    <option value="postfix"><?= $current_lang == 'KO' ? '수신 서버로 직접 발송' : 'Direct delivery' ?></option>
                                     <option value="smtp"><?= $current_lang == 'KO' ? '외부 SMTP 릴레이 발송 (기본설정 릴레이)' : 'SMTP Relay (System SMTP)' ?></option>
                                 </select>
                             </div>

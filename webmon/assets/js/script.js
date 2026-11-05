@@ -212,6 +212,10 @@ document.addEventListener('click', event => {
     }
 });
 
+document.addEventListener('change', event => {
+    if (event.target.matches('.item-checkbox')) updateBatchActionBar();
+});
+
 function filterByGroup(groupName) {
     const groupSelect = document.getElementById('searchGroup');
     if (groupSelect) groupSelect.value = groupName;
@@ -432,16 +436,13 @@ function openModal(type, data = null) {
         if (document.getElementById('modalDom')) document.getElementById('modalDom').value = data.dom_mon;
 
         // 엔진 및 횟수, 타임아웃
+        if (document.getElementById('modalEngine')) document.getElementById('modalEngine').value = data.engine_type || 'lynx';
         if (document.getElementById('modalRetry')) document.getElementById('modalRetry').value = data.retry_count || '1';
         if (document.getElementById('modalTimeout')) document.getElementById('modalTimeout').value = data.timeout_sec || '2';
-        
-        const engine = data.engine_type || 'lynx';
-        const engineRadio = document.querySelector('input[name="engine_type"][value="' + engine + '"]');
-        if (engineRadio) engineRadio.checked = true;
 
         if (document.getElementById('modalGroupSelect')) {
             const select = document.getElementById('modalGroupSelect');
-            const groupName = data.group_name || '기본 그룹';
+            const groupName = data.group_name || (document.documentElement.lang === 'ko' ? '기본 그룹' : 'Default Group');
             let optionExists = false;
             for (let i = 0; i < select.options.length; i++) {
                 if (select.options[i].value === groupName) optionExists = true;
@@ -470,6 +471,7 @@ function openModal(type, data = null) {
         if (document.getElementById('modalEmailMode')) document.getElementById('modalEmailMode').value = defaults.emailMode;
         if (document.getElementById('modalSenderEmail')) document.getElementById('modalSenderEmail').value = defaults.senderEmail;
         if (document.getElementById('modalReceiverEmail')) document.getElementById('modalReceiverEmail').value = defaults.receiverEmail;
+        if (document.getElementById('modalEngine')) document.getElementById('modalEngine').value = defaults.engineType;
         if (document.getElementById('modalRetry')) document.getElementById('modalRetry').value = defaults.retryCount;
         if (document.getElementById('modalTimeout')) document.getElementById('modalTimeout').value = defaults.timeoutSec;
         
@@ -484,10 +486,6 @@ function openModal(type, data = null) {
         if (document.getElementById('modalSsl')) document.getElementById('modalSsl').value = defaults.sslMon;
         if (document.getElementById('modalDom')) document.getElementById('modalDom').value = defaults.domMon;
         
-        const engine = defaults.engineType || 'lynx';
-        const engineRadio = document.querySelector('input[name="engine_type"][value="' + engine + '"]');
-        if (engineRadio) engineRadio.checked = true;
-
         if (document.getElementById('modalGroupSelect')) {
             document.getElementById('modalGroupSelect').selectedIndex = 0;
             toggleGroupNewInput();
@@ -877,6 +875,18 @@ function toggleViewMode(mode, expandNo = null) {
     window.location.href = url.href;
 }
 
+function toggleCardDensity() {
+    const cookies = document.cookie.split('; ').reduce((values, entry) => {
+        const [name, ...parts] = entry.split('=');
+        values[name] = parts.join('=');
+        return values;
+    }, {});
+    const nextColumns = cookies.webmon_card_columns === '2' ? '3' : '2';
+    setCookie('webmon_card_columns', nextColumns, 365);
+    setCookie('webmon_view', 'card', 365);
+    window.location.reload();
+}
+
 function toggleTheme(theme) {
     setCookie('webmon_theme', theme, 365);
     location.reload();
@@ -999,7 +1009,7 @@ function toggleAutoRefresh(enabled) {
         sessionStorage.setItem('webmon_auto_refresh', 'true');
         startAutoRefresh();
     } else {
-        sessionStorage.removeItem('webmon_auto_refresh');
+        sessionStorage.setItem('webmon_auto_refresh', 'false');
         stopAutoRefresh();
     }
 }
@@ -1007,12 +1017,12 @@ function toggleAutoRefresh(enabled) {
 function startAutoRefresh() {
     stopAutoRefresh();
     autoRefreshTimer = setInterval(() => {
+        if (document.hidden) return;
         const searchInput = document.getElementById('searchCompany');
         if (searchInput && document.activeElement === searchInput) {
             return;
         }
-        
-        // 사용자가 로그 목록을 호버하고 있거나 활성화된 툴팁이 존재하는 경우 새로고침 스킵
+
         const logWrapper = document.querySelector('.view-list.flex.flex-col.gap-3');
         if (logWrapper) {
             const isHovered = logWrapper.matches(':hover');
@@ -1022,10 +1032,72 @@ function startAutoRefresh() {
             if (isHovered || hasVisibleTooltip) {
                 return;
             }
+            refreshLogs();
+        } else {
+            refreshDashboard();
         }
-        
-        refreshLogs();
-    }, 10000); // 10 seconds interval
+    }, document.querySelector('.view-list.flex.flex-col.gap-3') ? 10000 : 30000);
+}
+
+function dashboardRefreshIsSafe() {
+    const mainForm = document.getElementById('mainForm');
+    if (!mainForm || mainForm.querySelector('.item-checkbox:checked')) return false;
+    if (mainForm.matches(':hover') || document.querySelector('.monitor-actions[open]')) return false;
+    if ([...mainForm.querySelectorAll('[id^="accordion-"]')].some(panel => !panel.classList.contains('hidden'))) return false;
+    if ([...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].some(dialog => dialog.getClientRects().length > 0)) return false;
+
+    const activeElement = document.activeElement;
+    return !activeElement || activeElement === document.body ||
+        !activeElement.matches('input:not([type="checkbox"]), textarea, select');
+}
+
+async function refreshDashboard() {
+    const currentForm = document.getElementById('mainForm');
+    if (!currentForm || !dashboardRefreshIsSafe()) return;
+
+    try {
+        const response = await fetch(window.location.href, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Dashboard refresh failed with HTTP ${response.status}`);
+        const html = await response.text();
+        const refreshedDocument = new DOMParser().parseFromString(html, 'text/html');
+        const refreshedForm = refreshedDocument.getElementById('mainForm');
+        if (!refreshedForm || !dashboardRefreshIsSafe()) return;
+
+        const currentItems = Array.from(currentForm.children);
+        const refreshedItems = Array.from(refreshedForm.children);
+        const currentItemsAreKeyed = currentItems.every(item => item.dataset.monitorId);
+        const refreshedItemsAreKeyed = refreshedItems.every(item => item.dataset.monitorId);
+
+        if (currentItemsAreKeyed && refreshedItemsAreKeyed) {
+            const existingById = new Map(currentItems.map(item => [item.dataset.monitorId, item]));
+            refreshedItems.forEach((freshItem, index) => {
+                const existing = existingById.get(freshItem.dataset.monitorId);
+                let item = existing;
+                if (!existing) {
+                    item = freshItem;
+                } else {
+                    existingById.delete(freshItem.dataset.monitorId);
+                    if (existing.outerHTML !== freshItem.outerHTML) {
+                        existing.replaceWith(freshItem);
+                        item = freshItem;
+                    }
+                }
+                const position = currentForm.children[index] || null;
+                if (position !== item) currentForm.insertBefore(item, position);
+            });
+            existingById.forEach(item => item.remove());
+        } else {
+            currentForm.innerHTML = refreshedForm.innerHTML;
+        }
+        ['statTotal', 'statSuccess', 'statFail', 'statExpiring', 'lastRunValue', 'nextRunValue'].forEach(id => {
+            const currentValue = document.getElementById(id);
+            const refreshedValue = refreshedDocument.getElementById(id);
+            if (currentValue && refreshedValue) currentValue.textContent = refreshedValue.textContent;
+        });
+        updateBatchActionBar();
+    } catch (error) {
+        console.error('Failed to refresh dashboard:', error);
+    }
 }
 
 async function refreshLogs(force = false) {
@@ -1138,17 +1210,13 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     const autoRefreshToggle = document.getElementById('autoRefreshToggle');
     if (autoRefreshToggle) {
-        const saved = sessionStorage.getItem('webmon_auto_refresh') === 'true';
+        const saved = sessionStorage.getItem('webmon_auto_refresh') !== 'false';
         autoRefreshToggle.checked = saved;
         if (saved) {
             startAutoRefresh();
         }
     }
     
-    // 개별 체크박스 리스너 등록
-    document.querySelectorAll('.item-checkbox').forEach(cb => {
-        cb.addEventListener('change', updateBatchActionBar);
-    });
     updateBatchActionBar();
     
     // URL에 open_history=1 파라미터가 감지되면 작업 이력 모달 자동 팝업
@@ -1176,9 +1244,20 @@ window.addEventListener('scroll', () => {
 function copyCmd(button) {
     const cmd = button.getAttribute('data-cmd');
     if (!cmd) return;
-    
+
+    copyTextToClipboard(cmd, button);
+}
+
+function copyUrl(button) {
+    const url = button.getAttribute('data-url');
+    if (!url) return;
+
+    copyTextToClipboard(url, button);
+}
+
+function copyTextToClipboard(text, button) {
     const onSuccess = () => {
-        const icon = button.querySelector('i');
+        const icon = button ? button.querySelector('i') : null;
         if (icon) {
             const originalClass = icon.className;
             icon.className = 'fas fa-check text-green-500 text-[10px]';
@@ -1187,22 +1266,31 @@ function copyCmd(button) {
             }, 1000);
         }
         
-        const isKo = document.documentElement.lang === 'ko';
-        const msg = isKo ? '클립보드에 복사되었습니다.' : 'Copied to clipboard!';
-        showToast(msg);
+        showToast(document.documentElement.lang === 'ko' ? '클립보드에 복사되었습니다.' : 'Copied to clipboard!');
     };
 
-    // HTTPS 보안 컨텍스트 환경 대응
+    const onFailure = error => {
+        console.error('Clipboard copy failed:', error);
+        showToast(document.documentElement.lang === 'ko' ? '복사에 실패했습니다.' : 'Copy failed.', 'error');
+    };
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(cmd)
+        navigator.clipboard.writeText(text)
             .then(onSuccess)
-            .catch(err => {
-                console.warn('Modern clipboard API failed, trying fallback...', err);
-                fallbackCopy(cmd, onSuccess);
+            .catch(error => {
+                console.warn('Modern clipboard API failed, trying fallback...', error);
+                try {
+                    if (!fallbackCopy(text, onSuccess)) throw new Error('Clipboard fallback was unavailable');
+                } catch (fallbackError) {
+                    onFailure(fallbackError);
+                }
             });
     } else {
-        // 일반 HTTP 및 사설 IP 접속 환경을 위한 폴백 복사 대응
-        fallbackCopy(cmd, onSuccess);
+        try {
+            if (!fallbackCopy(text, onSuccess)) throw new Error('Clipboard fallback was unavailable');
+        } catch (error) {
+            onFailure(error);
+        }
     }
 }
 
@@ -1229,13 +1317,15 @@ function fallbackCopy(text, callback) {
         if (successful) {
             callback();
         } else {
-            console.error('Fallback copy failed');
+            throw new Error('Fallback copy command was rejected');
         }
     } catch (err) {
-        console.error('Fallback copy error:', err);
+        document.body.removeChild(textArea);
+        throw err;
     }
     
     document.body.removeChild(textArea);
+    return true;
 }
 
 function showToast(message, type = 'success') {
@@ -1270,13 +1360,59 @@ function showToast(message, type = 'success') {
     }, 3200);
 }
 
+async function testNotification(channel, button) {
+    const form = document.querySelector('#settingsModal form');
+    const status = document.getElementById(`${channel}TestStatus`);
+    if (!form || !status || button.disabled) return;
+
+    const formData = new FormData(form);
+    const recipientInput = document.getElementById('emailTestRecipient');
+    const senderInput = document.getElementById('globalSenderEmail');
+    const data = {
+        channel,
+        tg_token: formData.get('tg_token'),
+        tg_chat_id: formData.get('tg_chat_id'),
+        recipient: recipientInput ? recipientInput.value : '',
+        sender: senderInput ? senderInput.value : ''
+    };
+
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = document.documentElement.lang === 'ko' ? '테스트 중…' : 'Testing…';
+    status.textContent = '';
+    status.classList.remove('text-emerald-600', 'text-amber-600', 'text-red-500');
+
+    try {
+        const response = await fetch('test_notification.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || `HTTP ${response.status}`);
+        }
+        status.textContent = result.message;
+        status.classList.add(result.delivery_status === 'queued' ? 'text-amber-600' : 'text-emerald-600');
+    } catch (error) {
+        status.textContent = error.message || (document.documentElement.lang === 'ko' ? '테스트 발송에 실패했습니다.' : 'Test delivery failed.');
+        status.classList.add('text-red-500');
+    } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+    }
+}
+
 /**
  * 개별 아이템 즉시 재진단 및 만료일 동기화
  */
 async function diagnoseItem(no, button) {
-    if (button.classList.contains('fa-spin')) return;
-    
-    button.classList.add('fa-spin');
+    const spinner = button.matches('i') ? button : button.querySelector('i');
+    if (spinner && spinner.classList.contains('fa-spin')) return;
+    if (spinner) spinner.classList.add('fa-spin');
     
     try {
         const response = await fetch(`website_status.php?action=diagnose&no=${no}`);
@@ -1299,7 +1435,7 @@ async function diagnoseItem(no, button) {
         showToast('진단 요청 실패: ' + err.message, 'error');
     } finally {
         setTimeout(() => {
-            button.classList.remove('fa-spin');
+            if (spinner) spinner.classList.remove('fa-spin');
         }, 1000);
     }
 }

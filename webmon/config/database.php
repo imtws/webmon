@@ -120,7 +120,7 @@ if ($key_check && $key_check->num_rows == 0) {
     $db->query("INSERT INTO `system_settings` (`key_name`, `key_value`) VALUES ('smtp_mode', 'direct')");
 }
 
-// 자동 마이그레이션: system_settings 테이블에 alert_format, email_template_html, tg_template_html 추가
+// 자동 마이그레이션: system_settings 테이블에 알림 형식과 템플릿 추가
 $key_check_fmt = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'alert_format'");
 if ($key_check_fmt && $key_check_fmt->num_rows == 0) {
     $db->query("INSERT INTO `system_settings` (`key_name`, `key_value`) VALUES ('alert_format', 'plain')");
@@ -195,21 +195,38 @@ if ($needs_update_em) {
     $stmt->close();
 }
 
-$key_check_tg = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'tg_template_html'");
-if ($key_check_tg && $key_check_tg->num_rows == 0) {
-    $default_tg_template = '🚨 <b>[WebMon] 웹사이트 장애 발생 알림</b>
+$key_check_tg = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'tg_template_plain'");
+$legacy_default_tg_template = '🚨 [WebMon] 웹사이트 장애 발생 알림
 
-📌 <b>대상 업체</b>: {company}
-🔗 <b>대상 URL</b>: {url}
-❌ <b>감지 실패 키워드</b>: <code>{keyword}</code>
-⏱️ <b>발생 시간</b>: {time}
-⚙️ <b>실행 엔진</b>: {engine} ({response_time}s)
+📌 대상 업체: {company}
+🔗 대상 URL: {url}
+❌ 감지 실패 키워드: {keyword}
+⏱️ 발생 시간: {time}
+⚙️ 실행 엔진: {engine} ({response_time}s)
 
-💡 <b>권장 처리 내용</b>:
+💡 권장 처리 내용:
 {comment}
 
-🖥️ <a href="{web_url}">대시보드 바로가기</a>';
-    $stmt = $db->prepare("INSERT INTO `system_settings` (`key_name`, `key_value`) VALUES ('tg_template_html', ?)");
+🖥️ 대시보드: {web_url}';
+$default_tg_template = '[WebSiteMonitor 알람발생]
+
+시간 : {time}
+
+-------------------------- 감지 내용 --------------------------
+{detections}
+-------------------------- 권 장 처 리 -------------------------
+{recommendations}
+--------------------------------------------------------------
+
+웹사이트 모니터링 URL : {web_url}';
+if ($key_check_tg && $key_check_tg->num_rows > 0) {
+    $stmt = $db->prepare("UPDATE `system_settings` SET `key_value` = ? WHERE `key_name` = 'tg_template_plain' AND `key_value` = ?");
+    $stmt->bind_param("ss", $default_tg_template, $legacy_default_tg_template);
+    $stmt->execute();
+    $stmt->close();
+}
+if ($key_check_tg && $key_check_tg->num_rows == 0) {
+    $stmt = $db->prepare("INSERT INTO `system_settings` (`key_name`, `key_value`) VALUES ('tg_template_plain', ?)");
     $stmt->bind_param("s", $default_tg_template);
     $stmt->execute();
     $stmt->close();
@@ -217,17 +234,17 @@ if ($key_check_tg && $key_check_tg->num_rows == 0) {
 
 $key_check_pl = $db->query("SELECT 1 FROM `system_settings` WHERE `key_name` = 'email_template_plain'");
 if ($key_check_pl && $key_check_pl->num_rows == 0) {
-    $default_plain_template = "🚨 [WebSiteMonitor 알람발생]
+    $default_plain_template = "[WebSiteMonitor 알람발생]
 
 시간 : {time}
 
 -------------------------- 감지 내용 --------------------------
-| {company} 업체의 {url} 사이트내에 [{keyword}] 컨텐츠 감지 불가!!
+{detections}
 -------------------------- 권 장 처 리 -------------------------
-| {comment}
+{recommendations}
 --------------------------------------------------------------
 
-🔗 웹사이트 모니터링 : {web_url}";
+웹사이트 모니터링 : {web_url}";
     $stmt = $db->prepare("INSERT INTO `system_settings` (`key_name`, `key_value`) VALUES ('email_template_plain', ?)");
     $stmt->bind_param("s", $default_plain_template);
     $stmt->execute();

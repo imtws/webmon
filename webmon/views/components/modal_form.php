@@ -17,7 +17,7 @@
                         <?php foreach($existing_groups as $g): ?><option value="<?=htmlspecialchars($g)?>"><?=htmlspecialchars($g)?></option><?php endforeach; ?>
                         <option value="_NEW_" class="text-[#18aee7] font-bold"><?= $t['group_add_new'] ?></option>
                     </select>
-                    <input type="text" name="group_name_new" id="modalGroupNew" class="hidden mt-2 w-full rounded-lg border border-l-4 border-[var(--border-color)] border-l-[#18aee7] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)]" placeholder="새 그룹명 입력">
+                    <input type="text" name="group_name_new" id="modalGroupNew" class="hidden mt-2 w-full rounded-lg border border-l-4 border-[var(--border-color)] border-l-[#18aee7] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)]" placeholder="<?= $current_lang == 'KO' ? '새 그룹명 입력' : 'Enter a new group name' ?>">
                 </div>
                 <div>
                     <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['h_company'] ?></label>
@@ -39,17 +39,17 @@
                     <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '이메일 발송 방식' : 'Email Mode' ?></label>
                     <select name="email_mode" id="modalEmailMode" onchange="toggleModalSmtpFields()" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]">
                         <option value="none"><?= $current_lang == 'KO' ? '미발송 (사용 안 함)' : 'Disabled' ?></option>
-                        <option value="postfix"><?= $current_lang == 'KO' ? '로컬 Postfix 직접 발송' : 'Direct Postfix' ?></option>
+                        <option value="postfix"><?= $current_lang == 'KO' ? '수신 서버로 직접 발송' : 'Direct delivery' ?></option>
                         <option value="smtp"><?= $current_lang == 'KO' ? '외부 SMTP 릴레이 발송' : 'SMTP Relay' ?></option>
                     </select>
                 </div>
                 <div>
                     <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '발송자 이메일' : 'Sender Email' ?></label>
-                    <input type="email" name="sender_email" id="modalSenderEmail" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="sender@example.com (선택)">
+                    <input type="email" name="sender_email" id="modalSenderEmail" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? 'sender@example.com (선택)' : 'sender@example.com (optional)' ?>">
                 </div>
                 <div>
                     <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '수신자 이메일' : 'Receiver Email' ?></label>
-                    <input type="email" name="receiver_email" id="modalReceiverEmail" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="receiver@example.com (선택)">
+                    <input type="email" name="receiver_email" id="modalReceiverEmail" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? 'receiver@example.com (선택)' : 'receiver@example.com (optional)' ?>">
                 </div>
 
                 <!-- 개별 SMTP 설정 폼 (SMTP 선택 시 동적 노출) -->
@@ -93,13 +93,13 @@
                         </select>
                     </div>
                     <div>
-                        <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]">SSL 만료일</label>
+                        <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? 'SSL 만료일' : 'SSL Expiry' ?></label>
                         <select name="ssl_mon" id="modalSsl" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-2.5 py-2 text-sm text-[var(--text-main)]">
                             <option value="1">ON</option><option value="0">OFF</option>
                         </select>
                     </div>
                     <div>
-                        <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]">도메인 만료일</label>
+                        <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '도메인 만료일' : 'Domain Expiry' ?></label>
                         <select name="dom_mon" id="modalDom" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-2.5 py-2 text-sm text-[var(--text-main)]">
                             <option value="1">ON</option><option value="0">OFF</option>
                         </select> 
@@ -109,16 +109,10 @@
                 <div class="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
                         <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['modal_engine'] ?? 'ENGINE' ?></label>
-                        <div class="flex h-10 rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] p-1">
-                            <label class="flex-1 cursor-pointer h-full">
-                                <input type="radio" name="engine_type" value="lynx" class="hidden peer" checked>
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg text-[var(--text-sub)] hover:text-[var(--text-main)] peer-checked:bg-[#18aee7] peer-checked:text-white transition-all">LYNX</div>
-                            </label>
-                            <label class="flex-1 cursor-pointer h-full">
-                                <input type="radio" name="engine_type" value="curl" class="hidden peer">
-                                <div class="h-full flex items-center justify-center text-xs font-bold rounded-lg text-[var(--text-sub)] hover:text-[var(--text-main)] peer-checked:bg-[#18aee7] peer-checked:text-white transition-all">CURL</div>
-                            </label>
-                        </div>
+                        <select name="engine_type" id="modalEngine" class="w-full h-10 rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] px-3 text-sm text-[var(--text-main)] outline-none focus:border-[#18aee7]">
+                            <option value="lynx">LYNX</option>
+                            <option value="curl">CURL</option>
+                        </select>
                     </div>
                     <div>
                         <label class="mb-1 block text-[11px] font-semibold text-[var(--text-sub)]"><?= $t['modal_retry'] ?? 'RETRY COUNT' ?></label>

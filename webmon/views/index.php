@@ -114,6 +114,11 @@ if (($current_view ?? 'card') === 'log') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $t['logo'] ?></title>
+    <script>
+        if (sessionStorage.getItem('webmon_auto_refresh') !== 'false') {
+            document.documentElement.classList.add('live-refresh-initializing');
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <!-- Flatpickr (Datetime picker) -->
@@ -180,10 +185,21 @@ if (($current_view ?? 'card') === 'log') {
                         
                         <div class="flex items-center gap-2 ml-2">
                             <div class="switch-container">
-                                <div onclick="toggleViewMode('card')" class="switch-btn <?= $current_view == 'card' ? 'active' : '' ?>" title="<?= $current_lang == 'KO' ? '카드 뷰' : 'Card View' ?>"><i class="fas fa-th-large"></i></div>
+                                <div onclick="toggleViewMode('card')" class="switch-btn <?= $current_view == 'card' ? 'active' : '' ?>" title="<?= $current_lang == 'KO' ? '카드 뷰' : 'Card View' ?>"><i class="fas fa-table-cells-large"></i></div>
                                 <div onclick="toggleViewMode('list')" class="switch-btn <?= $current_view == 'list' ? 'active' : '' ?>" title="<?= $current_lang == 'KO' ? '리스트 뷰' : 'List View' ?>"><i class="fas fa-list"></i></div>
                                 <div onclick="toggleViewMode('log')" class="switch-btn <?= $current_view == 'log' ? 'active' : '' ?>" title="<?= $current_lang == 'KO' ? '실시간 로그뷰' : 'Log View' ?>"><i class="fas fa-terminal"></i></div>
                             </div>
+                            <?php if ($current_view === 'card'): ?>
+                            <button type="button" onclick="toggleCardDensity()" class="card-density-toggle" title="<?= $current_lang == 'KO'
+                                ? ($current_card_columns === '3' ? '카드를 더 크게 보기 · 2열로 전환' : '카드를 더 많이 보기 · 3열로 전환')
+                                : ($current_card_columns === '3' ? 'Larger cards · switch to 2 columns' : 'More cards · switch to 3 columns') ?>"
+                                aria-label="<?= $current_lang == 'KO'
+                                    ? ($current_card_columns === '3' ? '카드를 더 크게 보기, 2열로 전환' : '카드를 더 많이 보기, 3열로 전환')
+                                    : ($current_card_columns === '3' ? 'Larger cards, switch to 2 columns' : 'More cards, switch to 3 columns') ?>">
+                                <i class="fas <?= $current_card_columns === '3' ? 'fa-table-cells-large' : 'fa-table-cells' ?>" aria-hidden="true"></i>
+                                <span><?= $current_card_columns === '3' ? '2' : '3' ?><?= $current_lang == 'KO' ? '열' : ' col' ?></span>
+                            </button>
+                            <?php endif; ?>
                             <div class="switch-container">
                                 <div onclick="toggleLang('KO')" class="switch-btn <?= $current_lang == 'KO' ? 'active' : '' ?>">KO</div>
                                 <div onclick="toggleLang('EN')" class="switch-btn <?= $current_lang == 'EN' ? 'active' : '' ?>">EN</div>
@@ -206,51 +222,54 @@ if (($current_view ?? 'card') === 'log') {
                         <div onclick="applyType('total')" class="relative px-3 py-2 rounded-lg flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='total' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
                             <i class="fas fa-th-list text-slate-500 dark:text-slate-400 text-xs"></i>
                             <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">TOTAL</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-900/30 text-[#18aee7]"><?= $stat_total ?></span>
+                            <span id="statTotal" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-900/30 text-[#18aee7]"><?= $stat_total ?></span>
                         </div>
                         <!-- SUCCESS 탭 -->
                         <div onclick="applyType('success')" class="relative px-3 py-2 rounded-lg flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='success' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
                             <i class="fas fa-check-circle text-green-500 text-xs"></i>
                             <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">SUCCESS</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"><?= $stat_success ?></span>
+                            <span id="statSuccess" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"><?= $stat_success ?></span>
                         </div>
                         <!-- FAILURE 탭 -->
                         <div onclick="applyType('failure')" class="relative px-3 py-2 rounded-lg flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='failure' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
                             <i class="fas fa-exclamation-triangle text-red-500 text-xs"></i>
                             <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">FAILURE</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"><?= $stat_fail ?></span>
+                            <span id="statFail" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"><?= $stat_fail ?></span>
                         </div>
                         <!-- EXPIRING 탭 -->
                         <?php if (($current_view ?? 'card') !== 'log'): ?>
                         <div onclick="applyType('expiring')" class="relative px-3 py-2 rounded-lg flex items-center gap-2 cursor-pointer transition-all duration-200 select-none z-10 <?= $type=='expiring' ? 'bg-white dark:bg-slate-900 shadow-sm border border-black/5 dark:border-white/5' : 'hover:bg-slate-200/40 dark:hover:bg-slate-700/20' ?>">
                             <i class="fas fa-hourglass-half text-amber-500 text-xs"></i>
                             <span class="text-[12px] font-black text-slate-700 dark:text-slate-300">EXPIRING</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500"><?= $stat_expiring ?></span>
+                            <span id="statExpiring" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500"><?= $stat_expiring ?></span>
                         </div>
                         <?php endif; ?>
                     </div>
                     <!-- 실행 정보 -->
                     <div class="text-[10px] font-medium text-right text-[var(--text-sub)] mb-1 dashboard-run-info">
-                        <div><i class="fas fa-microchip"></i> <?= $t['last_run'] ?>: <?= $last_run ?></div>
-                        <div><i class="far fa-clock"></i> <?= $t['next_run'] ?>: <?= $next_run ?></div>
+                        <div><i class="fas fa-microchip"></i> <?= $t['last_run'] ?>: <span id="lastRunValue"><?= $last_run ?></span></div>
+                        <div><i class="far fa-clock"></i> <?= $t['next_run'] ?>: <span id="nextRunValue"><?= $next_run ?></span></div>
                     </div>
                 </div>
 
-                <div class="filter-toolbar bg-slate-100/40 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700 rounded-xl p-2 flex flex-wrap items-center gap-2.5">
-                    <?php if (isset($_GET['filter_no']) && (int)$_GET['filter_no'] > 0): ?>
-                    <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-[#18aee7] border border-blue-100 dark:border-blue-800 rounded-xl text-xs font-bold whitespace-nowrap shadow-sm">
-                        <span><i class="fas fa-info-circle mr-1"></i><?= $current_lang == 'KO' ? '개별 항목 보기 중' : 'Single Item View' ?></span>
-                        <a href="website_status.php" class="ml-2 hover:underline text-red-500 font-extrabold cursor-pointer">✕ <?= $current_lang == 'KO' ? '해제' : 'Clear' ?></a>
+                <div class="filter-toolbar bg-slate-100/40 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700 rounded-xl p-2">
+                    <div class="filter-toolbar-controls <?= $current_view === 'log' ? 'is-log-view' : '' ?>">
+                    <div class="filter-selection-slot">
+                        <?php if (isset($_GET['filter_no']) && (int)$_GET['filter_no'] > 0): ?>
+                        <div class="filter-selection-notice">
+                            <span><i class="fas fa-info-circle mr-1"></i><?= $current_lang == 'KO' ? '개별 항목 보기 중' : 'Single Item View' ?></span>
+                            <a href="website_status.php" class="ml-2 hover:underline text-red-500 font-extrabold cursor-pointer" aria-label="<?= $current_lang == 'KO' ? '개별 항목 보기 해제' : 'Clear single-item view' ?>">✕</a>
+                        </div>
+                        <?php elseif ($current_view !== 'log'): ?>
+                        <label class="filter-select-all">
+                            <input type="checkbox" id="selectAll" class="w-4 h-4 rounded accent-[#18aee7] cursor-pointer">
+                            <span><?= $t['select_all'] ?></span>
+                        </label>
+                        <?php endif; ?>
                     </div>
-                    <?php elseif ($current_view !== 'log'): ?>
-                    <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700 rounded-xl px-3 py-1.5 shadow-sm">
-                        <input type="checkbox" id="selectAll" class="w-4 h-4 rounded accent-[#18aee7] cursor-pointer">
-                        <label for="selectAll" class="text-[11px] font-black text-[var(--text-sub)] dark:text-slate-300 cursor-pointer ml-2 whitespace-nowrap"><?= $t['select_all'] ?></label>
-                    </div>
-                    <?php endif; ?>
 
                     <!-- 그룹 필터 -->
-                    <div class="filter-control flex items-center">
+                    <div class="filter-control filter-group-slot flex items-center">
                         <i class="fas fa-folder text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
                         <select id="searchGroup" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white max-w-[120px]">
                             <option value="all"><?= $t['group_all'] ?></option>
@@ -261,16 +280,16 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 검색 창 -->
-                    <div class="filter-control flex flex-1 items-center min-w-[180px]">
+                    <div class="filter-control filter-search-control flex items-center min-w-0">
                         <i class="fas fa-search text-[10px] text-slate-400 dark:text-slate-500 mr-2.5"></i>
                         <input type="text" id="searchCompany" value="<?=htmlspecialchars($search_company)?>" class="w-full bg-transparent text-xs outline-none text-[var(--text-main)] dark:text-white" placeholder="<?= $t['search_company_ph'] ?>" onkeypress="if(event.keyCode==13) triggerSearch()">
                     </div>
-                    <button onclick="triggerSearch()" class="px-5 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl text-xs font-black transition-all shadow-sm shadow-blue-500/10 whitespace-nowrap">
+                    <button onclick="triggerSearch()" class="filter-search-button px-5 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl text-xs font-black transition-all shadow-sm shadow-blue-500/10 whitespace-nowrap">
                         <?= $t['search_btn'] ?>
                     </button>
 
                     <!-- 상태 필터 -->
-                    <div class="filter-control flex items-center">
+                    <div class="filter-control filter-status-slot flex items-center">
                         <i class="fas fa-filter text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
                         <select id="filterStatus" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white">
                             <option value="all" <?= $filter_status=='all'?'selected':'' ?>><?= $t['filter_all'] ?></option>
@@ -287,7 +306,7 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
 
                     <!-- 엔진 필터 -->
-                    <div class="filter-control flex items-center">
+                    <div class="filter-control filter-engine-slot flex items-center">
                         <i class="fas fa-microchip text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
                         <select id="filterEngine" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white">
                             <option value="all" <?= (!isset($_GET['filter_engine']) || $_GET['filter_engine'] == 'all') ? 'selected' : '' ?>><?= $current_lang == 'KO' ? '모든 엔진' : 'All Engines' ?></option>
@@ -296,48 +315,55 @@ if (($current_view ?? 'card') === 'log') {
                         </select>
                     </div>
 
-                    <?php if ($current_view !== 'log'): ?>
-                    <!-- 정렬 필터 -->
-                    <div class="filter-control flex items-center">
-                        <i class="fas fa-sort-amount-down text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
-                        <select id="sortOrder" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white pr-1">
-                            <option value="latest" <?= $sort=='latest'?'selected':'' ?>><?= $t['sort_latest'] ?></option>
-                            <option disabled>──────────</option>
-                            <option value="comp_asc" <?= $sort=='comp_asc'?'selected':'' ?>><?= $t['sort_comp_asc'] ?></option>
-                            <option value="comp_desc" <?= $sort=='comp_desc'?'selected':'' ?>><?= $t['sort_comp_desc'] ?></option>
-                            <option disabled>──────────</option>
-                            <option value="retry_desc" <?= $sort=='retry_desc'?'selected':'' ?>><?= $t['sort_retry_desc'] ?? '체크 횟수 내림차순' ?></option>
-                            <option value="retry_asc" <?= $sort=='retry_asc'?'selected':'' ?>><?= $t['sort_retry_asc'] ?? '체크 횟수 오름차순' ?></option>
-                            <option disabled>──────────</option>
-                            <option value="status_desc" <?= $sort=='status_desc'?'selected':'' ?>><?= $t['sort_status_desc'] ?></option>
-                            <option value="status_asc" <?= $sort=='sort_status_asc'?'selected':'' ?>><?= $t['sort_status_asc'] ?></option>
-                            <option disabled>──────────</option>	
-                            <option value="result_succ" <?= $sort=='result_succ'?'selected':'' ?>><?= $t['sort_result_succ'] ?></option>
-                            <option value="result_fail" <?= $sort=='result_fail'?'selected':'' ?>><?= $t['sort_result_fail'] ?></option>
-                            <option disabled>──────────</option>
-                            <option value="ssl" <?= $sort=='ssl'?'selected':'' ?>><?= $t['sort_ssl'] ?></option>
-                            <option value="dom" <?= $sort=='dom'?'selected':'' ?>><?= $t['sort_dom'] ?></option>
-                        </select>
+                    <div class="filter-sort-slot">
+                        <?php if ($current_view !== 'log'): ?>
+                        <!-- 정렬 필터 -->
+                        <div class="filter-control flex items-center">
+                            <i class="fas fa-sort-amount-down text-[10px] text-slate-400 dark:text-slate-500 mr-2"></i>
+                            <select id="sortOrder" onchange="triggerSearch()" class="bg-transparent text-xs font-black outline-none cursor-pointer text-[var(--text-main)] dark:text-white pr-1">
+                                <option value="latest" <?= $sort=='latest'?'selected':'' ?>><?= $t['sort_latest'] ?></option>
+                                <option disabled>──────────</option>
+                                <option value="comp_asc" <?= $sort=='comp_asc'?'selected':'' ?>><?= $t['sort_comp_asc'] ?></option>
+                                <option value="comp_desc" <?= $sort=='comp_desc'?'selected':'' ?>><?= $t['sort_comp_desc'] ?></option>
+                                <option disabled>──────────</option>
+                                <option value="retry_desc" <?= $sort=='retry_desc'?'selected':'' ?>><?= $t['sort_retry_desc'] ?? '체크 횟수 내림차순' ?></option>
+                                <option value="retry_asc" <?= $sort=='retry_asc'?'selected':'' ?>><?= $t['sort_retry_asc'] ?? '체크 횟수 오름차순' ?></option>
+                                <option disabled>──────────</option>
+                                <option value="status_desc" <?= $sort=='status_desc'?'selected':'' ?>><?= $t['sort_status_desc'] ?></option>
+                                <option value="status_asc" <?= $sort=='sort_status_asc'?'selected':'' ?>><?= $t['sort_status_asc'] ?></option>
+                                <option disabled>──────────</option>
+                                <option value="result_succ" <?= $sort=='result_succ'?'selected':'' ?>><?= $t['sort_result_succ'] ?></option>
+                                <option value="result_fail" <?= $sort=='result_fail'?'selected':'' ?>><?= $t['sort_result_fail'] ?></option>
+                                <option disabled>──────────</option>
+                                <option value="ssl" <?= $sort=='ssl'?'selected':'' ?>><?= $t['sort_ssl'] ?></option>
+                                <option value="dom" <?= $sort=='dom'?'selected':'' ?>><?= $t['sort_dom'] ?></option>
+                            </select>
+                        </div>
+                        <?php endif; ?>
                     </div>
-                    <?php endif; ?>
-
-                    <?php if ($current_view === 'log'): ?>
-                    <div class="flex items-center gap-2">
+                    <div class="filter-refresh-control flex items-center justify-end gap-2">
+                        <?php if ($current_view === 'log'): ?>
                         <!-- 수동 새로고침 버튼 -->
                         <button onclick="refreshLogs(true)" class="flex items-center justify-center w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 hover:border-[#18aee7] hover:text-[#18aee7] transition-all shadow-sm" title="<?= $current_lang == 'KO' ? '로그 새로고침' : 'Refresh Logs' ?>">
                             <i class="fas fa-sync-alt text-xs text-[var(--text-sub)] hover:text-[#18aee7]"></i>
                         </button>
-                        
-                        <!-- 자동 새로고침 토글 스위치 -->
-                        <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-3 py-1.5 shadow-sm gap-2 h-9">
-                            <label class="relative inline-flex items-center cursor-pointer" title="<?= $current_lang == 'KO' ? '10초 간격 자동 새로고침' : 'Auto Refresh every 10s' ?>">
-                                <input type="checkbox" id="autoRefreshToggle" class="sr-only peer" onchange="toggleAutoRefresh(this.checked)">
-                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
-                            </label>
-                            <span class="text-[9px] font-black text-[var(--text-sub)] select-none">AUTO</span>
-                        </div>
+                        <?php endif; ?>
+                        <label class="live-refresh-toggle flex items-center cursor-pointer" title="<?= $current_view === 'log'
+                                ? ($current_lang == 'KO' ? '10초 간격으로 로그를 자동 조회합니다.' : 'Refresh logs every 10 seconds.')
+                                : ($current_lang == 'KO' ? '30초 간격으로 모니터링 결과를 자동 조회합니다.' : 'Refresh monitor results every 30 seconds.') ?>">
+                                <input type="checkbox" id="autoRefreshToggle" class="sr-only peer" aria-label="<?= $current_lang == 'KO' ? '실시간 조회' : 'Live refresh' ?>" onchange="toggleAutoRefresh(this.checked)">
+                                <span class="live-refresh-switch" aria-hidden="true">
+                                    <span class="live-refresh-switch-knob"></span>
+                                </span>
+                                <span class="live-refresh-label text-xs font-bold text-[var(--text-main)] select-none"><?= $current_lang == 'KO' ? '실시간 조회' : 'Live refresh' ?></span>
+                        </label>
+                        <script>
+                            document.getElementById('autoRefreshToggle').checked =
+                                sessionStorage.getItem('webmon_auto_refresh') !== 'false';
+                            document.documentElement.classList.remove('live-refresh-initializing');
+                        </script>
                     </div>
-                    <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -471,7 +497,7 @@ if (($current_view ?? 'card') === 'log') {
                     <input type="hidden" name="ids" id="bulkIds" value="">
                     <input type="hidden" name="current_query" id="bulkCurrentQuery" value="">
                     
-                    <div id="mainForm" class="<?= $current_view == 'card' ? 'monitor-card-grid' : 'view-list' ?>">
+                    <div id="mainForm" class="<?= $current_view == 'card' ? 'monitor-card-grid card-columns-' . $current_card_columns : 'view-list' ?>">
                         <?php 
                         if($result && $result->num_rows > 0) {
                             while($row = $result->fetch_assoc()): 
@@ -511,7 +537,7 @@ if (($current_view ?? 'card') === 'log') {
                                 $group_name_display = htmlspecialchars($row['group_name'] ?: '기본 그룹');
                         ?>
                         
-                        <div class="monitor-item group relative bg-[var(--card-bg)] overflow-visible transition-all border border-[var(--border-color)] rounded-xl <?= $is_disabled ? 'opacity-60' : '' ?> hover:shadow-md">
+                        <div data-monitor-id="<?= (int)$row['no'] ?>" class="monitor-item group relative bg-[var(--card-bg)] overflow-visible transition-all border border-[var(--border-color)] rounded-xl <?= $is_disabled ? 'opacity-60' : '' ?> hover:shadow-md">
                             <div class="monitor-status-edge absolute top-0 left-0 w-1.5 h-full <?= $border_color ?>"></div>
 
                             <?php if (($current_view ?? 'card') === 'card'): ?>
@@ -552,32 +578,41 @@ if (($current_view ?? 'card') === 'log') {
                 </button>
             </div>
             
-            <form action="save_settings.php" method="POST" class="sheet-form flex-1 overflow-y-auto p-5 flex flex-col gap-4 text-sm">
+            <form action="save_settings.php" method="POST" class="sheet-form flex-1 overflow-y-auto p-5 pb-0 flex flex-col gap-4 text-sm">
                 <!-- 탭 1: 시스템 설정 -->
                 <div id="tabContent-sys" class="flex flex-col gap-4">
-                    <!-- 1. 텔레그램 설정 -->
+                    <!-- 1. Telegram settings -->
                     <div class="settings-accordion">
-                        <button type="button" onclick="toggleSettingsAccordion('tg')" class="w-full flex justify-between items-center p-4 font-bold text-left focus:outline-none select-none hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                            <span class="flex items-center gap-2 text-[var(--text-main)]"><i class="fab fa-telegram text-[var(--text-sub)]"></i> <?= $current_lang == 'KO' ? '텔레그램 알림 설정' : 'Telegram Alert Settings' ?></span>
-                            <div class="flex items-center gap-3" onclick="event.stopPropagation()">
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" name="tg_enabled" value="1" class="sr-only peer" <?= ($settings['tg_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#18aee7]"></div>
-                                </label>
-                                <i id="set-arrow-tg" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200 ml-1"></i>
-                            </div>
-                        </button>
+                        <div class="settings-accordion-header">
+                            <button type="button" onclick="toggleSettingsAccordion('tg')" class="settings-accordion-trigger">
+                                <span class="flex items-center gap-2"><i class="fab fa-telegram"></i> <?= $current_lang == 'KO' ? '텔레그램 알림 설정' : 'Telegram Alert Settings' ?></span>
+                                <i id="set-arrow-tg" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                            </button>
+                            <label class="settings-channel-toggle">
+                                <span><?= $current_lang == 'KO' ? '텔레그램 알림' : 'Telegram alerts' ?></span>
+                                <input type="checkbox" name="tg_enabled" value="1" class="sr-only peer" aria-label="<?= $current_lang == 'KO' ? '텔레그램 알림 사용' : 'Enable Telegram alerts' ?>" <?= ($settings['tg_enabled'] ?? '0') == '1' ? 'checked' : '' ?>>
+                                <span class="settings-toggle-track"><span></span></span>
+                            </label>
+                        </div>
                         <div id="set-body-tg" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <p class="mb-3 text-[11px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '모니터링 장애 알림을 Telegram Bot으로 보냅니다. 토큰과 Chat ID를 입력하고 저장한 다음 알림을 켜세요.' : 'Send monitoring alerts through a Telegram bot. Enter the bot token and chat ID, save the settings, then enable alerts.' ?></p>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Bot Token</label>
-                                    <input type="password" name="tg_token" value="<?= htmlspecialchars($settings['tg_token'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="토큰 입력">
+                                    <input type="password" name="tg_token" value="<?= htmlspecialchars($settings['tg_token'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? 'Bot 토큰 입력' : 'Enter bot token' ?>">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">Chat ID</label>
-                                    <input type="text" name="tg_chat_id" value="<?= htmlspecialchars($settings['tg_chat_id'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="챗 ID 입력">
+                                    <input type="text" name="tg_chat_id" value="<?= htmlspecialchars($settings['tg_chat_id'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? 'Chat ID 입력' : 'Enter chat ID' ?>">
                                 </div>
                             </div>
+                            <div class="mt-4 flex flex-wrap items-center gap-3">
+                                <button type="button" onclick="testNotification('telegram', this)" class="rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:border-[#18aee7] hover:text-[#18aee7]">
+                                    <i class="fab fa-telegram mr-1"></i><?= $current_lang == 'KO' ? '텔레그램 테스트 발송' : 'Send Telegram Test' ?>
+                                </button>
+                                <span id="telegramTestStatus" class="text-xs" role="status" aria-live="polite"></span>
+                            </div>
+                            <p class="mt-2 text-[10px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '저장하지 않은 토큰과 Chat ID로 테스트 메시지를 한 번 보냅니다.' : 'Sends one test message using the current values without saving them.' ?></p>
                         </div>
                     </div>
 
@@ -595,11 +630,24 @@ if (($current_view ?? 'card') === 'log') {
                             </label>
                         </div>
                         <div id="set-body-email" class="p-4 border-t border-[var(--border-color)] hidden">
-                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '모니터링 항목에 별도 발송자 주소가 없을 때 사용할 기본 발송 주소입니다. 항목별 발송자 주소가 지정되어 있으면 해당 주소가 우선합니다.' : 'Used as the default From address when a monitor item has no sender address. An item-specific address takes precedence.' ?></p>
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '이 주소가 메일의 From 및 SMTP 봉투 발신자로 사용됩니다. 모니터링 항목에 별도 발송자 주소가 있으면 해당 주소가 우선합니다. 릴레이를 사용하지 않으면 수신 도메인의 메일 서버로 직접 전달하며, 최종 수신 여부는 서버의 25번 포트 연결과 발신 도메인 메일 정책에 따라 달라집니다.' : 'This address is used for both the From header and SMTP envelope sender. An item-specific sender takes precedence. Without relay, mail is delivered directly to the recipient domain MX; final delivery depends on outbound port 25 connectivity and the sender domain mail policy.' ?></p>
                             <div>
                                 <label for="globalSenderEmail" class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 발송 이메일 주소 (From)' : 'Default sender email (From)' ?></label>
                                 <input type="email" name="global_sender_email" id="globalSenderEmail" value="<?= htmlspecialchars($settings['global_sender_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="webmon@example.com">
                             </div>
+                            <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                                <div>
+                                    <label for="emailTestRecipient" class="mb-1 block text-xs font-bold text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '테스트 수신 주소 (To)' : 'Test recipient (To)' ?></label>
+                                    <input type="email" id="emailTestRecipient" class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-color)] p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="you@example.com" autocomplete="email">
+                                </div>
+                                <div class="flex items-center">
+                                    <button type="button" onclick="testNotification('email', this)" class="shrink-0 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:border-[#18aee7] hover:text-[#18aee7]">
+                                        <i class="fas fa-paper-plane mr-1"></i><?= $current_lang == 'KO' ? '이메일 테스트 발송' : 'Send Email Test' ?>
+                                    </button>
+                                </div>
+                            </div>
+                            <p id="emailTestStatus" class="mt-2 text-xs" role="status" aria-live="polite"></p>
+                            <p class="mt-1 text-[10px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '테스트는 저장된 릴레이 사용 설정에 따라 직접 발송 또는 전역 SMTP 릴레이로 발송됩니다. 설정을 먼저 저장해 주세요. 서버 접수는 최종 수신 완료를 의미하지 않습니다.' : 'The test uses direct delivery or the global SMTP relay according to the saved setting. Save settings first. Server acceptance does not confirm final delivery.' ?></p>
                         </div>
                     </div>
 
@@ -610,9 +658,14 @@ if (($current_view ?? 'card') === 'log') {
                                 <span class="flex items-center gap-2"><i class="fas fa-mail-bulk"></i> <?= $current_lang == 'KO' ? '전역 SMTP 릴레이 서버 설정' : 'Global SMTP Relay Settings' ?></span>
                                 <i id="set-arrow-smtp" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
                             </button>
+                            <label class="settings-channel-toggle">
+                                <span><?= $current_lang == 'KO' ? '릴레이 사용' : 'Use relay' ?></span>
+                                <input type="checkbox" name="smtp_relay_enabled" value="1" class="sr-only peer" aria-label="<?= $current_lang == 'KO' ? '전역 SMTP 릴레이 사용' : 'Enable global SMTP relay' ?>" <?= ($settings['smtp_mode'] ?? 'direct') === 'relay' ? 'checked' : '' ?>>
+                                <span class="settings-toggle-track"><span></span></span>
+                            </label>
                         </div>
                         <div id="set-body-smtp" class="p-4 border-t border-[var(--border-color)] hidden">
-                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '모니터링 항목에서 외부 SMTP 발송을 선택할 경우 사용할 릴레이 서버 접속 정보입니다. 알림 활성화와 발송자 주소는 이메일 발송 설정에서 관리합니다.' : 'Relay server credentials used when SMTP mode is selected for monitor targets. Manage alert enablement and sender address in Email Sending Settings.' ?></p>
+                            <p class="text-[11px] text-[var(--text-sub)] mb-3"><?= $current_lang == 'KO' ? '릴레이를 켜면 직접 발송 방식으로 설정된 모니터링 메일이 아래 SMTP 서버와 계정으로 발송됩니다. 끄면 수신 도메인의 메일 서버로 직접 발송합니다. 모니터링 항목별 SMTP 설정은 이 전역 설정과 별도로 동작합니다.' : 'When enabled, monitor emails using direct delivery mode are sent through the SMTP server and credentials below. When disabled, mail is delivered directly to recipient mail servers. Per-monitor SMTP settings are independent of this global setting.' ?></p>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1">SMTP Host</label>
@@ -657,6 +710,13 @@ if (($current_view ?? 'card') === 'log') {
                                 </select>
                             </div>
 
+                            <div class="mb-4">
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이메일 제목' : 'Email Subject' ?></label>
+                                    <input type="text" name="email_subject" maxlength="200" value="<?= htmlspecialchars($settings['email_subject'] ?? '[WebSiteMonitor] 웹사이트 모니터링 알람 발생 {YYYY-MM-DD}') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                    <p class="mt-1 text-[10px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '{YYYY-MM-DD}는 발생 날짜, {time}은 발생 일시로 치환됩니다.' : '{YYYY-MM-DD} is replaced with the alert date and {time} with the alert date and time.' ?></p>
+                                </div>
+
+
                             <!-- HTML 템플릿 작성 영역 (HTML 모드 시 노출) -->
                             <div id="htmlTemplateFields" class="hidden space-y-4">
                                 <div class="p-3 bg-blue-50/50 dark:bg-slate-800/40 border border-blue-200 dark:border-slate-700 rounded-lg text-xs">
@@ -668,6 +728,7 @@ if (($current_view ?? 'card') === 'log') {
                                             {url} (<?= $current_lang == 'KO' ? '대상 URL' : 'URL' ?>), 
                                             {keyword} (<?= $current_lang == 'KO' ? '검색 키워드' : 'Keyword' ?>), 
                                             {time} (<?= $current_lang == 'KO' ? '발생 시각' : 'Time' ?>), 
+                                            {YYYY-MM-DD} (<?= $current_lang == 'KO' ? '발생 날짜' : 'Date' ?>),
                                             {engine} (<?= $current_lang == 'KO' ? '실행 엔진' : 'Engine' ?>), 
                                             {response_time} (<?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?>), 
                                             {comment} (<?= $current_lang == 'KO' ? '가이드 권장 처리 내용' : 'Action Guide' ?>), 
@@ -678,7 +739,7 @@ if (($current_view ?? 'card') === 'log') {
 
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '이메일 HTML 템플릿' : 'Email HTML Template' ?></label>
-                                    <textarea name="email_template_html" rows="8" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 코드를 입력해 주세요..."><?= htmlspecialchars($settings['email_template_html'] ?? '') ?></textarea>
+                                    <textarea name="email_template_html" rows="8" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? 'HTML 코드를 입력해 주세요...' : 'Enter HTML template...' ?>"><?= htmlspecialchars($settings['email_template_html'] ?? '') ?></textarea>
                                 </div>
                             </div>
 
@@ -693,6 +754,7 @@ if (($current_view ?? 'card') === 'log') {
                                             {url} (<?= $current_lang == 'KO' ? '대상 URL' : 'URL' ?>), 
                                             {keyword} (<?= $current_lang == 'KO' ? '검색 키워드' : 'Keyword' ?>), 
                                             {time} (<?= $current_lang == 'KO' ? '발생 시각' : 'Time' ?>), 
+                                            {YYYY-MM-DD} (<?= $current_lang == 'KO' ? '발생 날짜' : 'Date' ?>),
                                             {engine} (<?= $current_lang == 'KO' ? '실행 엔진' : 'Engine' ?>), 
                                             {response_time} (<?= $current_lang == 'KO' ? '응답속도' : 'Response Time' ?>), 
                                             {comment} (<?= $current_lang == 'KO' ? '가이드 권장 처리 내용' : 'Action Guide' ?>), 
@@ -707,11 +769,58 @@ if (($current_view ?? 'card') === 'log') {
                                 </div>
                             </div>
 
-                            <!-- 공통 텔레그램 HTML 템플릿 (언제나 노출) -->
+                            <!-- Telegram messages are sent as plain text. -->
                             <div class="mt-4">
-                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '텔레그램 HTML 템플릿' : 'Telegram HTML Template' ?></label>
-                                <textarea name="tg_template_html" rows="6" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="HTML 형식 텍스트를 입력해 주세요..."><?= htmlspecialchars($settings['tg_template_html'] ?? '') ?></textarea>
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '텔레그램 일반 텍스트 템플릿' : 'Telegram Plain Text Template' ?></label>
+                                <p class="mb-2 text-[10px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '같은 점검 주기의 장애를 한 메시지로 묶어 보냅니다. {detections}와 {recommendations}에 항목별 내용이 들어가며, {time}, {YYYY-MM-DD}, {web_url}은 공통 정보입니다. 기존 단일 항목 변수도 사용할 수 있습니다.' : 'Failures from the same check cycle are combined into one message. {detections} and {recommendations} contain per-item details; {time}, {YYYY-MM-DD} and {web_url} are shared. Legacy single-item variables are also supported.' ?></p>
+                                <textarea name="tg_template_plain" rows="6" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs font-mono outline-none focus:border-[#18aee7]" placeholder="<?= $current_lang == 'KO' ? '일반 텍스트 템플릿을 입력해 주세요...' : 'Enter a plain text template...' ?>"><?= htmlspecialchars($settings['tg_template_plain'] ?? '') ?></textarea>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- SSL/도메인 만료 안내 -->
+                    <?php $reportWeekdays = array_filter(explode(',', $settings['report_weekdays'] ?? '1'), 'strlen'); ?>
+                    <div class="settings-accordion">
+                        <div class="settings-accordion-header">
+                            <button type="button" onclick="toggleSettingsAccordion('report')" class="settings-accordion-trigger">
+                                <span class="flex items-center gap-2"><i class="fas fa-calendar-check"></i> <?= $current_lang == 'KO' ? 'SSL·도메인 만료 안내' : 'SSL & Domain Expiry Report' ?></span>
+                                <i id="set-arrow-report" class="fas fa-chevron-down text-xs text-[var(--text-sub)] transition-transform duration-200"></i>
+                            </button>
+                            <label class="settings-channel-toggle">
+                                <span><?= $current_lang == 'KO' ? '만료 안내 발송' : 'Expiry reports' ?></span>
+                                <input type="checkbox" name="report_enabled" value="1" class="sr-only peer" aria-label="<?= $current_lang == 'KO' ? '만료 안내 발송' : 'Expiry reports' ?>" <?= ($settings['report_enabled'] ?? '1') == '1' ? 'checked' : '' ?>>
+                                <span class="settings-toggle-track"><span></span></span>
+                            </label>
+                        </div>
+                        <div id="set-body-report" class="p-4 border-t border-[var(--border-color)] hidden">
+                            <p class="mb-3 text-[11px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '설정한 요일과 시간에 SSL 인증서와 도메인이 곧 만료되는 항목을 이메일로 안내합니다. 만료일 갱신은 매일 01:00에 자동으로 실행됩니다.' : 'On the chosen days and time, expiring SSL certificates and domains are sent by email. Expiry dates are refreshed automatically every day at 01:00.' ?></p>
+                            <div class="mb-4">
+                                <label class="block text-xs font-bold text-[var(--text-sub)] mb-2"><?= $current_lang == 'KO' ? '발송 요일' : 'Send on' ?></label>
+                                <div class="flex flex-wrap gap-2">
+                                    <label class="inline-flex items-center"><input type="checkbox" name="report_weekdays[]" value="1" class="sr-only peer" <?= in_array('1', $reportWeekdays, true) ? 'checked' : '' ?>><span class="px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-xs font-bold cursor-pointer select-none text-[var(--text-sub)] peer-checked:bg-[#18aee7] peer-checked:border-[#18aee7] peer-checked:text-white transition-colors"><?= $current_lang == 'KO' ? '월' : 'Mon' ?></span></label>
+                                    <label class="inline-flex items-center"><input type="checkbox" name="report_weekdays[]" value="2" class="sr-only peer" <?= in_array('2', $reportWeekdays, true) ? 'checked' : '' ?>><span class="px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-xs font-bold cursor-pointer select-none text-[var(--text-sub)] peer-checked:bg-[#18aee7] peer-checked:border-[#18aee7] peer-checked:text-white transition-colors"><?= $current_lang == 'KO' ? '화' : 'Tue' ?></span></label>
+                                    <label class="inline-flex items-center"><input type="checkbox" name="report_weekdays[]" value="3" class="sr-only peer" <?= in_array('3', $reportWeekdays, true) ? 'checked' : '' ?>><span class="px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-xs font-bold cursor-pointer select-none text-[var(--text-sub)] peer-checked:bg-[#18aee7] peer-checked:border-[#18aee7] peer-checked:text-white transition-colors"><?= $current_lang == 'KO' ? '수' : 'Wed' ?></span></label>
+                                    <label class="inline-flex items-center"><input type="checkbox" name="report_weekdays[]" value="4" class="sr-only peer" <?= in_array('4', $reportWeekdays, true) ? 'checked' : '' ?>><span class="px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-xs font-bold cursor-pointer select-none text-[var(--text-sub)] peer-checked:bg-[#18aee7] peer-checked:border-[#18aee7] peer-checked:text-white transition-colors"><?= $current_lang == 'KO' ? '목' : 'Thu' ?></span></label>
+                                    <label class="inline-flex items-center"><input type="checkbox" name="report_weekdays[]" value="5" class="sr-only peer" <?= in_array('5', $reportWeekdays, true) ? 'checked' : '' ?>><span class="px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-xs font-bold cursor-pointer select-none text-[var(--text-sub)] peer-checked:bg-[#18aee7] peer-checked:border-[#18aee7] peer-checked:text-white transition-colors"><?= $current_lang == 'KO' ? '금' : 'Fri' ?></span></label>
+                                    <label class="inline-flex items-center"><input type="checkbox" name="report_weekdays[]" value="6" class="sr-only peer" <?= in_array('6', $reportWeekdays, true) ? 'checked' : '' ?>><span class="px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-xs font-bold cursor-pointer select-none text-[var(--text-sub)] peer-checked:bg-[#18aee7] peer-checked:border-[#18aee7] peer-checked:text-white transition-colors"><?= $current_lang == 'KO' ? '토' : 'Sat' ?></span></label>
+                                    <label class="inline-flex items-center"><input type="checkbox" name="report_weekdays[]" value="0" class="sr-only peer" <?= in_array('0', $reportWeekdays, true) ? 'checked' : '' ?>><span class="px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-xs font-bold cursor-pointer select-none text-[var(--text-sub)] peer-checked:bg-[#18aee7] peer-checked:border-[#18aee7] peer-checked:text-white transition-colors"><?= $current_lang == 'KO' ? '일' : 'Sun' ?></span></label>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '발송 시각' : 'Send time' ?></label>
+                                    <input type="time" name="report_time" value="<?= htmlspecialchars($settings['report_time'] ?? '09:00') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '만료 임박 기준(일)' : 'Expiring within (days)' ?></label>
+                                    <input type="number" name="report_within_days" min="1" max="365" value="<?= (int)($settings['report_within_days'] ?? 30) ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '수신 이메일' : 'Recipient email' ?></label>
+                                    <input type="email" name="report_receiver_email" value="<?= htmlspecialchars($settings['report_receiver_email'] ?? '') ?>" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]" placeholder="alert@example.com">
+                                </div>
+                            </div>
+                            <p class="mt-2 text-[10px] text-[var(--text-sub)]"><?= $current_lang == 'KO' ? '수신 이메일을 비우면 항목별 이메일 설정의 수신자에게 발송합니다. 발송 방식은 이메일 발송 설정을 따릅니다.' : 'If empty, reports go to the recipient configured on each monitor. Delivery follows the email settings.' ?></p>
                         </div>
                     </div>
 
@@ -786,8 +895,8 @@ if (($current_view ?? 'card') === 'log') {
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 실행 엔진' : 'Default Engine' ?></label>
                                     <select name="def_engine_type" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                                        <option value="lynx" <?= ($settings['def_engine_type'] ?? 'lynx') == 'lynx' ? 'selected' : '' ?>>LYNX (텍스트 추출 방식)</option>
-                                        <option value="curl" <?= ($settings['def_engine_type'] ?? 'lynx') == 'curl' ? 'selected' : '' ?>>CURL (Raw HTML 방식)</option>
+                                        <option value="lynx" <?= ($settings['def_engine_type'] ?? 'lynx') == 'lynx' ? 'selected' : '' ?>>LYNX (<?= $current_lang == 'KO' ? '텍스트 추출 방식' : 'text extraction' ?>)</option>
+                                        <option value="curl" <?= ($settings['def_engine_type'] ?? 'lynx') == 'curl' ? 'selected' : '' ?>>CURL (<?= $current_lang == 'KO' ? 'Raw HTML 방식' : 'raw HTML' ?>)</option>
                                     </select>
                                 </div>
 
@@ -821,11 +930,11 @@ if (($current_view ?? 'card') === 'log') {
                                 <div class="col-span-1 md:col-span-2 flex gap-6 py-2 border-t border-dashed border-[var(--border-color)] mt-2">
                                     <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-[var(--text-sub)]">
                                         <input type="checkbox" name="def_ssl_mon" value="1" class="w-4 h-4 rounded accent-[#18aee7]" <?= ($settings['def_ssl_mon'] ?? '1') == '1' ? 'checked' : '' ?>>
-                                        <span>SSL EXPIRY 감지 기본 활성화</span>
+                                        <span><?= $current_lang == 'KO' ? 'SSL 만료 감지 기본 활성화' : 'Enable SSL expiry monitoring by default' ?></span>
                                     </label>
                                     <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-[var(--text-sub)]">
                                         <input type="checkbox" name="def_dom_mon" value="1" class="w-4 h-4 rounded accent-[#18aee7]" <?= ($settings['def_dom_mon'] ?? '1') == '1' ? 'checked' : '' ?>>
-                                        <span>DOMAIN EXPIRY 감지 기본 활성화</span>
+                                        <span><?= $current_lang == 'KO' ? '도메인 만료 감지 기본 활성화' : 'Enable domain expiry monitoring by default' ?></span>
                                     </label>
                                 </div>
                             </div>
@@ -843,9 +952,9 @@ if (($current_view ?? 'card') === 'log') {
                                 <div>
                                     <label class="block text-xs font-bold text-[var(--text-sub)] mb-1"><?= $current_lang == 'KO' ? '기본 발송 방식' : 'Default Email Mode' ?></label>
                                     <select name="def_email_mode" class="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg p-2 text-xs outline-none focus:border-[#18aee7]">
-                                        <option value="none" <?= ($settings['def_email_mode'] ?? 'none') == 'none' ? 'selected' : '' ?>>미발송 (none)</option>
-                                        <option value="postfix" <?= ($settings['def_email_mode'] ?? 'none') == 'postfix' ? 'selected' : '' ?>>로컬 Postfix 직접발송</option>
-                                        <option value="smtp" <?= ($settings['def_email_mode'] ?? 'none') == 'smtp' ? 'selected' : '' ?>>외부 SMTP 릴레이발송</option>
+                                        <option value="none" <?= ($settings['def_email_mode'] ?? 'none') == 'none' ? 'selected' : '' ?>><?= $current_lang == 'KO' ? '미발송' : 'Disabled' ?></option>
+                                        <option value="postfix" <?= ($settings['def_email_mode'] ?? 'none') == 'postfix' ? 'selected' : '' ?>><?= $current_lang == 'KO' ? '수신 서버로 직접 발송' : 'Direct delivery' ?></option>
+                                        <option value="smtp" <?= ($settings['def_email_mode'] ?? 'none') == 'smtp' ? 'selected' : '' ?>><?= $current_lang == 'KO' ? '외부 SMTP 릴레이' : 'External SMTP relay' ?></option>
                                     </select>
                                 </div>
                                 <div>
@@ -861,7 +970,7 @@ if (($current_view ?? 'card') === 'log') {
                     </div>
                 </div>
 
-                <div class="sheet-footer -mx-5 -mb-5 mt-4">
+                <div class="sheet-footer -mx-5 mt-4">
                     <button type="submit" class="px-6 py-2.5 bg-[#18aee7] hover:bg-[#159bd0] text-white rounded-xl font-bold shadow-md transition-all text-xs"><?= $current_lang == 'KO' ? '설정 저장' : 'Save Settings' ?></button>
                 </div>
             </form>

@@ -3,6 +3,10 @@
 $current_lang = strtoupper($_COOKIE['webmon_lang'] ?? 'KO');
 $current_theme = $_COOKIE['webmon_theme'] ?? 'light';
 $current_view = $_COOKIE['webmon_view'] ?? 'card';
+$card_columns_cookie = $_COOKIE['webmon_card_columns'] ?? '3';
+$current_card_columns = in_array($card_columns_cookie, ['2', '3'], true)
+    ? $card_columns_cookie
+    : '3';
 
 $lang_pack = [
     'KO' => [

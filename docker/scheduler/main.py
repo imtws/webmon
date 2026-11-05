@@ -10,12 +10,14 @@ import asyncio
 import logging
 import os
 import sys
+from datetime import datetime
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from engines.alert  import run_alert
 from engines.asset  import run_asset
-from engines.report import run_report
+from engines.report import run_report, should_run_report
+from engines.db import load_system_settings
 from engines.db import ensure_monitor_timestamp_schema
 
 # ── 로깅 설정 ──────────────────────────────────────────────────────────
@@ -31,7 +33,6 @@ log = logging.getLogger("webmon")
 # ── 스케줄 환경변수 ────────────────────────────────────────────────────
 SCHEDULE_ALERT  = os.environ.get("SCHEDULE_ALERT",  "* * * * *")
 SCHEDULE_ASSET  = os.environ.get("SCHEDULE_ASSET",  "0 1 * * *")
-SCHEDULE_REPORT = os.environ.get("SCHEDULE_REPORT", "0 9 * * 1")
 
 
 def cron_kwargs(expr: str) -> dict:
@@ -54,9 +55,16 @@ def job_asset():
     except Exception as e:
         log.error(f"[asset] 예외: {e}")
 
+async def _report_tick():
+    settings = await load_system_settings()
+    if should_run_report(settings, datetime.now()):
+        await run_report()
+
+
 def job_report():
+    # 발송 요일/시각은 설정 화면(DB)에서 바뀌므로 매분 확인합니다.
     try:
-        asyncio.run(run_report())
+        asyncio.run(_report_tick())
     except Exception as e:
         log.error(f"[report] 예외: {e}")
 
@@ -67,13 +75,13 @@ if __name__ == "__main__":
     log.info("  WebMon Scheduler 시작")
     log.info(f"  alert  스케줄: {SCHEDULE_ALERT}")
     log.info(f"  asset  스케줄: {SCHEDULE_ASSET}")
-    log.info(f"  report 스케줄: {SCHEDULE_REPORT}")
+    log.info("  report 스케줄: 설정 화면에서 지정 (기본 매주 월 09:00)")
     log.info("=" * 55)
 
     scheduler = BlockingScheduler(timezone="Asia/Seoul")
     scheduler.add_job(job_alert,  CronTrigger(**cron_kwargs(SCHEDULE_ALERT)),  id="alert")
     scheduler.add_job(job_asset,  CronTrigger(**cron_kwargs(SCHEDULE_ASSET)),  id="asset")
-    scheduler.add_job(job_report, CronTrigger(**cron_kwargs(SCHEDULE_REPORT)), id="report")
+    scheduler.add_job(job_report, CronTrigger(minute="*"), id="report")
 
     try:
         scheduler.start()

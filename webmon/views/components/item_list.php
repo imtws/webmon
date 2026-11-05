@@ -46,10 +46,13 @@
             <?php endif; ?>
         </div>
     </div>
-    <div class="flex-[2.5] pl-4 min-w-0 pr-2">
+    <div class="monitor-list-url flex-[2.5] pl-4 min-w-0 pr-2">
         <a href="<?= htmlspecialchars($row['url']) ?>" target="_blank" class="block truncate text-[#18aee7] font-bold hover:underline" title="<?= htmlspecialchars($row['url']) ?>">
             <?= htmlspecialchars($row['url']) ?>
         </a>
+        <button type="button" class="url-copy-button" onclick="copyUrl(this)" data-url="<?= htmlspecialchars($row['url'], ENT_QUOTES, 'UTF-8') ?>" title="<?= $current_lang == 'KO' ? 'URL 복사' : 'Copy URL' ?>" aria-label="<?= $current_lang == 'KO' ? 'URL 복사' : 'Copy URL' ?>">
+            <i class="far fa-copy" aria-hidden="true"></i>
+        </button>
     </div>
     <div class="flex-1 text-center text-[var(--text-sub)] dark:text-slate-100 truncate px-1"><?= htmlspecialchars($row['contents']) ?></div>
     <div class="flex-1 text-center"><span class="<?= $status_badge ?>"><?= $check_text ?></span></div>

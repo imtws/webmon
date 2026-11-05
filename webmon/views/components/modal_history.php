@@ -23,7 +23,7 @@ if (!function_exists('formatHistoryValue')) {
         }
         if ($key === 'email_mode') {
             if ($val === 'none') return $isKo ? '발송 안함' : 'None';
-            if ($val === 'direct' || $val === 'postfix') return $isKo ? 'Postfix 직접 발송' : 'Direct Postfix';
+            if ($val === 'direct' || $val === 'postfix') return $isKo ? '수신 서버로 직접 발송' : 'Direct delivery';
             if ($val === 'smtp') return $isKo ? '개별 SMTP 발송' : 'Individual SMTP';
         }
         if ($key === 'ssl_mon' || $key === 'dom_mon') {
