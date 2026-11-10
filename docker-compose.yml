@@ -1,0 +1,142 @@
+version: '3.9'
+
+services:
+  # ── PHP + Apache 웹 UI ───────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: webmon_web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./webmon:/var/www/html
+      - ./.env:/var/www/html/.env
+      - webmon_runtime:/var/lib/webmon
+    environment:
+      DB_HOST:      ${DB_HOST:-db}
+      DB_PORT:      ${DB_PORT:-3306}
+      DB_NAME:      ${DB_NAME:-sitemonitor}
+      DB_USER:      ${DB_USER:-sitemonitor}
+      DB_PASS:      ${DB_PASS}
+      PHP_TIMEZONE: ${PHP_TIMEZONE:-Asia/Seoul}
+      APP_DEBUG:    ${APP_DEBUG:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - webmon_net
+
+  # ── Python 통합 스케줄러 + 엔진 ─────────────────────────────────────
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/scheduler/Dockerfile
+    container_name: webmon_scheduler
+    init: true          # PID 1이 고아 lynx 좀비를 수거 (누적 시 PID 상한 도달)
+    pids_limit: 4096
+    restart: unless-stopped
+    volumes:
+      - scheduler_logs:/app/logs
+      - ./webmon/config:/app/config:ro
+      - ./.env:/app/.env
+      - webmon_runtime:/var/lib/webmon
+    environment:
+      # DB
+      DB_HOST:         ${DB_HOST:-db}
+      DB_PORT:         ${DB_PORT:-3306}
+      DB_NAME:         ${DB_NAME:-sitemonitor}
+      DB_USER:         ${DB_USER:-sitemonitor}
+      DB_PASS:         ${DB_PASS}
+      # 알림
+      TG_TOKEN:        ${TG_TOKEN}
+      TG_CHAT_ID:      ${TG_CHAT_ID}
+      WEBMON_URL:      ${WEBMON_URL:-http://localhost:8080}
+      ALERT_EMAIL:     ${ALERT_EMAIL}
+      # 스케줄 (cron 표현식)
+      SCHEDULE_ALERT:  ${SCHEDULE_ALERT:-* * * * *}
+      SCHEDULE_ASSET:  ${SCHEDULE_ASSET:-0 1 * * *}
+      # 튜닝
+      ALERT_CONCURRENCY: ${ALERT_CONCURRENCY:-60}
+      TZ:                ${PHP_TIMEZONE:-Asia/Seoul}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - webmon_net
+
+  # ── MariaDB ──────────────────────────────────────────────────────────
+  db:
+    image: mariadb:10.11
+    container_name: webmon_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
+      MYSQL_DATABASE:      ${DB_NAME:-sitemonitor}
+      MYSQL_USER:          ${DB_USER:-sitemonitor}
+      MYSQL_PASSWORD:      ${DB_PASS}
+      TZ:                  ${PHP_TIMEZONE:-Asia/Seoul}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webmon_net
+
+  # Explicit one-shot recovery command; never started by `up`.
+  db-password-reset:
+    profiles:
+      - maintenance
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    entrypoint: ["php", "/var/www/html/reset_db_password.php"]
+    command: ["--reset-to-configured-password"]
+    network_mode: "service:db"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./webmon:/var/www/html:ro
+      - webmon_runtime:/var/lib/webmon
+    environment:
+      DB_HOST: 127.0.0.1
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-sitemonitor}
+      DB_USER: ${DB_USER:-sitemonitor}
+      DB_PASS: ${DB_PASS}
+      DB_ROOT_PASS: ${DB_ROOT_PASS}
+      DB_ROOT_USER: root
+
+  # ── Postfix SMTP Relay ──────────────────────────────────────────────
+  mail:
+    image: boky/postfix
+    container_name: webmon_mail
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:2525:25"
+    environment:
+      RELAYHOST: ""
+      ALLOW_EMPTY_SENDER_DOMAINS: "1"
+      # Deliver directly to recipient MX servers; only trusted app containers may submit mail.
+      POSTFIX_smtpd_recipient_restrictions: reject_non_fqdn_recipient,reject_unknown_recipient_domain,permit_mynetworks,reject
+      POSTFIX_smtpd_relay_restrictions: permit_mynetworks,reject
+    networks:
+      - webmon_net
+
+volumes:
+  db_data:
+    driver: local
+  scheduler_logs:
+    driver: local
+  webmon_runtime:
+    driver: local
+
+networks:
+  webmon_net:
+    driver: bridge

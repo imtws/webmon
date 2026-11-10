@@ -1,0 +1,33 @@
+# 환경변수 (절대 커밋 금지)
+.env
+webmon/config/db_pass_custom.php
+
+# Docker 볼륨
+db_data/
+
+# 로그
+logs/
+*.log
+*.log.old
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Node.js
+node_modules/
+package.json
+package-lock.json
+
+# 개발 및 테스트 디렉토리
+webmon/dev/
