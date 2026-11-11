@@ -9,36 +9,36 @@
 ```mermaid
 flowchart TD
     subgraph Edge ["현장 Edge 캠 서버 (각 경기장)"]
-        Cam["현장 IP 카메라 (RTSP)"] -->|RTSP 수신| FFMPEG["FFmpeg (cctv-relay.service)"]
-        FFMPEG -->|HLS 세그먼트 생성| Nginx["Nginx Web Server (/hls/webcam.m3u8)"]
-        
+        Cam["현장 IP 카메라 (RTSP)"] -->|"RTSP 수신"| FFMPEG["FFmpeg (cctv-relay.service)"]
+        FFMPEG -->|"HLS 세그먼트 생성"| Nginx["Nginx Web Server (/hls/webcam.m3u8)"]
+
         CronSH["로컬 Watchdog (check_ffmpeg.sh, 1분 cron)"]
-        CronSH -->|1. mtime 지연 검사\n2. HLS Stall duration 파싱| Nginx
-        CronSH -->|이상 감지 시 자동 재기동| FFMPEG
-        CronSH -->|자가 치유/상태 기록| StatusFile["상태 파일 (*_cctv-relay_status)"]
-        
-        NRPEPlugin["NRPE 플러그인 (check_cctv_status.sh)"] -->|상태 및 Heartbeat 검증| StatusFile
+        CronSH -->|"1. mtime 지연 검사<br/>2. HLS Stall duration 파싱"| Nginx
+        CronSH -->|"이상 감지 시 자동 재기동"| FFMPEG
+        CronSH -->|"자가 치유/상태 기록"| StatusFile["상태 파일 (*_cctv-relay_status)"]
+
+        NRPEPlugin["NRPE 플러그인 (check_cctv_status.sh)"] -->|"상태 및 Heartbeat 검증"| StatusFile
     end
 
     subgraph Central ["중앙 관제 서버"]
         DigestCron["통합 알람 수집기 (cctv_digest.sh, 5분 cron)"]
-        DigestCron -->|병렬 NRPE 질의 (PARALLEL=20)| NRPEPlugin
-        DigestCron -->|Nagios 호스트 동적 디렉터리 스캔| NagiosCfg["/etc/nagios/objects/Monitor/"]
-        
-        DigestCron -->|예외/스케줄 필터링| ConfigData["data/cctv_config.json\ndata/alert_config.json"]
-        DigestCron -->|장애 전파| Mail["담당자 이메일 발송"]
-        DigestCron -->|실시간 상태 동기화| LiveJSON["data/live_status.json"]
+        DigestCron -->|"병렬 NRPE 질의 (PARALLEL=20)"| NRPEPlugin
+        DigestCron -->|"Nagios 호스트 동적 디렉터리 스캔"| NagiosCfg["/etc/nagios/objects/Monitor/"]
+
+        DigestCron -->|"예외/스케줄 필터링"| ConfigData["data/cctv_config.json<br/>data/alert_config.json"]
+        DigestCron -->|"장애 전파"| Mail["담당자 이메일 발송"]
+        DigestCron -->|"실시간 상태 동기화"| LiveJSON["data/live_status.json"]
     end
 
     subgraph WebAdmin ["웹 관제 대시보드 (PHP MVC SPA)"]
-        AdminUser["관제 관리자"] -->|브라우저 접속| WebUI["Web UI (Card / List 뷰)"]
-        WebUI -->|HLS 실시간 스트리밍| Nginx
-        WebUI -->|API 호출 (api.php)| Controller["CctvController.php"]
+        AdminUser["관제 관리자"] -->|"브라우저 접속"| WebUI["Web UI (Card / List 뷰)"]
+        WebUI -->|"HLS 실시간 스트리밍"| Nginx
+        WebUI -->|"API 호출 (api.php)"| Controller["CctvController.php"]
         Controller --> Model["CctvModel.php (Atomic File CRUD)"]
-        
+
         Upload["엑셀 업로드 (.xlsx)"] --> Controller
         Controller --> ExcelPy["scripts/parse_excel.py"]
-        ExcelPy -->|카메라 목록 동기화| ConfigData
+        ExcelPy -->|"카메라 목록 동기화"| ConfigData
     end
 ```
 
