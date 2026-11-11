@@ -269,11 +269,20 @@ sequenceDiagram
 - 조회 간 1.5초 rate-limit 대기
 - 한국 2단계 TLD: `{sub}.{sld}.kr` → `{sld}.kr` (KR_TLDS 집합)
 
-### 로그 쿼리 최적화 ([`LogModel.php`](file:///home/webmon/webmon/classes/LogModel.php))
-- 100만 행+ 대용량 대응
-- 전체 조회: `FORCE INDEX (PRIMARY)` 역순 스캔
-- 필터 조회: conf ID 목록 먼저 → `IN (ids)` 필터 (46초 → 0.02초)
-- 커서 기반 무한 스크롤 (`before_log_id`)
+### 로그 쿼리 최적화 (`LogModel.php`)
+- 대상: monitor_log 100만 행+, monitor_conf 약 270행
+- 필터 없는 전체 조회: `STRAIGHT_JOIN` + `FORCE INDEX (PRIMARY)` + `ORDER BY id DESC LIMIT N+1`
+  → PK 역순으로 N건만 읽고 종료, 조인 순서 고정
+- 필터 조회(회사명/그룹/상태/엔진): monitor_conf에서 조건에 맞는 `no`를 먼저 조회한 뒤
+  `monitor_log.monitor_conf_no IN (...)`로 접근 (46초 → 0.02초)
+- 커서 페이징: `l.id < :before_id` (OFFSET 미사용)
+- 입력 처리: 문자열은 `real_escape_string`, ID 목록은 `(int)` 캐스팅
+- 알려진 한계: `type=failure` 조회는 PK 스캔 범위가 길어질 수 있음 → `(result, id)` 인덱스 검토 대상
+
+### 차트 집계 (`get_chart_data.php`)
+- `FORCE INDEX (idx_conf_no_log_time)`로 `monitor_conf_no` 동등 + `log_time` 범위 스캔
+- 시간 버킷 `GROUP BY`로 DB에서 집계, 응답은 최대 `max_points`(기본 300)개
+- 버킷 크기 = 조회 범위 / max_points (최소 60초)
 
 ### 롤백 메커니즘 (`job_history`)
 - 작업 전 `snapshot` JSON을 `job_history`에 저장
