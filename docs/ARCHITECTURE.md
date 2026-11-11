@@ -44,38 +44,28 @@ flowchart LR
 erDiagram
     monitor_conf {
         int no PK
+        varchar company
+        varchar group_name
         varchar url
         varchar check
+        varchar engine_type
         int timeout_sec
-        varchar keyword
+        tinyint cross_check
+        tinyint ssl_mon
+        datetime ssl_expiry
+        tinyint dom_mon
+        datetime dom_expiry
         datetime fail_since
         datetime mute_until
-        datetime last_checked_at
-        datetime last_asset_check_at
-        int ssl_expiry_days
-        int domain_expiry_days
-        varchar email_mode
-        varchar smtp_host
+        varchar expiry_receiver_email
+        varchar expiry_cc_email
     }
     monitor_log {
         int id PK
-        int conf_no FK
-        int val
-        int http_status
-        datetime checked_at
-    }
-    system_settings {
-        varchar key PK
-        text value
-    }
-    job_history {
-        int id PK
-        varchar action
-        json snapshot
-        datetime created_at
-    }
-    schema_migrations {
-        int version PK
+        int monitor_conf_no FK
+        int result
+        float response_time
+        datetime log_time
     }
     monitor_conf ||--o{ monitor_log : "1:N"
 ```
